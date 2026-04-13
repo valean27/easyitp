@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from './axiosInstance';
 
 interface AuthResponse {
   token: string;
@@ -7,4 +7,4 @@ interface AuthResponse {
 }
 
 export const login = (email: string, password: string): Promise<AuthResponse> =>
-  axios.post('/api/auth/login', { email, password }).then((r) => r.data);
+  api.post('/api/auth/login', { email, password }).then((r) => r.data);
