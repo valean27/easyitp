@@ -9,6 +9,7 @@ import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
+import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
@@ -94,6 +95,10 @@ public class ItpService {
                 .testDate(form.getTestDate())
                 .validityMonths(form.getValidityMonths())
                 .nextItpDate(nextItp)
+                .status(form.getStatus() != null ? form.getStatus() : ItpStatus.PASSED)
+                .mileage(form.getMileage())
+                .price(form.getPrice() != null ? form.getPrice() : 0.0)
+                .observations(form.getObservations())
                 .build();
 
         return itpRecordRepository.save(record);
@@ -179,6 +184,8 @@ public class ItpService {
                             .testDate(testDate)
                             .validityMonths(validityMonths)
                             .nextItpDate(testDate.plusMonths(validityMonths))
+                            .status(ItpStatus.PASSED)
+                            .price(0.0)
                             .build());
 
                     imported++;
@@ -314,7 +321,11 @@ public class ItpService {
                 record.getTestDate(),
                 record.getValidityMonths(),
                 record.getNextItpDate(),
-                daysRemaining
+                daysRemaining,
+                record.getStatus() != null ? record.getStatus() : ItpStatus.PASSED,
+                record.getMileage(),
+                record.getPrice() != null ? record.getPrice() : 0.0,
+                record.getObservations()
         );
     }
 }

@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import UserManagementPage from './components/UserManagementPage';
 import LoginPage from './components/LoginPage';
+import CalendarPage from './components/CalendarPage';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="calendar" element={<CalendarPage />} />
             <Route
               path="users"
               element={

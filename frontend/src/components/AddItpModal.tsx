@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import type { SingleValue } from 'react-select';
 import { X, Loader2 } from 'lucide-react';
-import type { ItpFormData } from '../types';
+import type { ItpFormData, ItpStatus } from '../types';
 import { createItpEntry } from '../api/itpApi';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
 import type { CarMake, CarModel } from '../api/carApi';
@@ -51,6 +51,10 @@ const emptyForm: ItpFormData = {
   licensePlate: '',
   testDate: '',
   validityMonths: 12,
+  status: 'PASSED',
+  mileage: null,
+  price: null,
+  observations: '',
 };
 
 export default function AddItpModal({ onClose, onSuccess }: Props) {
@@ -121,14 +125,16 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
     setForm((prev) => ({ ...prev, model: created.name }));
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
       [name]:
         name === 'validityMonths'
           ? Number(value)
-          : name === 'year'
+          : name === 'year' || name === 'mileage' || name === 'price'
           ? value === ''
             ? null
             : Number(value)
@@ -341,6 +347,66 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
                     <option value={24}>24 luni</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">
+                    Rezultat ITP <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="status"
+                    value={form.status}
+                    onChange={handleChange}
+                    className={INPUT_CLS + ' bg-white'}
+                  >
+                    {([
+                      { value: 'PASSED', label: 'Promovat' },
+                      { value: 'FAILED', label: 'Respins' },
+                      { value: 'RECHECK', label: 'Reverificare' },
+                    ] as { value: ItpStatus; label: string }[]).map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Kilometraj</label>
+                  <input
+                    type="number"
+                    name="mileage"
+                    value={form.mileage ?? ''}
+                    onChange={handleChange}
+                    placeholder="ex: 120000"
+                    min={0}
+                    className={INPUT_CLS}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Preț (RON)</label>
+                <input
+                  type="number"
+                  name="price"
+                  value={form.price ?? ''}
+                  onChange={handleChange}
+                  placeholder="ex: 150"
+                  min={0}
+                  step="0.01"
+                  className={INPUT_CLS}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">Observații</label>
+                <textarea
+                  name="observations"
+                  value={form.observations}
+                  onChange={handleChange}
+                  placeholder="Note tehnice, deficiențe constatate..."
+                  rows={3}
+                  className={INPUT_CLS + ' resize-none'}
+                />
               </div>
             </fieldset>
 

@@ -12,11 +12,89 @@ import {
   Upload,
   Download,
   X,
+  Eye,
 } from 'lucide-react';
 import { getDashboard, deleteItpRecord, exportCsv } from '../api/itpApi';
-import type { DashboardEntry, ImportResult } from '../types';
+import type { DashboardEntry, ImportResult, ItpStatus } from '../types';
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
+
+function getStatusBadge(status: ItpStatus) {
+  const cfg: Record<ItpStatus, { label: string; cls: string }> = {
+    PASSED: { label: 'Promovat', cls: 'bg-emerald-100 text-emerald-700' },
+    FAILED: { label: 'Respins', cls: 'bg-red-100 text-red-700' },
+    RECHECK: { label: 'Reverificare', cls: 'bg-amber-100 text-amber-700' },
+  };
+  const { label, cls } = cfg[status] ?? cfg.PASSED;
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () => void }) {
+  function Row({ label, value }: { label: string; value: React.ReactNode }) {
+    return (
+      <div className="flex gap-3">
+        <span className="text-sm text-slate-500 w-36 shrink-0">{label}</span>
+        <span className="text-sm font-medium text-slate-800 break-words">{value ?? '—'}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[92vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+          <h2 className="text-lg font-semibold text-slate-800">Detalii Înregistrare ITP</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Date Șofer</p>
+            <Row label="Nume" value={entry.numeSofer} />
+            <Row label="Telefon" value={entry.contact} />
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Vehicul</p>
+            <Row label="Marcă / Model" value={[entry.marca, entry.model].filter(Boolean).join(' ')} />
+            <Row label="An fabricație" value={entry.year} />
+            <Row label="VIN" value={<span className="font-mono">{entry.vin || '—'}</span>} />
+            <Row label="Nr. Înmatriculare" value={<span className="font-mono font-semibold">{entry.numarInmatriculare}</span>} />
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Date ITP</p>
+            <Row label="Data ITP" value={entry.dataItp} />
+            <Row label="Valabilitate" value={`${entry.valabilitateLuni} luni`} />
+            <Row label="Următor ITP" value={entry.dataUrmatorItp} />
+            <Row label="Zile rămase" value={entry.zileRamase < 0 ? `Expirat (${Math.abs(entry.zileRamase)} zile)` : `${entry.zileRamase} zile`} />
+            <Row label="Rezultat" value={getStatusBadge(entry.status)} />
+            <Row label="Kilometraj" value={entry.mileage != null ? `${entry.mileage.toLocaleString()} km` : null} />
+            <Row label="Preț" value={entry.price != null ? `${entry.price.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON` : null} />
+          </div>
+          {entry.observations && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Observații</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg p-3 border border-slate-100">
+                {entry.observations}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            Închide
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function getRowStyle(zileRamase: number): string {
   if (zileRamase < 0) return 'text-red-600 bg-red-50';
@@ -85,6 +163,7 @@ export default function Dashboard() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [viewEntry, setViewEntry] = useState<DashboardEntry | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((message: string, type: Toast['type'] = 'success') => {
@@ -281,6 +360,7 @@ export default function Dashboard() {
                       'Marcă',
                       'VIN',
                       'Nr. Înmatriculare',
+                      'Status',
                       'Data ITP',
                       'Val. (luni)',
                       'Următor ITP',
@@ -325,6 +405,9 @@ export default function Dashboard() {
                         <td className="px-4 py-3 font-mono font-semibold whitespace-nowrap">
                           {row.numarInmatriculare}
                         </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          {getStatusBadge(row.status)}
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">{row.dataItp}</td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">
                           {row.valabilitateLuni}
@@ -336,18 +419,27 @@ export default function Dashboard() {
                           {getDaysTag(row.zileRamase)}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleDelete(row.id)}
-                            disabled={deletingId === row.id}
-                            className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                            title="Șterge"
-                          >
-                            {deletingId === row.id ? (
-                              <Loader2 size={15} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={15} />
-                            )}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setViewEntry(row)}
+                              className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              title="Detalii"
+                            >
+                              <Eye size={15} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(row.id)}
+                              disabled={deletingId === row.id}
+                              className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                              title="Șterge"
+                            >
+                              {deletingId === row.id ? (
+                                <Loader2 size={15} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={15} />
+                              )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -411,6 +503,10 @@ export default function Dashboard() {
           onClose={() => setShowImportModal(false)}
           onSuccess={handleImportSuccess}
         />
+      )}
+
+      {viewEntry && (
+        <DetailsModal entry={viewEntry} onClose={() => setViewEntry(null)} />
       )}
     </div>
   );

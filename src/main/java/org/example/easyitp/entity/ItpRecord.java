@@ -30,4 +30,17 @@ public class ItpRecord {
 
     @Column(name = "next_itp_date", nullable = false)
     private LocalDate nextItpDate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'PASSED'")
+    private ItpStatus status;
+
+    @Column(name = "mileage")
+    private Integer mileage;
+
+    @Column(name = "price", columnDefinition = "DOUBLE PRECISION DEFAULT 0")
+    private Double price;
+
+    @Column(name = "observations", columnDefinition = "TEXT")
+    private String observations;
 }

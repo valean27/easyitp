@@ -1,6 +1,7 @@
 package org.example.easyitp.dto;
 
 import lombok.Data;
+import org.example.easyitp.entity.ItpStatus;
 
 import java.time.LocalDate;
 
@@ -16,4 +17,8 @@ public class ItpFormDTO {
     private String licensePlate;
     private LocalDate testDate;
     private Integer validityMonths;
+    private ItpStatus status;
+    private Integer mileage;
+    private Double price;
+    private String observations;
 }
