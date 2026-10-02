@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "itp_records")
@@ -43,4 +44,12 @@ public class ItpRecord {
 
     @Column(name = "observations", columnDefinition = "TEXT")
     private String observations;
+
+    // Contactarea clientului pentru urmatorul ITP (relevant doar pe ultimul ITP al vehiculului)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reminder_status", length = 20)
+    private ReminderStatus reminderStatus;
+
+    @Column(name = "reminder_at")
+    private LocalDateTime reminderAt;
 }

@@ -11,4 +11,5 @@ public class ProfileDTO {
     private String stationName;
     private String address;
     private String phone;
+    private String reminderTemplate;
 }

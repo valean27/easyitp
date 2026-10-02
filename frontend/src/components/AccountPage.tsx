@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw } from 'lucide-react';
 import { getProfile, updateProfile, changePassword } from '../api/accountApi';
 import { useAuth } from '../context/AuthContext';
+import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -53,6 +54,7 @@ function StationCard() {
   const [stationName, setStationName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [template, setTemplate] = useState(DEFAULT_REMINDER_TEMPLATE);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
@@ -63,6 +65,7 @@ function StationCard() {
         setStationName(p.stationName ?? '');
         setAddress(p.address ?? '');
         setPhone(p.phone ?? '');
+        setTemplate(p.reminderTemplate || DEFAULT_REMINDER_TEMPLATE);
       })
       .catch(() => setMessage({ text: 'Nu s-au putut încărca datele stației.', type: 'error' }))
       .finally(() => setLoaded(true));
@@ -73,7 +76,9 @@ function StationCard() {
     setMessage(null);
     setLoading(true);
     try {
-      const p = await updateProfile({ stationName, address, phone });
+      // Mesajul implicit nu se salveaza, ca eventualele imbunatatiri viitoare sa ajunga automat la toti
+      const custom = template.trim() === DEFAULT_REMINDER_TEMPLATE ? null : template;
+      const p = await updateProfile({ stationName, address, phone, reminderTemplate: custom });
       updateUser({ stationName: p.stationName });
       setMessage({ text: 'Datele stației au fost salvate.', type: 'success' });
     } catch {
@@ -103,7 +108,48 @@ function StationCard() {
             <label className="block text-sm font-medium text-slate-600 mb-1">Telefon stație</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07xx xxx xxx" className={INPUT_CLS} />
           </div>
-          <p className="text-xs text-slate-400">Aceste date vor apărea în mesajele trimise clienților.</p>
+          <div>
+            <label className="flex items-center justify-between text-sm font-medium text-slate-600 mb-1">
+              <span className="flex items-center gap-1.5">
+                <MessageSquareText size={14} /> Mesaj de reamintire ITP
+              </span>
+              {template !== DEFAULT_REMINDER_TEMPLATE && (
+                <button
+                  type="button"
+                  onClick={() => setTemplate(DEFAULT_REMINDER_TEMPLATE)}
+                  className="flex items-center gap-1 text-xs font-normal text-slate-400 hover:text-slate-600"
+                >
+                  <RotateCcw size={12} /> Mesajul implicit
+                </button>
+              )}
+            </label>
+            <textarea value={template} onChange={(e) => setTemplate(e.target.value)} rows={4} className={INPUT_CLS + ' resize-y'} />
+            <p className="text-xs text-slate-400 mt-1">
+              {TEMPLATE_PLACEHOLDERS.map((p) => (
+                <span key={p.key} className="inline-block mr-2" title={p.description}>
+                  <code className="text-slate-500">{p.key}</code>
+                </span>
+              ))}
+            </p>
+            <p className="text-xs text-slate-400 mt-1">
+              Propozițiile cu informații lipsă (de ex. stație fără adresă) sunt omise automat.
+            </p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">Previzualizare</p>
+            <p className="text-sm text-slate-700 bg-slate-50 rounded-lg p-3 border border-slate-100 whitespace-pre-wrap">
+              {renderReminder(template, {
+                nume: 'Ion Popescu',
+                numar: 'CJ 01 ABC',
+                masina: 'Dacia Logan',
+                dataExpirare: new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10),
+                expirat: false,
+                statie: stationName,
+                adresa: address,
+                telefon: phone,
+              })}
+            </p>
+          </div>
           <MessageBox message={message} />
           <SubmitButton loading={loading} label="Salvează" />
         </form>

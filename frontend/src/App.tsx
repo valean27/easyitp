@@ -7,6 +7,7 @@ import UserManagementPage from './components/UserManagementPage';
 import LoginPage from './components/LoginPage';
 import CalendarPage from './components/CalendarPage';
 import AccountPage from './components/AccountPage';
+import RemindersPage from './components/RemindersPage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="account" element={<AccountPage />} />
+            <Route path="reminders" element={<RemindersPage />} />
             <Route
               path="users"
               element={

@@ -32,6 +32,10 @@ public class AppUser {
     private String address;
     private String phone;
 
+    // Mesajul de reamintire ITP cu placeholdere ({nume}, {numar}, ...); null = mesajul implicit
+    @Column(columnDefinition = "TEXT")
+    private String reminderTemplate;
+
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 

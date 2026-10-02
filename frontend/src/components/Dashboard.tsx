@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   RefreshCw,
@@ -14,6 +15,7 @@ import {
   X,
   Eye,
   Pencil,
+  History,
 } from 'lucide-react';
 import { getDashboard, deleteItpRecord, exportCsv } from '../api/itpApi';
 import type { DashboardEntry, ImportResult, ItpStatus } from '../types';
@@ -34,7 +36,17 @@ function getStatusBadge(status: ItpStatus) {
   );
 }
 
-function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () => void }) {
+const normalizePlate = (plate: string | null) => (plate ?? '').toUpperCase().replace(/[\s-]/g, '');
+
+function DetailsModal({
+  entry,
+  history,
+  onClose,
+}: {
+  entry: DashboardEntry;
+  history: DashboardEntry[];
+  onClose: () => void;
+}) {
   function Row({ label, value }: { label: string; value: React.ReactNode }) {
     return (
       <div className="flex gap-3">
@@ -75,6 +87,28 @@ function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () =
             <Row label="Kilometraj" value={entry.mileage != null ? `${entry.mileage.toLocaleString()} km` : null} />
             <Row label="Preț" value={entry.price != null ? `${entry.price.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON` : null} />
           </div>
+          {history.length > 1 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <History size={12} /> Istoric ITP vehicul ({history.length})
+              </p>
+              <div className="rounded-lg border border-slate-100 divide-y divide-slate-100">
+                {history.map((h) => (
+                  <div
+                    key={h.id}
+                    className={`flex items-center justify-between gap-3 px-3 py-2 text-sm ${h.id === entry.id ? 'bg-blue-50' : ''}`}
+                  >
+                    <span className="font-medium text-slate-700">{h.dataItp}</span>
+                    <span className="text-slate-500">{h.valabilitateLuni} luni</span>
+                    {getStatusBadge(h.status)}
+                    <span className="text-slate-500 text-xs">
+                      {h.mileage != null ? `${h.mileage.toLocaleString()} km` : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {entry.observations && (
             <div className="space-y-2">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Observații</p>
@@ -133,14 +167,21 @@ function StatCard({
   value,
   icon,
   color,
+  onClick,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
   color: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4`}>
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 ${
+        onClick ? 'cursor-pointer hover:border-blue-200 hover:shadow transition' : ''
+      }`}
+    >
       <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
       <div>
         <p className="text-2xl font-bold text-slate-800">{value}</p>
@@ -156,7 +197,9 @@ interface Toast {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [data, setData] = useState<DashboardEntry[]>([]);
+  const [onlyLatest, setOnlyLatest] = useState(true);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -218,7 +261,7 @@ export default function Dashboard() {
     );
   }, [fetchData, showToast]);
 
-  const filtered = data.filter(
+  const filtered = data.filter((row) => !onlyLatest || row.ultimul).filter(
     (row) =>
       row.numeSofer.toLowerCase().includes(search.toLowerCase()) ||
       row.numarInmatriculare.toLowerCase().includes(search.toLowerCase()) ||
@@ -226,12 +269,23 @@ export default function Dashboard() {
       (row.vin ?? '').toLowerCase().includes(search.toLowerCase())
   );
 
+  // Expirarea conteaza doar pentru ultimul ITP al fiecarui vehicul
+  const latest = data.filter((r) => r.ultimul);
   const totalCount = data.length;
-  const expiredCount = data.filter((r) => r.zileRamase < 0).length;
-  const expiringSoonCount = data.filter(
+  const shownTotal = onlyLatest ? latest.length : totalCount;
+  const expiredCount = latest.filter((r) => r.zileRamase < 0).length;
+  const expiringSoonCount = latest.filter(
     (r) => r.zileRamase >= 0 && r.zileRamase <= 30
   ).length;
-  const validCount = data.filter((r) => r.zileRamase > 30).length;
+  const validCount = latest.filter((r) => r.zileRamase > 30).length;
+
+  const historyFor = (entry: DashboardEntry) => {
+    const plate = normalizePlate(entry.numarInmatriculare);
+    if (!plate) return [entry];
+    return data
+      .filter((r) => normalizePlate(r.numarInmatriculare) === plate)
+      .sort((a, b) => b.dataItp.localeCompare(a.dataItp));
+  };
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -287,8 +341,8 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard
-            label="Total înregistrări"
-            value={totalCount}
+            label="Vehicule"
+            value={latest.length}
             icon={<Car size={18} className="text-blue-600" />}
             color="bg-blue-50"
           />
@@ -303,6 +357,7 @@ export default function Dashboard() {
             value={expiringSoonCount}
             icon={<Clock size={18} className="text-amber-600" />}
             color="bg-amber-50"
+            onClick={() => navigate('/reminders')}
           />
           <StatCard
             label="Expirat"
@@ -319,9 +374,18 @@ export default function Dashboard() {
             <h2 className="text-base font-semibold text-slate-800">
               Înregistrări ITP
               <span className="ml-2 text-sm font-normal text-slate-400">
-                ({filtered.length} din {totalCount})
+                ({filtered.length} din {shownTotal})
               </span>
             </h2>
+            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none sm:ml-auto sm:mr-3">
+              <input
+                type="checkbox"
+                checked={onlyLatest}
+                onChange={(e) => setOnlyLatest(e.target.checked)}
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              Doar ultimul ITP pe vehicul
+            </label>
             <div className="relative w-full sm:w-72">
               <Search
                 size={15}
@@ -380,7 +444,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filtered.map((row, idx) => {
-                    const rowCls = getRowStyle(row.zileRamase);
+                    const rowCls = row.ultimul ? getRowStyle(row.zileRamase) : 'text-slate-400';
                     return (
                       <tr
                         key={row.id}
@@ -418,7 +482,11 @@ export default function Dashboard() {
                           {row.dataUrmatorItp}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          {getDaysTag(row.zileRamase)}
+                          {row.ultimul ? (
+                            getDaysTag(row.zileRamase)
+                          ) : (
+                            <span className="text-xs italic">Reînnoit</span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -526,7 +594,7 @@ export default function Dashboard() {
       )}
 
       {viewEntry && (
-        <DetailsModal entry={viewEntry} onClose={() => setViewEntry(null)} />
+        <DetailsModal entry={viewEntry} history={historyFor(viewEntry)} onClose={() => setViewEntry(null)} />
       )}
     </div>
   );

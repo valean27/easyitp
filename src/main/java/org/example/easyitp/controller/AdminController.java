@@ -9,7 +9,7 @@ import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
-import org.example.easyitp.repository.ItpRecordRepository;
+import org.example.easyitp.service.ItpService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,7 +30,7 @@ public class AdminController {
     private static final int MIN_PASSWORD_LENGTH = 6;
 
     private final AppUserRepository appUserRepository;
-    private final ItpRecordRepository itpRecordRepository;
+    private final ItpService itpService;
     private final AppointmentRepository appointmentRepository;
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
@@ -60,13 +60,8 @@ public class AdminController {
     // Doar cifre agregate per statie; adminul nu vede clientii managerilor
     @GetMapping("/managers")
     public List<ManagerSummaryDTO> getManagers() {
-        LocalDate today = LocalDate.now();
-        LocalDate monthStart = today.withDayOfMonth(1);
-
-        Map<Long, Object[]> itpStats = new HashMap<>();
-        for (Object[] row : itpRecordRepository.statsByUser(today, today.plusDays(EXPIRING_SOON_DAYS), monthStart)) {
-            itpStats.put((Long) row[0], row);
-        }
+        LocalDate monthStart = LocalDate.now().withDayOfMonth(1);
+        Map<Long, ItpService.StationStats> itpStats = itpService.stationStats(EXPIRING_SOON_DAYS);
         Map<Long, Long> appointments = new HashMap<>();
         for (Object[] row : appointmentRepository.countByUserBetween(
                 monthStart.atStartOfDay(), monthStart.plusMonths(1).atStartOfDay())) {
@@ -75,7 +70,7 @@ public class AdminController {
 
         return appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER).stream()
                 .map(u -> {
-                    Object[] s = itpStats.get(u.getId());
+                    ItpService.StationStats s = itpStats.getOrDefault(u.getId(), new ItpService.StationStats());
                     return ManagerSummaryDTO.builder()
                             .id(u.getId())
                             .email(u.getEmail())
@@ -85,11 +80,11 @@ public class AdminController {
                             .active(u.isEnabled())
                             .createdAt(u.getCreatedAt())
                             .lastLoginAt(u.getLastLoginAt())
-                            .itpCount(s != null ? toLong(s[1]) : 0)
-                            .expiredCount(s != null ? toLong(s[2]) : 0)
-                            .expiringSoonCount(s != null ? toLong(s[3]) : 0)
-                            .itpThisMonth(s != null ? toLong(s[4]) : 0)
-                            .revenueThisMonth(s != null && s[5] != null ? ((Number) s[5]).doubleValue() : 0)
+                            .itpCount(s.total)
+                            .expiredCount(s.expired)
+                            .expiringSoonCount(s.expiringSoon)
+                            .itpThisMonth(s.thisMonth)
+                            .revenueThisMonth(s.revenueThisMonth)
                             .appointmentsThisMonth(appointments.getOrDefault(u.getId(), 0L))
                             .build();
                 })
@@ -146,10 +141,6 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Parola trebuie sa aiba minim " + MIN_PASSWORD_LENGTH + " caractere");
         }
-    }
-
-    private static long toLong(Object o) {
-        return o != null ? ((Number) o).longValue() : 0;
     }
 
     private static String trimToNull(String s) {

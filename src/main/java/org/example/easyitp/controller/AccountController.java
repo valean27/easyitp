@@ -40,6 +40,7 @@ public class AccountController {
         user.setStationName(trimToNull(request.getStationName()));
         user.setAddress(trimToNull(request.getAddress()));
         user.setPhone(trimToNull(request.getPhone()));
+        user.setReminderTemplate(trimToNull(request.getReminderTemplate()));
         return toDto(appUserRepository.save(user));
     }
 
@@ -60,7 +61,8 @@ public class AccountController {
     }
 
     private ProfileDTO toDto(AppUser u) {
-        return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone());
+        return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
+                u.getReminderTemplate());
     }
 
     private static String trimToNull(String s) {

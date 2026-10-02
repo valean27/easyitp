@@ -28,4 +28,6 @@ public class DashboardDTO {
     private Integer mileage;
     private Double price;
     private String observations;
+    // false = vehiculul are un ITP mai nou (inregistrare istorica)
+    private boolean ultimul;
 }

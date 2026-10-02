@@ -7,10 +7,12 @@ import org.apache.commons.csv.CSVRecord;
 import org.example.easyitp.dto.DashboardDTO;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
+import org.example.easyitp.dto.ReminderDTO;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.AppUser;
+import org.example.easyitp.entity.ReminderStatus;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
@@ -30,11 +32,16 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -59,35 +66,125 @@ public class ItpService {
             Map.entry("oct", "10"), Map.entry("nov", "11"), Map.entry("dec", "12")
     );
 
+    // Fereastra listei "De contactat"
+    private static final int REMINDER_DAYS_AHEAD = 30;
+    private static final int REMINDER_DAYS_EXPIRED = 60;
+
     private final ClientRepository clientRepository;
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final CarService carService;
 
     public List<DashboardDTO> getDashboard(Long userId) {
-        return itpRecordRepository.findAllByUserId(userId)
-                .stream()
-                .map(this::toDto)
+        List<ItpRecord> records = itpRecordRepository.findAllByUserId(userId);
+        Set<Long> latest = latestRecordIds(records);
+        return records.stream()
+                .map(r -> toDto(r, latest.contains(r.getId())))
+                .collect(Collectors.toList());
+    }
+
+    // Clientii de sunat: ultimul ITP al fiecarui vehicul, care expira curand sau a expirat recent
+    public List<ReminderDTO> getReminders(Long userId) {
+        List<ItpRecord> records = itpRecordRepository.findAllByUserId(userId);
+        Set<Long> latest = latestRecordIds(records);
+        LocalDate today = LocalDate.now();
+        return records.stream()
+                .filter(r -> latest.contains(r.getId()))
+                .map(r -> {
+                    long days = ChronoUnit.DAYS.between(today, r.getNextItpDate());
+                    if (days > REMINDER_DAYS_AHEAD || days < -REMINDER_DAYS_EXPIRED) return null;
+                    Vehicle v = r.getVehicle();
+                    Client c = v.getClient();
+                    return new ReminderDTO(r.getId(), c.getName(), c.getPhone(), v.getBrand(), v.getModel(),
+                            v.getLicensePlate(), r.getNextItpDate(), days, r.getReminderStatus(), r.getReminderAt());
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public ItpRecord createItpEntry(ItpFormDTO form, AppUser user) {
-        Client client = Client.builder()
-                .name(form.getName())
-                .phone(form.getPhone())
-                .user(user)
-                .build();
-        client = clientRepository.save(client);
+    public void updateReminder(Long id, Long userId, ReminderStatus status) {
+        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
+        record.setReminderStatus(status);
+        record.setReminderAt(status != null ? LocalDateTime.now() : null);
+    }
 
-        Vehicle vehicle = Vehicle.builder()
-                .brand(form.getBrand())
-                .model(nullIfBlank(form.getModel()))
-                .year(form.getYear())
-                .vin(nullIfBlank(form.getVin()))
-                .licensePlate(form.getLicensePlate())
-                .client(client)
-                .build();
+    // Statistici per statie (cheie = id manager) pentru pagina adminului
+    public Map<Long, StationStats> stationStats(int expiringSoonDays) {
+        List<ItpRecord> records = itpRecordRepository.findAllWithVehicle();
+        Set<Long> latest = latestRecordIds(records);
+        LocalDate today = LocalDate.now();
+        LocalDate monthStart = today.withDayOfMonth(1);
+        LocalDate soon = today.plusDays(expiringSoonDays);
+
+        Map<Long, StationStats> result = new HashMap<>();
+        for (ItpRecord r : records) {
+            StationStats s = result.computeIfAbsent(r.getVehicle().getClient().getUser().getId(), k -> new StationStats());
+            s.total++;
+            if (!r.getTestDate().isBefore(monthStart)) {
+                s.thisMonth++;
+                s.revenueThisMonth += r.getPrice() != null ? r.getPrice() : 0.0;
+            }
+            if (latest.contains(r.getId())) {
+                if (r.getNextItpDate().isBefore(today)) s.expired++;
+                else if (!r.getNextItpDate().isAfter(soon)) s.expiringSoon++;
+            }
+        }
+        return result;
+    }
+
+    public static class StationStats {
+        public long total;
+        public long expired;
+        public long expiringSoon;
+        public long thisMonth;
+        public double revenueThisMonth;
+    }
+
+    // Un vehicul (dupa numar normalizat) poate avea mai multe ITP-uri; doar cel mai recent conteaza pentru expirare
+    private Set<Long> latestRecordIds(List<ItpRecord> records) {
+        Map<String, ItpRecord> latestByVehicle = new HashMap<>();
+        for (ItpRecord r : records) {
+            Vehicle v = r.getVehicle();
+            String plate = PlateUtils.normalize(v.getLicensePlate());
+            String key = v.getClient().getUser().getId() + ":" + (plate.isEmpty() ? "v" + v.getId() : plate);
+            latestByVehicle.merge(key, r, (a, b) -> isNewer(b, a) ? b : a);
+        }
+        Set<Long> ids = new HashSet<>();
+        latestByVehicle.values().forEach(r -> ids.add(r.getId()));
+        return ids;
+    }
+
+    private static boolean isNewer(ItpRecord a, ItpRecord b) {
+        int cmp = a.getTestDate().compareTo(b.getTestDate());
+        return cmp != 0 ? cmp > 0 : a.getId() > b.getId();
+    }
+
+    @Transactional
+    public ItpRecord createItpEntry(ItpFormDTO form, AppUser user) {
+        // Acelasi numar de inmatriculare = acelasi vehicul, ca sa se pastreze istoricul ITP
+        Vehicle vehicle = vehicleRepository
+                .findByNormalizedPlate(PlateUtils.normalize(form.getLicensePlate()), user.getId())
+                .stream().findFirst().orElse(null);
+
+        if (vehicle == null) {
+            Client client = clientRepository.save(Client.builder()
+                    .name(form.getName())
+                    .phone(form.getPhone())
+                    .user(user)
+                    .build());
+            vehicle = Vehicle.builder().client(client).build();
+        } else {
+            Client client = vehicle.getClient();
+            client.setName(form.getName());
+            if (!isBlank(form.getPhone())) client.setPhone(form.getPhone());
+        }
+        vehicle.setBrand(form.getBrand());
+        vehicle.setModel(nullIfBlank(form.getModel()));
+        vehicle.setYear(form.getYear());
+        if (!isBlank(form.getVin()) || vehicle.getId() == null) vehicle.setVin(nullIfBlank(form.getVin()));
+        vehicle.setLicensePlate(form.getLicensePlate());
         vehicle = vehicleRepository.save(vehicle);
 
         LocalDate nextItp = form.getTestDate().plusMonths(form.getValidityMonths());
@@ -247,8 +344,8 @@ public class ItpService {
             if (byVin.isPresent()) return byVin.get();
         }
         if (!licensePlate.isBlank()) {
-            var byPlate = vehicleRepository.findByLicensePlateAndClientUserId(licensePlate, user.getId());
-            if (byPlate.isPresent()) return byPlate.get();
+            var byPlate = vehicleRepository.findByNormalizedPlate(PlateUtils.normalize(licensePlate), user.getId());
+            if (!byPlate.isEmpty()) return byPlate.get(0);
         }
         return vehicleRepository.save(Vehicle.builder()
                 .brand(brand.isBlank() ? "Necunoscut" : brand)
@@ -332,10 +429,14 @@ public class ItpService {
     }
 
     private String nullIfBlank(String s) {
-        return (s == null || s.isBlank()) ? null : s.trim();
+        return isBlank(s) ? null : s.trim();
     }
 
-    private DashboardDTO toDto(ItpRecord record) {
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
+    }
+
+    private DashboardDTO toDto(ItpRecord record, boolean latest) {
         Vehicle vehicle = record.getVehicle();
         Client client = vehicle.getClient();
         long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), record.getNextItpDate());
@@ -356,7 +457,8 @@ public class ItpService {
                 record.getStatus() != null ? record.getStatus() : ItpStatus.PASSED,
                 record.getMileage(),
                 record.getPrice() != null ? record.getPrice() : 0.0,
-                record.getObservations()
+                record.getObservations(),
+                latest
         );
     }
 }

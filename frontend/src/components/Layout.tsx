@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
@@ -41,6 +41,10 @@ export default function Layout() {
           <NavLink to="/" end className={navCls}>
             <LayoutDashboard size={16} />
             Dashboard
+          </NavLink>
+          <NavLink to="/reminders" className={navCls}>
+            <BellRing size={16} />
+            De contactat
           </NavLink>
           <NavLink to="/calendar" className={navCls}>
             <CalendarDays size={16} />

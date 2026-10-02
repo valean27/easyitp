@@ -4,6 +4,8 @@ export type ItpStatus = 'PASSED' | 'FAILED' | 'RECHECK';
 
 export type AppointmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 
+export type ReminderStatus = 'CONTACTED' | 'SCHEDULED' | 'NOT_INTERESTED';
+
 export interface DashboardEntry {
   id: number;
   numeSofer: string;
@@ -21,6 +23,8 @@ export interface DashboardEntry {
   mileage: number | null;
   price: number | null;
   observations: string | null;
+  // false = vehiculul are un ITP mai nou
+  ultimul: boolean;
 }
 
 export interface ItpFormData {
@@ -54,6 +58,20 @@ export interface StationInfo {
 export interface Profile extends StationInfo {
   email: string;
   role: UserRole;
+  reminderTemplate: string | null;
+}
+
+export interface Reminder {
+  id: number;
+  numeSofer: string;
+  contact: string | null;
+  marca: string;
+  model: string | null;
+  numarInmatriculare: string;
+  dataUrmatorItp: string;
+  zileRamase: number;
+  reminderStatus: ReminderStatus | null;
+  reminderAt: string | null;
 }
 
 export interface ManagerSummary extends StationInfo {
