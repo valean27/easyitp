@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./frontend/node_modules/**)",
+      "Read(./frontend/dist/**)",
+      "Read(./target/**)",
+      "Read(./.idea/**)",
+      "Read(./frontend/package-lock.json)"
+    ]
+  }
+}
