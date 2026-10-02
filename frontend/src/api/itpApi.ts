@@ -9,6 +9,9 @@ export const getDashboard = (): Promise<DashboardEntry[]> =>
 export const createItpEntry = (data: ItpFormData): Promise<void> =>
   api.post(BASE, data).then((r) => r.data);
 
+export const updateItpEntry = (id: number, data: ItpFormData): Promise<void> =>
+  api.put(`${BASE}/${id}`, data).then(() => undefined);
+
 export const deleteItpRecord = (id: number): Promise<void> =>
   api.delete(`${BASE}/${id}`).then(() => undefined);
 

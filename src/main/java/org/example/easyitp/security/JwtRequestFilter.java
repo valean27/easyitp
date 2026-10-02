@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.easyitp.entity.AppUser;
+import org.example.easyitp.repository.AppUserRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +22,7 @@ import java.util.List;
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final AppUserRepository appUserRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,6 +39,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         if (jwtUtil.isTokenValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
             String email = jwtUtil.extractEmail(token);
+            // Cont sters sau dezactivat -> tokenul nu mai e acceptat (401)
+            boolean enabled = appUserRepository.findByEmail(email).map(AppUser::isEnabled).orElse(false);
+            if (!enabled) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             String role = jwtUtil.extractRole(token);
             String authority = "ROLE_" + (role != null ? role : "MANAGER");
             UsernamePasswordAuthenticationToken authentication =

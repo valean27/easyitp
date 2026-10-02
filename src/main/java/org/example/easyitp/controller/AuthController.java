@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -26,7 +28,12 @@ public class AuthController {
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        if (!user.isEnabled()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        user.setLastLoginAt(LocalDateTime.now());
+        appUserRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-        return ResponseEntity.ok(new AuthResponse(token, user.getEmail(), user.getRole().name()));
+        return ResponseEntity.ok(new AuthResponse(token, user.getEmail(), user.getRole().name(), user.getStationName()));
     }
 }

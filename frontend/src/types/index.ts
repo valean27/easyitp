@@ -45,6 +45,31 @@ export interface ImportResult {
   errors: string[];
 }
 
+export interface StationInfo {
+  stationName: string | null;
+  address: string | null;
+  phone: string | null;
+}
+
+export interface Profile extends StationInfo {
+  email: string;
+  role: UserRole;
+}
+
+export interface ManagerSummary extends StationInfo {
+  id: number;
+  email: string;
+  active: boolean;
+  createdAt: string | null;
+  lastLoginAt: string | null;
+  itpCount: number;
+  expiringSoonCount: number;
+  expiredCount: number;
+  itpThisMonth: number;
+  revenueThisMonth: number;
+  appointmentsThisMonth: number;
+}
+
 export interface Appointment {
   id: number;
   clientName: string;

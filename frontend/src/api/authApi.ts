@@ -4,6 +4,7 @@ interface AuthResponse {
   token: string;
   email: string;
   role: string;
+  stationName: string | null;
 }
 
 export const login = (email: string, password: string): Promise<AuthResponse> =>

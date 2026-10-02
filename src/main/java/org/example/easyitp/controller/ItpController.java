@@ -53,6 +53,12 @@ public class ItpController {
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> updateItpEntry(@PathVariable Long id, @RequestBody ItpFormDTO form) {
+        itpService.updateItpEntry(id, form, currentUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping(value = "/import", consumes = "multipart/form-data")
     public ResponseEntity<ImportResultDTO> importCsv(@RequestParam("file") MultipartFile file) throws IOException {
         ImportResultDTO result = itpService.importCsv(file, currentUser());

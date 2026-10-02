@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
@@ -50,9 +50,13 @@ export default function Layout() {
           {user?.role === 'ADMIN' && (
             <NavLink to="/users" className={navCls}>
               <Users size={16} />
-              Utilizatori
+              Manageri
             </NavLink>
           )}
+          <NavLink to="/account" className={navCls}>
+            <UserCog size={16} />
+            Contul meu
+          </NavLink>
         </nav>
 
         {/* User card + Logout */}
@@ -63,8 +67,8 @@ export default function Layout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-slate-700 truncate">{user?.email}</p>
-              <p className="text-xs text-slate-400">
-                {user?.role === 'ADMIN' ? 'Administrator' : 'Manager ITP'}
+              <p className="text-xs text-slate-400 truncate">
+                {user?.role === 'ADMIN' ? 'Administrator' : user?.stationName || 'Manager ITP'}
               </p>
             </div>
             <button

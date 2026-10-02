@@ -13,6 +13,7 @@ import {
   Download,
   X,
   Eye,
+  Pencil,
 } from 'lucide-react';
 import { getDashboard, deleteItpRecord, exportCsv } from '../api/itpApi';
 import type { DashboardEntry, ImportResult, ItpStatus } from '../types';
@@ -164,6 +165,7 @@ export default function Dashboard() {
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const [viewEntry, setViewEntry] = useState<DashboardEntry | null>(null);
+  const [editEntry, setEditEntry] = useState<DashboardEntry | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = useCallback((message: string, type: Toast['type'] = 'success') => {
@@ -428,6 +430,13 @@ export default function Dashboard() {
                               <Eye size={15} />
                             </button>
                             <button
+                              onClick={() => setEditEntry(row)}
+                              className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              title="Editează"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
                               onClick={() => handleDelete(row.id)}
                               disabled={deletingId === row.id}
                               className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -502,6 +511,17 @@ export default function Dashboard() {
         <ImportCsvModal
           onClose={() => setShowImportModal(false)}
           onSuccess={handleImportSuccess}
+        />
+      )}
+
+      {editEntry && (
+        <AddItpModal
+          entry={editEntry}
+          onClose={() => setEditEntry(null)}
+          onSuccess={() => {
+            fetchData();
+            showToast('Înregistrarea a fost actualizată.');
+          }}
         />
       )}
 

@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import type { SingleValue } from 'react-select';
 import { X, Loader2 } from 'lucide-react';
-import type { ItpFormData, ItpStatus } from '../types';
-import { createItpEntry } from '../api/itpApi';
+import type { DashboardEntry, ItpFormData, ItpStatus } from '../types';
+import { createItpEntry, updateItpEntry } from '../api/itpApi';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
 import type { CarMake, CarModel } from '../api/carApi';
 
 interface Props {
   onClose: () => void;
   onSuccess: () => void;
+  // Daca e setat, modalul editeaza inregistrarea existenta
+  entry?: DashboardEntry;
 }
 
 type SelectOption = { value: number; label: string };
@@ -57,8 +59,27 @@ const emptyForm: ItpFormData = {
   observations: '',
 };
 
-export default function AddItpModal({ onClose, onSuccess }: Props) {
-  const [form, setForm] = useState<ItpFormData>(emptyForm);
+function formFromEntry(entry: DashboardEntry): ItpFormData {
+  return {
+    name: entry.numeSofer ?? '',
+    phone: entry.contact ?? '',
+    brand: entry.marca ?? '',
+    model: entry.model ?? '',
+    year: entry.year,
+    vin: entry.vin ?? '',
+    licensePlate: entry.numarInmatriculare ?? '',
+    testDate: entry.dataItp,
+    validityMonths: entry.valabilitateLuni,
+    status: entry.status,
+    mileage: entry.mileage,
+    price: entry.price,
+    observations: entry.observations ?? '',
+  };
+}
+
+export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
+  const isEdit = !!entry;
+  const [form, setForm] = useState<ItpFormData>(() => (entry ? formFromEntry(entry) : emptyForm));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,12 +92,33 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
 
   useEffect(() => {
     getMakes()
-      .then((data: CarMake[]) =>
-        setMakeOptions(data.map((m) => ({ value: m.id, label: m.name })))
-      )
+      .then(async (data: CarMake[]) => {
+        const options = data.map((m) => ({ value: m.id, label: m.name }));
+        setMakeOptions(options);
+        if (!entry?.marca) return;
+        // La editare preselectam marca si modelul existente
+        const make = options.find((o) => o.label.toLowerCase() === entry.marca.toLowerCase());
+        if (!make) {
+          setSelectedMake({ value: -1, label: entry.marca });
+          return;
+        }
+        setSelectedMake(make);
+        setModelsLoading(true);
+        try {
+          const models: CarModel[] = await getModels(make.value);
+          const modelOpts = models.map((m) => ({ value: m.id, label: m.name }));
+          setModelOptions(modelOpts);
+          if (entry.model) {
+            const model = modelOpts.find((o) => o.label.toLowerCase() === entry.model!.toLowerCase());
+            setSelectedModel(model ?? { value: -1, label: entry.model });
+          }
+        } finally {
+          setModelsLoading(false);
+        }
+      })
       .catch(() => setMakeOptions([]))
       .finally(() => setMakesLoading(false));
-  }, []);
+  }, [entry]);
 
   const loadModels = async (makeId: number) => {
     setModelsLoading(true);
@@ -118,6 +160,12 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
 
   const handleModelCreate = async (inputValue: string) => {
     if (!selectedMake) return;
+    // Marca veche care nu exista in dictionar: pastram modelul doar ca text
+    if (selectedMake.value < 0) {
+      setSelectedModel({ value: -1, label: inputValue });
+      setForm((prev) => ({ ...prev, model: inputValue }));
+      return;
+    }
     const created = await createModel(inputValue, selectedMake.value);
     const opt: SelectOption = { value: created.id, label: created.name };
     setModelOptions((prev) => [...prev, opt].sort((a, b) => a.label.localeCompare(b.label)));
@@ -147,7 +195,11 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
     setError(null);
     setLoading(true);
     try {
-      await createItpEntry(form);
+      if (entry) {
+        await updateItpEntry(entry.id, form);
+      } else {
+        await createItpEntry(form);
+      }
       onSuccess();
       onClose();
     } catch {
@@ -162,7 +214,9 @@ export default function AddItpModal({ onClose, onSuccess }: Props) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
-          <h2 className="text-lg font-semibold text-slate-800">Adaugă Înregistrare ITP</h2>
+          <h2 className="text-lg font-semibold text-slate-800">
+            {isEdit ? 'Editează Înregistrare ITP' : 'Adaugă Înregistrare ITP'}
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"

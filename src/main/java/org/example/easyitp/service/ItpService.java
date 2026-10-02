@@ -15,9 +15,11 @@ import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.VehicleRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -102,6 +104,35 @@ public class ItpService {
                 .build();
 
         return itpRecordRepository.save(record);
+    }
+
+    // Clientul si vehiculul pot fi comune mai multor inregistrari (import), deci modificarile lor se propaga
+    @Transactional
+    public void updateItpEntry(Long id, ItpFormDTO form, Long userId) {
+        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
+        if (form.getTestDate() == null || form.getValidityMonths() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data ITP si valabilitatea sunt obligatorii");
+        }
+
+        Vehicle vehicle = record.getVehicle();
+        Client client = vehicle.getClient();
+        client.setName(form.getName());
+        client.setPhone(nullIfBlank(form.getPhone()));
+
+        vehicle.setBrand(form.getBrand());
+        vehicle.setModel(nullIfBlank(form.getModel()));
+        vehicle.setYear(form.getYear());
+        vehicle.setVin(nullIfBlank(form.getVin()));
+        vehicle.setLicensePlate(form.getLicensePlate());
+
+        record.setTestDate(form.getTestDate());
+        record.setValidityMonths(form.getValidityMonths());
+        record.setNextItpDate(form.getTestDate().plusMonths(form.getValidityMonths()));
+        record.setStatus(form.getStatus() != null ? form.getStatus() : ItpStatus.PASSED);
+        record.setMileage(form.getMileage());
+        record.setPrice(form.getPrice() != null ? form.getPrice() : 0.0);
+        record.setObservations(form.getObservations());
     }
 
     @Transactional

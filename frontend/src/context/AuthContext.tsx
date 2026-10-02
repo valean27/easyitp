@@ -6,12 +6,14 @@ interface AuthUser {
   email: string;
   token: string;
   role: UserRole;
+  stationName?: string | null;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUser: (changes: Partial<Omit<AuthUser, 'token'>>) => void;
   isAuthenticated: boolean;
 }
 
@@ -40,7 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await loginApi(email, password);
-    const authUser: AuthUser = { email: data.email, token: data.token, role: data.role as UserRole };
+    const authUser: AuthUser = {
+      email: data.email,
+      token: data.token,
+      role: data.role as UserRole,
+      stationName: data.stationName,
+    };
     setUser(authUser);
     localStorage.setItem('auth_user', JSON.stringify(authUser));
   }, []);
@@ -50,8 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('auth_user');
   }, []);
 
+  const updateUser = useCallback((changes: Partial<Omit<AuthUser, 'token'>>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...changes };
+      localStorage.setItem('auth_user', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );
