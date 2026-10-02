@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
+import api from '../api/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import { Car, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -10,17 +12,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [slowServer, setSlowServer] = useState(false);
+
+  // Serverul gratuit (Render) adoarme; il trezim cat timp utilizatorul completeaza formularul
+  useEffect(() => {
+    api.get('/api/health').catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const slowTimer = setTimeout(() => setSlowServer(true), 4000);
     try {
       await login(email, password);
       navigate('/');
-    } catch {
-      setError('Email sau parolă incorecte.');
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        setError('Email sau parolă incorecte.');
+      } else {
+        setError('Serverul nu răspunde. Încercați din nou în câteva secunde.');
+      }
     } finally {
+      clearTimeout(slowTimer);
+      setSlowServer(false);
       setLoading(false);
     }
   };
@@ -68,6 +83,13 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
               <AlertTriangle size={14} className="shrink-0" />
               {error}
+            </div>
+          )}
+
+          {slowServer && (
+            <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <Loader2 size={14} className="shrink-0 animate-spin" />
+              Serverul pornește, poate dura până la un minut...
             </div>
           )}
 

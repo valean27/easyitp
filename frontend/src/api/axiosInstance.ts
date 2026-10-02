@@ -13,4 +13,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Token expirat/invalid -> delogare si redirect la login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isLoginCall = error.config?.url?.includes('/api/auth/');
+    if (error.response?.status === 401 && !isLoginCall) {
+      localStorage.removeItem('auth_user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;

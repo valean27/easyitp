@@ -8,6 +8,7 @@ import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.CarMakeRepository;
 import org.example.easyitp.service.CarService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,21 +27,40 @@ public class DataSeeder implements CommandLineRunner {
     private final CarMakeRepository carMakeRepository;
     private final CarService carService;
 
+    @Value("${admin.email:admin@itp.ro}")
+    private String adminEmail;
+
+    // Daca e setat (ADMIN_PASSWORD), parola adminului e sincronizata la fiecare pornire
+    @Value("${admin.password:}")
+    private String adminPassword;
+
     @Override
     public void run(String... args) {
-        if (!appUserRepository.existsByEmail("admin@itp.ro")) {
-            AppUser admin = AppUser.builder()
-                    .email("admin@itp.ro")
-                    .password(passwordEncoder.encode("admin"))
-                    .role(Role.ADMIN)
-                    .build();
-            appUserRepository.save(admin);
-            log.info("Default admin seeded: admin@itp.ro");
-        }
+        seedAdmin();
 
         if (carMakeRepository.count() == 0) {
             seedCarDictionary();
             log.info("Car dictionary seeded.");
+        }
+    }
+
+    private void seedAdmin() {
+        AppUser admin = appUserRepository.findByEmail(adminEmail).orElse(null);
+        if (admin == null) {
+            String password = adminPassword.isBlank() ? "admin" : adminPassword;
+            appUserRepository.save(AppUser.builder()
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(password))
+                    .role(Role.ADMIN)
+                    .build());
+            log.info("Default admin seeded: {}", adminEmail);
+            if (adminPassword.isBlank()) {
+                log.warn("Admin creat cu parola implicita 'admin' - seteaza ADMIN_PASSWORD in productie!");
+            }
+        } else if (!adminPassword.isBlank() && !passwordEncoder.matches(adminPassword, admin.getPassword())) {
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            appUserRepository.save(admin);
+            log.info("Parola adminului actualizata din ADMIN_PASSWORD.");
         }
     }
 

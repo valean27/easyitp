@@ -17,10 +17,25 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' && payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => {
     const stored = localStorage.getItem('auth_user');
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    const parsed: AuthUser = JSON.parse(stored);
+    if (isTokenExpired(parsed.token)) {
+      localStorage.removeItem('auth_user');
+      return null;
+    }
+    return parsed;
   });
 
   const login = useCallback(async (email: string, password: string) => {
