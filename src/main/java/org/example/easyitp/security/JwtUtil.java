@@ -3,6 +3,7 @@ package org.example.easyitp.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,16 @@ public class JwtUtil {
 
     @Value("${jwt.expiration-ms}")
     private long expirationMs;
+
+    // HMAC-SHA256 cere minim 256 biti; oprim pornirea cu un mesaj clar in loc de 500 la login
+    @PostConstruct
+    void validateSecret() {
+        int bytes = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (bytes < 32) {
+            throw new IllegalStateException("JWT_SECRET prea scurt: " + bytes
+                    + " bytes, minim 32 (256 biti). Seteaza un JWT_SECRET de cel putin 32 de caractere.");
+        }
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
