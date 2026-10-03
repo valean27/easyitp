@@ -89,13 +89,6 @@ public class ItpController {
         return registrationScanService.scan(currentUser.get().getId(), image.getBytes(), type);
     }
 
-    // Mesajele de eroare ale scanarii ajung in interfata ca {"message": ...}
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleStatus(ResponseStatusException e) {
-        return ResponseEntity.status(e.getStatusCode())
-                .body(Map.of("message", e.getReason() == null ? "Eroare" : e.getReason()));
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItpRecord(@PathVariable Long id) {
         itpService.deleteItpRecord(id, currentUser.get().getId());

@@ -30,6 +30,8 @@ export default function LoginPage() {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError('Email sau parolă incorecte.');
+      } else if (axios.isAxiosError(err) && err.response?.status === 429) {
+        setError('Prea multe încercări greșite. Încercați din nou peste 15 minute.');
       } else if (axios.isAxiosError(err) && err.response?.status === 403) {
         setError('Contul este dezactivat. Contactați administratorul.');
       } else {

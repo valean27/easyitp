@@ -49,16 +49,15 @@ public class DataSeeder implements CommandLineRunner {
     private void seedAdmin() {
         AppUser admin = appUserRepository.findByEmail(adminEmail).orElse(null);
         if (admin == null) {
-            String password = adminPassword.isBlank() ? "admin" : adminPassword;
+            if (adminPassword.isBlank()) {
+                throw new IllegalStateException("ADMIN_PASSWORD lipseste: contul de admin nu poate fi creat fara parola.");
+            }
             appUserRepository.save(AppUser.builder()
                     .email(adminEmail)
-                    .password(passwordEncoder.encode(password))
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(Role.ADMIN)
                     .build());
             log.info("Default admin seeded: {}", adminEmail);
-            if (adminPassword.isBlank()) {
-                log.warn("Admin creat cu parola implicita 'admin' - seteaza ADMIN_PASSWORD in productie!");
-            }
         } else if (!adminPassword.isBlank() && !passwordEncoder.matches(adminPassword, admin.getPassword())) {
             admin.setPassword(passwordEncoder.encode(adminPassword));
             appUserRepository.save(admin);

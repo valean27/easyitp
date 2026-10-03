@@ -9,8 +9,9 @@ export const getProfile = (): Promise<Profile> =>
 export const updateProfile = (data: StationInfo & { reminderTemplate: string | null }): Promise<Profile> =>
   api.put(`${BASE}/me`, data).then((r) => r.data);
 
-export const changePassword = (currentPassword: string, newPassword: string): Promise<void> =>
-  api.put(`${BASE}/password`, { currentPassword, newPassword }).then(() => undefined);
+// Raspunde cu un token nou: celelalte sesiuni (alte dispozitive) sunt delogate
+export const changePassword = (currentPassword: string, newPassword: string): Promise<string> =>
+  api.put(`${BASE}/password`, { currentPassword, newPassword }).then((r) => r.data.token);
 
 // Inspectorii statiei (doar nume), aleși în formularul ITP
 export const getInspectors = (): Promise<string[]> => api.get(`${BASE}/inspectors`).then((r) => r.data);

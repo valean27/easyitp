@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('auth_user');
   }, []);
 
-  const updateUser = useCallback((changes: Partial<Omit<AuthUser, 'token'>>) => {
+  const updateUser = useCallback((changes: Partial<AuthUser>) => {
     setUser((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...changes };

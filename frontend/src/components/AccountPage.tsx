@@ -246,6 +246,7 @@ function InspectorsCard() {
 }
 
 function PasswordCard() {
+  const { updateUser } = useAuth();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -261,11 +262,11 @@ function PasswordCard() {
     }
     setLoading(true);
     try {
-      await changePassword(current, next);
+      updateUser({ token: await changePassword(current, next) });
       setCurrent('');
       setNext('');
       setConfirmPw('');
-      setMessage({ text: 'Parola a fost schimbată.', type: 'success' });
+      setMessage({ text: 'Parola a fost schimbată. Celelalte dispozitive au fost delogate.', type: 'success' });
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       setMessage({

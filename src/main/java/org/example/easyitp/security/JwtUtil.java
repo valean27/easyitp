@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.example.easyitp.entity.AppUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -35,10 +36,11 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String email, String role) {
+    public String generateToken(AppUser user) {
         return Jwts.builder()
-                .subject(email)
-                .claim("role", role)
+                .subject(user.getEmail())
+                .claim("role", user.getRole().name())
+                .claim("tv", user.currentTokenVersion())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey())
@@ -51,6 +53,12 @@ public class JwtUtil {
 
     public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
+    // Tokenurile emise inainte de tokenVersion nu au "tv" -> 0
+    public int extractTokenVersion(String token) {
+        Integer tv = extractClaim(token, claims -> claims.get("tv", Integer.class));
+        return tv == null ? 0 : tv;
     }
 
     public boolean isTokenValid(String token) {

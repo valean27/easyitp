@@ -38,7 +38,7 @@ public class WhatsAppService {
                     .retrieve()
                     .toEntity(String.class);
         } catch (RestClientException e) {
-            log.warn("CallMeBot indisponibil pentru {}: {}", to, e.getMessage());
+            log.warn("CallMeBot indisponibil pentru {}: {}", to, e.getClass().getSimpleName());
             throw new DeliveryException("Serviciul CallMeBot nu răspunde. Încercați mai târziu.");
         }
         // CallMeBot raspunde cu o pagina HTML; erorile (cheie gresita, numar neactivat) apar in text

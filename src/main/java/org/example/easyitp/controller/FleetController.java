@@ -16,7 +16,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.Map;
 
 // Flotele statiei (clienti B2B), administrate de manager
 @RestController
@@ -71,13 +70,6 @@ public class FleetController {
     @GetMapping("/{id}/statement")
     public FleetStatementDTO statement(@PathVariable Long id, @RequestParam String month) {
         return fleetService.statement(currentUser.get(), id, parseMonth(month));
-    }
-
-    // Mesajele de validare ajung in interfata ca {"message": ...}
-    @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, String>> handleStatus(ResponseStatusException e) {
-        return ResponseEntity.status(e.getStatusCode())
-                .body(Map.of("message", e.getReason() == null ? "Eroare" : e.getReason()));
     }
 
     static YearMonth parseMonth(String month) {

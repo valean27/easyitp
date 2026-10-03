@@ -97,7 +97,7 @@ public class FleetService {
         if (!email.matches("[^@\\s]+@[^@\\s]+\\.[^@\\s]+")) throw badRequest("Email invalid");
 
         AppUser account = appUserRepository.findByFleetId(fleet.getId()).stream().findFirst().orElse(null);
-        boolean emailTaken = appUserRepository.findByEmail(email)
+        boolean emailTaken = appUserRepository.findByEmailIgnoreCase(email)
                 .filter(u -> account == null || !Objects.equals(u.getId(), account.getId()))
                 .isPresent();
         if (emailTaken) throw new ResponseStatusException(HttpStatus.CONFLICT, "Emailul este deja folosit de alt cont");
@@ -110,7 +110,10 @@ public class FleetService {
         }
         AppUser user = account != null ? account : AppUser.builder().role(Role.FLEET).fleetId(fleet.getId()).build();
         user.setEmail(email);
-        if (!password.isEmpty()) user.setPassword(passwordEncoder.encode(password));
+        if (!password.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+            user.revokeTokens();
+        }
         user.setActive(true);
         appUserRepository.save(user);
         return toDto(fleet);

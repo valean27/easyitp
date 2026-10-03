@@ -94,6 +94,18 @@ public class AppUser {
     // null pentru conturile vechi = activ
     private Boolean active;
 
+    // Versiunea tokenurilor emise; crescuta la schimbarea parolei sau dezactivare -> tokenurile vechi nu mai merg.
+    // null pentru conturile vechi = 0
+    private Integer tokenVersion;
+
+    public int currentTokenVersion() {
+        return tokenVersion == null ? 0 : tokenVersion;
+    }
+
+    public void revokeTokens() {
+        tokenVersion = currentTokenVersion() + 1;
+    }
+
     public boolean isEnabled() {
         return !Boolean.FALSE.equals(active);
     }

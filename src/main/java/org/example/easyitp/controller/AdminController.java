@@ -20,6 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -43,8 +44,8 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email obligatoriu");
         }
         validatePassword(request.getPassword());
-        String email = request.getEmail().trim();
-        if (appUserRepository.existsByEmail(email)) {
+        String email = request.getEmail().trim().toLowerCase(Locale.ROOT);
+        if (appUserRepository.existsByEmailIgnoreCase(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         AppUser user = AppUser.builder()
@@ -109,6 +110,7 @@ public class AdminController {
         validatePassword(password);
         AppUser user = findManager(id);
         user.setPassword(passwordEncoder.encode(password));
+        user.revokeTokens();
         appUserRepository.save(user);
         return ResponseEntity.noContent().build();
     }
@@ -117,6 +119,7 @@ public class AdminController {
     public ResponseEntity<Void> setActive(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
         AppUser user = findManager(id);
         user.setActive(Boolean.TRUE.equals(body.get("active")));
+        if (!user.isEnabled()) user.revokeTokens();
         appUserRepository.save(user);
         return ResponseEntity.noContent().build();
     }

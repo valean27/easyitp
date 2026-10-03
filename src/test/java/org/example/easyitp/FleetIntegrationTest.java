@@ -112,7 +112,7 @@ class FleetIntegrationTest {
 
         // firma isi poate schimba parola
         send(put("/api/account/password"), fleet, Map.of("currentPassword", "parola99", "newPassword", "parola100"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk());
 
         // stergerea firmei sterge si contul ei
         mvc.perform(delete("/api/fleets/" + fleetId).header("Authorization", "Bearer " + manager)).andExpect(status().isNoContent());

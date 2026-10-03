@@ -13,7 +13,8 @@ export interface AuthContextType {
   user: AuthUser | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUser: (changes: Partial<Omit<AuthUser, 'token'>>) => void;
+  // Si tokenul: dupa schimbarea parolei serverul trimite unul nou (cele vechi nu mai sunt valabile)
+  updateUser: (changes: Partial<AuthUser>) => void;
   isAuthenticated: boolean;
 }
 

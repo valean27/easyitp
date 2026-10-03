@@ -198,7 +198,7 @@ class BookingIntegrationTest {
     void honeypotAndRateLimitStopSpam() throws Exception {
         enableBooking("spam", 10);
         long before = appointments.count();
-        mvc.perform(post("/api/public/stations/spam/appointments").header("X-Forwarded-For", ip)
+        mvc.perform(post("/api/public/stations/spam/appointments").header("CF-Connecting-IP", ip)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson("11:00", "Bot", "0722111222", "http://spam")))
                 .andExpect(status().isCreated());
@@ -245,7 +245,7 @@ class BookingIntegrationTest {
     }
 
     private ResultActions book(String slug, String time, String name, String phone, String category) throws Exception {
-        return mvc.perform(post("/api/public/stations/" + slug + "/appointments").header("X-Forwarded-For", ip)
+        return mvc.perform(post("/api/public/stations/" + slug + "/appointments").header("CF-Connecting-IP", ip)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bookingJson(time, name, phone, null, category)));
     }

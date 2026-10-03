@@ -104,8 +104,104 @@ class ApiIntegrationTest {
         mvc.perform(put("/api/account/password").header("Authorization", bearer(manager))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"newpass1\"}"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
         login("m1@itp.ro", "newpass1");
+    }
+
+    // ---------- securitate (A1) ----------
+
+    @Test
+    void changingPasswordRevokesOldTokensButReturnsAWorkingOne() throws Exception {
+        String otherDevice = login("m1@itp.ro", PASSWORD);
+        String body = mvc.perform(put("/api/account/password").header("Authorization", bearer(manager))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"" + PASSWORD + "\",\"newPassword\":\"newpass1\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String fresh = json.readTree(body).get("token").asText();
+
+        mvc.perform(get("/api/itp/dashboard").header("Authorization", bearer(manager))).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/itp/dashboard").header("Authorization", bearer(otherDevice))).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/itp/dashboard").header("Authorization", bearer(fresh))).andExpect(status().isOk());
+    }
+
+    @Test
+    void adminPasswordResetRevokesManagerTokens() throws Exception {
+        Long id = users.findByEmail("m1@itp.ro").orElseThrow().getId();
+        mvc.perform(post("/api/admin/managers/" + id + "/reset-password").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"resetat1\"}"))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/itp/dashboard").header("Authorization", bearer(manager))).andExpect(status().isUnauthorized());
+        login("m1@itp.ro", "resetat1");
+    }
+
+    @Test
+    void emailsAreCaseInsensitive() throws Exception {
+        login("  M1@ITP.ro ", PASSWORD);
+        mvc.perform(post("/api/admin/create-user").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"M1@itp.RO\",\"password\":\"secret12\"}"))
+                .andExpect(status().isConflict());
+        mvc.perform(post("/api/admin/create-user").header("Authorization", bearer(admin))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"Nou@Itp.ro\",\"password\":\"secret12\"}"))
+                .andExpect(status().isCreated());
+        assertThat(users.findByEmail("nou@itp.ro")).isPresent();
+    }
+
+    @Test
+    void loginIsBlockedAfterTooManyFailuresForAnEmail() throws Exception {
+        String wrong = "{\"email\":\"blocat@itp.ro\",\"password\":\"gresit\"}";
+        for (int i = 0; i < 10; i++) {
+            mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong)
+                            .header("CF-Connecting-IP", "10.0.0." + i))
+                    .andExpect(status().isUnauthorized());
+        }
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(wrong)
+                        .header("CF-Connecting-IP", "10.0.1.1"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    void badDatesAndParametersAreBadRequestsWithMessage() throws Exception {
+        mvc.perform(get("/api/appointments?start=nu-e-data&end=2026-01-01T00:00").header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").isNotEmpty());
+        mvc.perform(get("/api/reports/export?from=2026-13-01&to=2026-12-31").header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(get("/api/reports?year=abc").header("Authorization", bearer(manager)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/itp").header("Authorization", bearer(manager))
+                        .contentType(MediaType.APPLICATION_JSON).content("{nu e json"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/itp").header("Authorization", bearer(manager))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"licensePlate\":\"CJ01AAA\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    void adminExportHasNoPlatesOrClientNames() throws Exception {
+        LocalDate day = LocalDate.now().withDayOfMonth(1);
+        createItp(manager, "Ion Popescu", "CJ01ABC", day, Map.of("price", 150));
+        String csv = mvc.perform(get("/api/reports/export?from=" + day + "&to=" + day.plusMonths(1).minusDays(1))
+                        .header("Authorization", bearer(admin)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(csv).contains("TOTAL (1 ITP)").doesNotContain("CJ01ABC").doesNotContain("Popescu")
+                .doesNotContain("Nr. inmatriculare");
+    }
+
+    @Test
+    void exportsNeutralizeSpreadsheetFormulas() throws Exception {
+        LocalDate day = LocalDate.now().withDayOfMonth(1);
+        createItp(manager, "=HYPERLINK(\"http://x\")", "CJ09XYZ", day, Map.of("price", 10));
+        String csv = mvc.perform(get("/api/itp/export").header("Authorization", bearer(manager)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(csv).contains("\"'=HYPERLINK(\"\"http://x\"\")\"");
     }
 
     // ---------- ITP si izolarea datelor ----------

@@ -6,6 +6,7 @@ import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.VehicleCategory;
+import org.example.easyitp.security.ClientIp;
 import org.example.easyitp.service.BookingRateLimiter;
 import org.example.easyitp.service.BookingService;
 import org.springframework.http.HttpStatus;
@@ -46,17 +47,10 @@ public class PublicBookingController {
         if (request.getWebsite() != null && !request.getWebsite().isBlank()) {
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of());
         }
-        if (!rateLimiter.tryAcquire(clientIp(http))) {
+        if (!rateLimiter.tryAcquire(ClientIp.of(http))) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Prea multe programari. Incercati mai tarziu.");
         }
         Appointment saved = bookingService.book(slug, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("appointmentDate", saved.getAppointmentDate()));
-    }
-
-    // Render pune IP-ul real al clientului in X-Forwarded-For
-    private static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
-        return request.getRemoteAddr();
     }
 }

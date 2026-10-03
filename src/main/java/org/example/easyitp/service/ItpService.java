@@ -262,11 +262,7 @@ public class ItpService {
     }
 
     private String csvEscape(String val) {
-        if (val == null) return "";
-        if (val.contains(",") || val.contains("\"") || val.contains("\n")) {
-            return "\"" + val.replace("\"", "\"\"") + "\"";
-        }
-        return val;
+        return CsvCells.cell(val, ',');
     }
 
     private String nullIfBlank(String s) {

@@ -1,6 +1,7 @@
 package org.example.easyitp.config;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.easyitp.security.JwtRequestFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,11 +27,12 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
 
-    @Value("${allowed.origins:*}")
+    @Value("${allowed.origins:}")
     private String allowedOrigins;
 
     @Bean
@@ -63,11 +65,19 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        List<String> origins = Arrays.stream(allowedOrigins.split(",")).map(String::trim).filter(o -> !o.isEmpty()).toList();
+        if (origins.isEmpty()) {
+            throw new IllegalStateException("ALLOWED_ORIGINS lipseste. Seteaza adresa frontend-ului, ex: https://easyitp.vercel.app");
+        }
+        if (origins.contains("*")) {
+            log.warn("ALLOWED_ORIGINS=* accepta cereri de pe orice site; seteaza adresa frontend-ului (ex: https://easyitp.vercel.app).");
+        }
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+        // Tokenul merge in antetul Authorization, nu in cookie, deci nu e nevoie de credentiale
+        config.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);

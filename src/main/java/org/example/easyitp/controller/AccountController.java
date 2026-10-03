@@ -10,6 +10,7 @@ import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.DigestChannel;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.security.CurrentUser;
+import org.example.easyitp.security.JwtUtil;
 import org.example.easyitp.service.DeliveryException;
 import org.example.easyitp.service.BookingService;
 import org.example.easyitp.service.DigestService;
@@ -39,6 +40,7 @@ public class AccountController {
     private final BookingService bookingService;
     private final DigestService digestService;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     @GetMapping("/me")
     public ProfileDTO getProfile() {
@@ -56,7 +58,7 @@ public class AccountController {
     }
 
     @PutMapping("/password")
-    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+    public Map<String, String> changePassword(@RequestBody ChangePasswordRequest request) {
         AppUser user = currentUser.get();
         if (request.getCurrentPassword() == null
                 || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
@@ -67,8 +69,10 @@ public class AccountController {
                     "Parola noua trebuie sa aiba minim " + MIN_PASSWORD_LENGTH + " caractere");
         }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.revokeTokens();
         appUserRepository.save(user);
-        return ResponseEntity.noContent().build();
+        // Celelalte dispozitive sunt delogate; acesta continua cu un token nou
+        return Map.of("token", jwtUtil.generateToken(user));
     }
 
     @GetMapping("/booking")

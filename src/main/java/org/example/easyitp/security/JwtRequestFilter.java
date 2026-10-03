@@ -39,9 +39,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         if (jwtUtil.isTokenValid(token) && SecurityContextHolder.getContext().getAuthentication() == null) {
             String email = jwtUtil.extractEmail(token);
-            // Cont sters sau dezactivat -> tokenul nu mai e acceptat (401)
-            boolean enabled = appUserRepository.findByEmail(email).map(AppUser::isEnabled).orElse(false);
-            if (!enabled) {
+            // Cont sters/dezactivat sau parola schimbata dupa emiterea tokenului -> tokenul nu mai e acceptat (401)
+            int tokenVersion = jwtUtil.extractTokenVersion(token);
+            boolean valid = appUserRepository.findByEmail(email)
+                    .filter(AppUser::isEnabled)
+                    .filter(u -> u.currentTokenVersion() == tokenVersion)
+                    .isPresent();
+            if (!valid) {
                 filterChain.doFilter(request, response);
                 return;
             }

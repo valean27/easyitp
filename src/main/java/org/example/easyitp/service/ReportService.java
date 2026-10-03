@@ -163,7 +163,8 @@ public class ReportService {
     // CSV pentru contabilitate: separator ";" si zecimale cu virgula, ca sa se deschida corect in Excel romanesc
     @Transactional(readOnly = true)
     public byte[] exportCsv(AppUser user, Long stationId, LocalDate from, LocalDate to) {
-        boolean withStation = user.getRole() == Role.ADMIN && stationId == null;
+        boolean admin = user.getRole() == Role.ADMIN;
+        boolean withStation = admin && stationId == null;
         List<ItpRecord> records = recordsFor(user, stationId).stream()
                 .filter(r -> !r.getTestDate().isBefore(from) && !r.getTestDate().isAfter(to))
                 .sorted(Comparator.comparing(ItpRecord::getTestDate).thenComparing(ItpRecord::getId))
@@ -175,8 +176,11 @@ public class ReportService {
         baos.write(0xBF);
         try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8))) {
             pw.println("sep=;");
-            List<String> header = new ArrayList<>(List.of("Data ITP", "Nr. inmatriculare", "Client", "Marca", "Model",
-                    "Rezultat", "Valabilitate (luni)", "Pret (RON)"));
+            // Adminul vede doar cifre: fara numar de inmatriculare si nume de client
+            List<String> header = new ArrayList<>(admin
+                    ? List.of("Data ITP", "Marca", "Model", "Rezultat", "Valabilitate (luni)", "Pret (RON)")
+                    : List.of("Data ITP", "Nr. inmatriculare", "Client", "Marca", "Model",
+                            "Rezultat", "Valabilitate (luni)", "Pret (RON)"));
             if (withStation) header.add(0, "Statie");
             pw.println(String.join(";", header));
 
@@ -194,6 +198,7 @@ public class ReportService {
                         statusLabel(r.getStatus()),
                         String.valueOf(r.getValidityMonths()),
                         money(price)));
+                if (admin) row.subList(1, 3).clear();
                 if (withStation) {
                     AppUser owner = v.getClient().getUser();
                     row.add(0, csv(owner.getStationName() != null ? owner.getStationName() : owner.getEmail()));
@@ -223,10 +228,6 @@ public class ReportService {
     }
 
     private static String csv(String value) {
-        String v = Objects.toString(value, "");
-        if (v.contains(";") || v.contains("\"") || v.contains("\n")) {
-            return "\"" + v.replace("\"", "\"\"") + "\"";
-        }
-        return v;
+        return CsvCells.cell(value, ';');
     }
 }
