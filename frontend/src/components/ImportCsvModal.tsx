@@ -111,6 +111,10 @@ export default function ImportCsvModal({ onClose, onSuccess }: Props) {
                   Data efectuare ITP, Perioada valabilitate ITP (luni),
                   Data urmatorul ITP, Zile ramase ITP
                 </p>
+                <p className="pt-1">
+                  Poți reimporta oricând același fișier: un ITP cu același număr de înmatriculare și aceeași dată se
+                  actualizează, nu se dublează. O dată ITP nouă pentru o mașină existentă intră în istoricul ei.
+                </p>
               </div>
 
               {error && (
@@ -154,7 +158,8 @@ export default function ImportCsvModal({ onClose, onSuccess }: Props) {
                 <div>
                   <p className="font-semibold text-emerald-700">Import finalizat</p>
                   <p className="text-sm text-emerald-600">
-                    <span className="font-bold">{result.imported}</span> înregistrări importate,{' '}
+                    <span className="font-bold">{result.imported}</span> noi,{' '}
+                    <span className="font-bold">{result.updated}</span> actualizate,{' '}
                     <span className="font-bold">{result.skipped}</span> ignorate
                   </p>
                 </div>

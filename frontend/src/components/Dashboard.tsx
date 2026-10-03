@@ -258,7 +258,7 @@ export default function Dashboard() {
   const handleImportSuccess = useCallback((result: ImportResult) => {
     fetchData();
     showToast(
-      `Import finalizat: ${result.imported} importate, ${result.skipped} ignorate.`,
+      `Import finalizat: ${result.imported} noi, ${result.updated} actualizate, ${result.skipped} ignorate.`,
       'success'
     );
   }, [fetchData, showToast]);

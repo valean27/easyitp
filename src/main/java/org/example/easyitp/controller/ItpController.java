@@ -6,6 +6,7 @@ import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.security.CurrentUser;
+import org.example.easyitp.service.CsvImportService;
 import org.example.easyitp.service.ItpService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class ItpController {
 
     private final ItpService itpService;
+    private final CsvImportService csvImportService;
     private final CurrentUser currentUser;
 
     @GetMapping("/dashboard")
@@ -61,7 +63,7 @@ public class ItpController {
 
     @PostMapping(value = "/import", consumes = "multipart/form-data")
     public ResponseEntity<ImportResultDTO> importCsv(@RequestParam("file") MultipartFile file) throws IOException {
-        ImportResultDTO result = itpService.importCsv(file, currentUser.get());
+        ImportResultDTO result = csvImportService.importCsv(file, currentUser.get());
         return ResponseEntity.ok(result);
     }
 

@@ -39,3 +39,6 @@ build/
 
 ### Node ###
 node_modules/
+
+### Date reale (CSV-uri cu clienti) - nu se comit niciodata ###
+/*.csv

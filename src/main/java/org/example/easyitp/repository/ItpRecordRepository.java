@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,9 @@ public interface ItpRecordRepository extends JpaRepository<ItpRecord, Long> {
     // Toate statiile; folosit pentru statisticile adminului
     @Query("SELECT r FROM ItpRecord r JOIN FETCH r.vehicle v JOIN FETCH v.client c")
     List<ItpRecord> findAllWithVehicle();
+
+    // Pentru import: acelasi vehicul si aceeasi data ITP = aceeasi inregistrare (se suprascrie)
+    Optional<ItpRecord> findFirstByVehicleIdAndTestDate(Long vehicleId, LocalDate testDate);
 
     @Query("SELECT r FROM ItpRecord r JOIN r.vehicle v JOIN v.client c WHERE r.id = :id AND c.user.id = :userId")
     Optional<ItpRecord> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);

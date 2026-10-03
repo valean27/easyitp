@@ -46,6 +46,8 @@ export interface ItpFormData {
 
 export interface ImportResult {
   imported: number;
+  // inregistrari existente suprascrise (acelasi numar + aceeasi data ITP)
+  updated: number;
   skipped: number;
   errors: string[];
 }

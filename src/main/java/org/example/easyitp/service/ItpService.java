@@ -1,11 +1,7 @@
 package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.example.easyitp.dto.DashboardDTO;
-import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.dto.ReminderDTO;
 import org.example.easyitp.entity.Client;
@@ -20,22 +16,17 @@ import org.example.easyitp.repository.VehicleRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,24 +40,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ItpService {
 
-    private static final List<DateTimeFormatter> DATE_FORMATTERS = List.of(
-            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-            DateTimeFormatter.ofPattern("yyyy-MM-dd"),
-            DateTimeFormatter.ofPattern("MM/dd/yyyy"),
-            DateTimeFormatter.ofPattern("d.M.yyyy"),
-            DateTimeFormatter.ofPattern("d/M/yyyy")
-    );
-
-    private static final DateTimeFormatter ROMANIAN_DATE_FMT = DateTimeFormatter.ofPattern("d-MM-yyyy");
-
-    private static final Map<String, String> RO_MONTHS = Map.ofEntries(
-            Map.entry("ian", "01"), Map.entry("feb", "02"), Map.entry("mar", "03"),
-            Map.entry("apr", "04"), Map.entry("mai", "05"), Map.entry("iun", "06"),
-            Map.entry("iul", "07"), Map.entry("aug", "08"), Map.entry("sep", "09"),
-            Map.entry("oct", "10"), Map.entry("nov", "11"), Map.entry("dec", "12")
-    );
-
     // Fereastra listei "De contactat"
     private static final int REMINDER_DAYS_AHEAD = 30;
     private static final int REMINDER_DAYS_EXPIRED = 60;
@@ -74,7 +47,6 @@ public class ItpService {
     private final ClientRepository clientRepository;
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
-    private final CarService carService;
     private final AppointmentService appointmentService;
 
     public List<DashboardDTO> getDashboard(Long userId) {
@@ -261,163 +233,6 @@ public class ItpService {
         ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
         itpRecordRepository.delete(record);
-    }
-
-    @Transactional
-    public ImportResultDTO importCsv(MultipartFile file, AppUser user) throws IOException {
-        int imported = 0;
-        int skipped = 0;
-        List<String> errors = new ArrayList<>();
-
-        byte[] bytes = file.getBytes();
-        int start = 0;
-        if (bytes.length >= 3
-                && (bytes[0] & 0xFF) == 0xEF
-                && (bytes[1] & 0xFF) == 0xBB
-                && (bytes[2] & 0xFF) == 0xBF) {
-            start = 3;
-        }
-
-        try (Reader reader = new InputStreamReader(
-                new ByteArrayInputStream(bytes, start, bytes.length - start),
-                StandardCharsets.UTF_8);
-             CSVParser parser = CSVFormat.DEFAULT.builder()
-                     .setHeader()
-                     .setSkipHeaderRecord(true)
-                     .setIgnoreEmptyLines(true)
-                     .setTrim(true)
-                     .build()
-                     .parse(reader)) {
-
-            for (CSVRecord record : parser) {
-                long lineNum = record.getRecordNumber() + 1;
-                try {
-                    String dataItpStr = col(record, "Data efectuare ITP");
-                    if (dataItpStr.isBlank()) {
-                        skipped++;
-                        continue;
-                    }
-
-                    String numeSofer = col(record, "Nume sofer");
-                    if (numeSofer.isBlank()) {
-                        skipped++;
-                        continue;
-                    }
-
-                    LocalDate testDate = parseDate(dataItpStr);
-                    if (testDate == null) {
-                        errors.add("Linia " + lineNum + ": dată invalidă \"" + dataItpStr + "\"");
-                        skipped++;
-                        continue;
-                    }
-
-                    String perioadaStr = col(record, "Perioada valabilitate ITP (luni)");
-                    Integer validityMonths = parseValidityMonths(perioadaStr);
-                    if (validityMonths == null) {
-                        errors.add("Linia " + lineNum + ": valabilitate invalidă \"" + perioadaStr + "\"");
-                        skipped++;
-                        continue;
-                    }
-
-                    String contact = col(record, "Contact");
-                    String marca = col(record, "Marca vehicul");
-                    String vin = col(record, "VIN");
-                    String numarInmatriculare = col(record, "Numar inmatriculare");
-
-                    if (!marca.isBlank()) {
-                        carService.findOrCreateMake(marca);
-                    }
-
-                    Client client = findOrCreateClient(numeSofer, contact, user);
-                    Vehicle vehicle = findOrCreateVehicle(marca, vin, numarInmatriculare, client, user);
-
-                    itpRecordRepository.save(ItpRecord.builder()
-                            .vehicle(vehicle)
-                            .testDate(testDate)
-                            .validityMonths(validityMonths)
-                            .nextItpDate(testDate.plusMonths(validityMonths))
-                            .status(ItpStatus.PASSED)
-                            .price(0.0)
-                            .build());
-
-                    imported++;
-                } catch (Exception e) {
-                    errors.add("Linia " + lineNum + ": " + e.getMessage());
-                    skipped++;
-                }
-            }
-        }
-
-        return new ImportResultDTO(imported, skipped, errors);
-    }
-
-    private Client findOrCreateClient(String name, String phone, AppUser user) {
-        if (!phone.isBlank()) {
-            return clientRepository.findByNameAndPhoneAndUserId(name, phone, user.getId())
-                    .orElseGet(() -> clientRepository.save(
-                            Client.builder().name(name).phone(phone).user(user).build()));
-        }
-        return clientRepository.findByNameAndUserId(name, user.getId())
-                .orElseGet(() -> clientRepository.save(
-                        Client.builder().name(name).phone(null).user(user).build()));
-    }
-
-    private Vehicle findOrCreateVehicle(String brand, String vin, String licensePlate, Client client, AppUser user) {
-        if (!vin.isBlank()) {
-            var byVin = vehicleRepository.findByVinAndClientUserId(vin, user.getId());
-            if (byVin.isPresent()) return byVin.get();
-        }
-        if (!licensePlate.isBlank()) {
-            var byPlate = vehicleRepository.findByNormalizedPlate(PlateUtils.normalize(licensePlate), user.getId());
-            if (!byPlate.isEmpty()) return byPlate.get(0);
-        }
-        return vehicleRepository.save(Vehicle.builder()
-                .brand(brand.isBlank() ? "Necunoscut" : brand)
-                .vin(nullIfBlank(vin))
-                .licensePlate(licensePlate.isBlank() ? null : licensePlate)
-                .client(client)
-                .build());
-    }
-
-    private LocalDate parseDate(String raw) {
-        String cleaned = raw.trim();
-        for (DateTimeFormatter fmt : DATE_FORMATTERS) {
-            try {
-                return LocalDate.parse(cleaned, fmt);
-            } catch (Exception ignored) {
-            }
-        }
-        try {
-            return LocalDate.parse(normalizeRomanianDate(cleaned), ROMANIAN_DATE_FMT);
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private String normalizeRomanianDate(String raw) {
-        String s = raw.trim().replace(".", "").toLowerCase();
-        for (Map.Entry<String, String> e : RO_MONTHS.entrySet()) {
-            s = s.replace(e.getKey(), e.getValue());
-        }
-        return s;
-    }
-
-    private Integer parseValidityMonths(String raw) {
-        try {
-            int val = Integer.parseInt(raw.trim());
-            if (val > 0) return val;
-        } catch (NumberFormatException ignored) {
-        }
-        return null;
-    }
-
-    private String col(CSVRecord record, String header) {
-        try {
-            String v = record.get(header);
-            return v != null ? v.trim() : "";
-        } catch (Exception e) {
-            return "";
-        }
     }
 
     public byte[] generateCsvExport(Long userId) throws IOException {
