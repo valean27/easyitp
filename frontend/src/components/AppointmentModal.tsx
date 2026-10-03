@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { X, Loader2, Trash2, AlertTriangle, ClipboardCheck, CheckCircle2, Globe } from 'lucide-react';
 import { createAppointment, updateAppointment, deleteAppointment, getConflicts } from '../api/appointmentApi';
-import type { Appointment, AppointmentStatus } from '../types';
+import { getBookingSettings } from '../api/accountApi';
+import type { Appointment, AppointmentStatus, VehicleCategory, VehicleType } from '../types';
 import { formatTime } from '../utils/dates';
-import { APPOINTMENT_STATUS_LABELS } from '../utils/appointments';
+import { APPOINTMENT_STATUS_LABELS, LEGACY_DURATION_MINUTES, appointmentMinutes } from '../utils/appointments';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -14,6 +15,8 @@ interface AppointmentFormValues {
   licensePlate: string;
   appointmentDate: string; // yyyy-MM-ddTHH:mm
   status: AppointmentStatus;
+  vehicleCategory: VehicleCategory | '';
+  durationMinutes: number;
 }
 
 interface Props {
@@ -35,9 +38,20 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
       licensePlate: appointment.licensePlate ?? '',
       appointmentDate: appointment.appointmentDate.slice(0, 16),
       status: appointment.status,
+      vehicleCategory: appointment.vehicleCategory ?? '',
+      durationMinutes: appointmentMinutes(appointment),
     };
   }
-  return { clientName: '', phone: '', licensePlate: '', appointmentDate: '', status: 'SCHEDULED', ...initial };
+  return {
+    clientName: '',
+    phone: '',
+    licensePlate: '',
+    appointmentDate: '',
+    status: 'SCHEDULED',
+    vehicleCategory: '',
+    durationMinutes: LEGACY_DURATION_MINUTES,
+    ...initial,
+  };
 }
 
 export default function AppointmentModal({ appointment, initial, onClose, onSaved, onDeleted, onStartItp }: Props) {
@@ -47,23 +61,48 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
 
-  // Verificam suprapunerile cand se schimba data/ora
+  // Duratele statiei pe tip de vehicul; o programare noua porneste ca autoturism
   useEffect(() => {
-    if (form.appointmentDate.length < 16) {
+    getBookingSettings()
+      .then((s) => {
+        setVehicleTypes(s.vehicleTypes);
+        if (!appointment) {
+          const car = s.vehicleTypes.find((t) => t.category === 'CAR');
+          if (car) setForm((f) => ({ ...f, vehicleCategory: 'CAR', durationMinutes: car.minutes }));
+        }
+      })
+      .catch(() => setVehicleTypes([]));
+  }, [appointment]);
+
+  // Verificam suprapunerile cand se schimba ora sau durata
+  useEffect(() => {
+    if (form.appointmentDate.length < 16 || !form.durationMinutes) {
       setConflicts([]);
       return;
     }
     const timer = setTimeout(() => {
-      getConflicts(form.appointmentDate + ':00', appointment?.id)
+      getConflicts(form.appointmentDate + ':00', form.durationMinutes, appointment?.id)
         .then(setConflicts)
         .catch(() => setConflicts([]));
     }, 300);
     return () => clearTimeout(timer);
-  }, [form.appointmentDate, appointment?.id]);
+  }, [form.appointmentDate, form.durationMinutes, appointment?.id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+
+  // Tipul vehiculului aduce durata stabilita de statie (poate fi ajustata de mana)
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const category = e.target.value as VehicleCategory | '';
+    const type = vehicleTypes.find((t) => t.category === category);
+    setForm((p) => ({
+      ...p,
+      vehicleCategory: category,
+      durationMinutes: type ? type.minutes : p.durationMinutes,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +114,8 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       licensePlate: form.licensePlate || null,
       appointmentDate: form.appointmentDate + ':00',
       status: form.status,
+      vehicleCategory: form.vehicleCategory || null,
+      durationMinutes: Number(form.durationMinutes),
     };
     try {
       const saved = appointment
@@ -170,6 +211,37 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
               className={INPUT_CLS}
             />
           </div>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Tip vehicul</label>
+              <select name="vehicleCategory" value={form.vehicleCategory} onChange={handleCategoryChange} className={INPUT_CLS + ' bg-white'}>
+                {form.vehicleCategory === '' && <option value="">Nespecificat</option>}
+                {vehicleTypes.map((t) => (
+                  <option key={t.category} value={t.category}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Durată</label>
+              <div className="flex items-center gap-1.5 w-28">
+                <input
+                  type="number"
+                  name="durationMinutes"
+                  inputMode="numeric"
+                  required
+                  min={10}
+                  max={120}
+                  step={5}
+                  value={form.durationMinutes}
+                  onChange={handleChange}
+                  className={INPUT_CLS}
+                />
+                <span className="text-sm text-slate-400">min</span>
+              </div>
+            </div>
+          </div>
           {conflicts.length > 0 && (
             <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -178,7 +250,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
                 <ul className="text-xs mt-0.5 space-y-0.5">
                   {conflicts.map((c) => (
                     <li key={c.id}>
-                      {formatTime(c.appointmentDate)} · {c.clientName}
+                      {formatTime(c.appointmentDate)} ({appointmentMinutes(c)} min) · {c.clientName}
                       {c.licensePlate ? ` · ${c.licensePlate}` : ''}
                     </li>
                   ))}

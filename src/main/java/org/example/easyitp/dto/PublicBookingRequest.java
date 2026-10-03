@@ -1,6 +1,7 @@
 package org.example.easyitp.dto;
 
 import lombok.Data;
+import org.example.easyitp.entity.VehicleCategory;
 
 import java.time.LocalDateTime;
 
@@ -10,6 +11,7 @@ public class PublicBookingRequest {
     private String phone;
     private String licensePlate;
     private LocalDateTime appointmentDate;
+    private VehicleCategory vehicleCategory;
     // Camp-capcana: invizibil pentru oameni, completat doar de boti
     private String website;
 }

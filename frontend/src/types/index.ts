@@ -78,6 +78,16 @@ export interface Profile extends StationInfo {
   digestEnabled: boolean;
 }
 
+export type VehicleCategory = 'CAR' | 'FOUR_BY_FOUR' | 'VAN' | 'MOTORCYCLE' | 'TRAILER';
+
+// Tipul vehiculului cu durata inspectiei la statie; "enabled" = se poate programa online
+export interface VehicleType {
+  category: VehicleCategory;
+  label: string;
+  minutes: number;
+  enabled: boolean;
+}
+
 export interface BookingSettings {
   enabled: boolean;
   slug: string | null;
@@ -85,6 +95,7 @@ export interface BookingSettings {
   close: string;
   days: number[]; // 1 = luni ... 7 = duminica
   capacity: number;
+  vehicleTypes: VehicleType[];
 }
 
 export interface PublicStation {
@@ -95,6 +106,7 @@ export interface PublicStation {
   close: string;
   days: number[];
   maxDaysAhead: number;
+  vehicleTypes: VehicleType[];
 }
 
 export interface Reminder {
@@ -133,6 +145,9 @@ export interface Appointment {
   status: AppointmentStatus;
   itpRecordId?: number | null;
   source?: 'MANUAL' | 'ONLINE' | null;
+  vehicleCategory?: VehicleCategory | null;
+  // cat ocupa linia; programarile vechi au 30 de minute
+  durationMinutes?: number | null;
 }
 
 export interface ReportMonth {

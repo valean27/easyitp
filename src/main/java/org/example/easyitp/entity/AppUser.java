@@ -54,6 +54,10 @@ public class AppUser {
     // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
     private Integer bookingCapacity;
 
+    // Durata inspectiei per tip de vehicul (vezi InspectionDurations); null = valorile implicite
+    @Column(length = 200)
+    private String bookingDurations;
+
     // Email zilnic catre manager; null = activ
     private Boolean digestEnabled;
     @Enumerated(EnumType.STRING)

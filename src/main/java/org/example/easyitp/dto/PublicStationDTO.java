@@ -17,4 +17,6 @@ public class PublicStationDTO {
     private LocalTime close;
     private List<Integer> days;
     private int maxDaysAhead;
+    // Doar tipurile pe care statia le primeste online
+    private List<VehicleTypeDTO> vehicleTypes;
 }

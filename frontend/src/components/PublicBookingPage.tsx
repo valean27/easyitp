@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import { Car, MapPin, Phone, Clock, Loader2, CheckCircle2, AlertTriangle, CalendarDays, ArrowLeft } from 'lucide-react';
-import type { PublicStation } from '../types';
+import { Car, MapPin, Phone, Clock, Loader2, CheckCircle2, AlertTriangle, CalendarDays, ArrowLeft, Truck } from 'lucide-react';
+import type { PublicStation, VehicleCategory } from '../types';
 import { createPublicBooking, getPublicSlots, getPublicStation } from '../api/publicApi';
 import { toLocalIso } from '../utils/dates';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
@@ -57,6 +57,7 @@ export default function PublicBookingPage() {
   const { slug = '' } = useParams();
   const [station, setStation] = useState<PublicStation | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [category, setCategory] = useState<VehicleCategory | null>(null);
   const [date, setDate] = useState<string | null>(null);
   const [slots, setSlots] = useState<string[] | null>(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -67,12 +68,14 @@ export default function PublicBookingPage() {
   const [website, setWebsite] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState<{ date: string; time: string } | null>(null);
+  const [confirmed, setConfirmed] = useState<{ date: string; time: string; vehicle: string } | null>(null);
 
   useEffect(() => {
     getPublicStation(slug)
       .then((s) => {
         setStation(s);
+        // Cu un singur tip de vehicul nu mai cerem alegerea
+        if (s.vehicleTypes.length === 1) setCategory(s.vehicleTypes[0].category);
         document.title = `Programare ITP · ${s.name}`;
       })
       .catch(() => setNotFound(true));
@@ -90,25 +93,36 @@ export default function PublicBookingPage() {
     return result;
   }, [station]);
 
-  const loadSlots = (day: string) => {
+  const loadSlots = (day: string, vehicle: VehicleCategory) => {
     setSlotsLoading(true);
     setSlots(null);
-    getPublicSlots(slug, day)
+    getPublicSlots(slug, day, vehicle)
       .then(setSlots)
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
   };
 
   const selectDate = (day: string) => {
+    if (!category) return;
     setDate(day);
     setTime(null);
     setError(null);
-    loadSlots(day);
+    loadSlots(day, category);
   };
+
+  // Alt tip de vehicul = alta durata, deci alte ore libere
+  const selectCategory = (vehicle: VehicleCategory) => {
+    setCategory(vehicle);
+    setTime(null);
+    setError(null);
+    if (date) loadSlots(date, vehicle);
+  };
+
+  const vehicle = station?.vehicleTypes.find((t) => t.category === category);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !time) return;
+    if (!date || !time || !category) return;
     setError(null);
     setSubmitting(true);
     try {
@@ -117,15 +131,16 @@ export default function PublicBookingPage() {
         phone,
         licensePlate: plate,
         appointmentDate: `${date}T${time}`,
+        vehicleCategory: category,
         website,
       });
-      setConfirmed({ date, time });
+      setConfirmed({ date, time, vehicle: vehicle?.label ?? '' });
     } catch (err) {
       const status = errorStatus(err);
       if (status === 409) {
         setError('Ora aleasă tocmai a fost ocupată. Alegeți altă oră.');
         setTime(null);
-        loadSlots(date);
+        loadSlots(date, category);
       } else if (status === 429) {
         setError('Prea multe programări de pe acest dispozitiv. Încercați mai târziu sau sunați la stație.');
       } else if (status === 400) {
@@ -137,6 +152,8 @@ export default function PublicBookingPage() {
       setSubmitting(false);
     }
   };
+
+  const step = (n: number) => (station && station.vehicleTypes.length > 1 ? n : n - 1);
 
   if (notFound) {
     return (
@@ -169,6 +186,7 @@ export default function PublicBookingPage() {
               Vă așteptăm <span className="font-semibold">{longDate(confirmed.date)}</span> la ora{' '}
               <span className="font-semibold">{confirmed.time.slice(0, 5)}</span>.
             </p>
+            {confirmed.vehicle && <p className="text-sm text-slate-500">{confirmed.vehicle}</p>}
             <p className="text-sm text-slate-500">
               Aveți la dumneavoastră talonul și cartea de identitate a vehiculului.
               {station.phone && ` Dacă nu mai puteți ajunge, sunați la ${station.phone}.`}
@@ -185,37 +203,65 @@ export default function PublicBookingPage() {
       <div className="max-w-lg mx-auto space-y-4">
         <StationHeader station={station} />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
-          <h2 className="flex items-center gap-2 font-semibold text-slate-800">
-            <CalendarDays size={17} className="text-blue-600" />
-            1. Alegeți ziua
-          </h2>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {dates.map((d) => {
-              const dt = new Date(`${d}T12:00:00`);
-              const active = d === date;
-              return (
-                <button
-                  key={d}
-                  onClick={() => selectDate(d)}
-                  className={`shrink-0 w-16 py-2 rounded-xl border text-center transition-colors ${
-                    active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300'
-                  }`}
-                >
-                  <div className={`text-xs ${active ? 'text-blue-100' : 'text-slate-400'}`}>{WEEKDAYS_SHORT[isoWeekday(dt) - 1]}</div>
-                  <div className="text-lg font-semibold leading-tight">{dt.getDate()}</div>
-                  <div className={`text-xs ${active ? 'text-blue-100' : 'text-slate-400'}`}>{MONTHS_SHORT[dt.getMonth()]}</div>
-                </button>
-              );
-            })}
+        {station.vehicleTypes.length > 1 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
+            <h2 className="flex items-center gap-2 font-semibold text-slate-800">
+              <Truck size={17} className="text-blue-600" />
+              {step(1)}. Ce vehicul aduceți?
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {station.vehicleTypes.map((t) => {
+                const active = t.category === category;
+                return (
+                  <button
+                    key={t.category}
+                    onClick={() => selectCategory(t.category)}
+                    className={`flex items-center justify-between gap-2 px-3.5 py-3 rounded-xl border text-left transition-colors ${
+                      active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300'
+                    }`}
+                  >
+                    <span className="font-medium">{t.label}</span>
+                    <span className={`text-xs shrink-0 ${active ? 'text-blue-100' : 'text-slate-400'}`}>~{t.minutes} min</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        {date && (
+        {category && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
+            <h2 className="flex items-center gap-2 font-semibold text-slate-800">
+              <CalendarDays size={17} className="text-blue-600" />
+              {step(2)}. Alegeți ziua
+            </h2>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {dates.map((d) => {
+                const dt = new Date(`${d}T12:00:00`);
+                const active = d === date;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => selectDate(d)}
+                    className={`shrink-0 w-16 py-2 rounded-xl border text-center transition-colors ${
+                      active ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300'
+                    }`}
+                  >
+                    <div className={`text-xs ${active ? 'text-blue-100' : 'text-slate-400'}`}>{WEEKDAYS_SHORT[isoWeekday(dt) - 1]}</div>
+                    <div className="text-lg font-semibold leading-tight">{dt.getDate()}</div>
+                    <div className={`text-xs ${active ? 'text-blue-100' : 'text-slate-400'}`}>{MONTHS_SHORT[dt.getMonth()]}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {category && date && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
             <h2 className="flex items-center gap-2 font-semibold text-slate-800">
               <Clock size={17} className="text-blue-600" />
-              2. Alegeți ora · <span className="font-normal text-slate-500">{longDate(date)}</span>
+              {step(3)}. Alegeți ora · <span className="font-normal text-slate-500">{longDate(date)}</span>
             </h2>
             {slotsLoading ? (
               <div className="flex items-center text-sm text-slate-400 py-2">
@@ -244,9 +290,9 @@ export default function PublicBookingPage() {
           </div>
         )}
 
-        {date && time && (
+        {category && date && time && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
-            <h2 className="font-semibold text-slate-800">3. Datele dumneavoastră</h2>
+            <h2 className="font-semibold text-slate-800">{step(4)}. Datele dumneavoastră</h2>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Nume și prenume</label>
               <input required minLength={2} maxLength={80} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className={INPUT_CLS} />
@@ -301,6 +347,7 @@ export default function PublicBookingPage() {
             >
               {submitting && <Loader2 size={17} className="animate-spin" />}
               Confirmă programarea · {longDate(date)}, {time.slice(0, 5)}
+              {vehicle && station.vehicleTypes.length > 1 ? ` · ${vehicle.label}` : ''}
             </button>
             <button
               type="button"

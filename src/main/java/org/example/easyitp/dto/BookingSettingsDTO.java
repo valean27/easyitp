@@ -18,4 +18,5 @@ public class BookingSettingsDTO {
     private LocalTime close;
     private List<Integer> days; // 1 = luni ... 7 = duminica
     private int capacity;
+    private List<VehicleTypeDTO> vehicleTypes;
 }

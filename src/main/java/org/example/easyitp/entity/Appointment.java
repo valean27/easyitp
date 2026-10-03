@@ -37,6 +37,15 @@ public class Appointment {
     @Column(name = "source", length = 20)
     private AppointmentSource source;
 
+    // null la programarile facute inainte de tipurile de vehicul
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_category", length = 20)
+    private VehicleCategory vehicleCategory;
+
+    // Cat timp ocupa linia; null = 30 de minute (programari vechi)
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
+
     // ITP-ul efectuat la aceasta programare (setat cand programarea e finalizata cu ITP)
     @Column(name = "itp_record_id")
     private Long itpRecordId;

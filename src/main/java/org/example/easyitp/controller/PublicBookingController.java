@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
 import org.example.easyitp.entity.Appointment;
+import org.example.easyitp.entity.VehicleCategory;
 import org.example.easyitp.service.BookingRateLimiter;
 import org.example.easyitp.service.BookingService;
 import org.springframework.http.HttpStatus;
@@ -32,8 +33,9 @@ public class PublicBookingController {
     }
 
     @GetMapping("/slots")
-    public List<LocalTime> slots(@PathVariable String slug, @RequestParam String date) {
-        return bookingService.availableSlots(slug, LocalDate.parse(date));
+    public List<LocalTime> slots(@PathVariable String slug, @RequestParam String date,
+                                 @RequestParam(required = false) VehicleCategory category) {
+        return bookingService.availableSlots(slug, LocalDate.parse(date), category);
     }
 
     @PostMapping("/appointments")

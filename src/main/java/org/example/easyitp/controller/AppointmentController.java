@@ -30,8 +30,9 @@ public class AppointmentController {
 
     @GetMapping("/conflicts")
     public List<AppointmentDTO> getConflicts(@RequestParam String date,
+                                             @RequestParam(defaultValue = "30") int minutes,
                                              @RequestParam(required = false) Long excludeId) {
-        return appointmentService.getConflicts(currentUser.get().getId(), LocalDateTime.parse(date), excludeId);
+        return appointmentService.getConflicts(currentUser.get().getId(), LocalDateTime.parse(date), minutes, excludeId);
     }
 
     @PostMapping

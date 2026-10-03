@@ -4,11 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
 import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
+import org.example.easyitp.dto.VehicleTypeDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.AppointmentSource;
 import org.example.easyitp.entity.AppointmentStatus;
 import org.example.easyitp.entity.Role;
+import org.example.easyitp.entity.VehicleCategory;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.springframework.http.HttpStatus;
@@ -22,8 +24,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -35,7 +40,8 @@ public class BookingService {
     public static final int MAX_DAYS_AHEAD = 30;
     // Clientul nu se poate programa cu mai putin de o ora inainte
     private static final int MIN_LEAD_MINUTES = 60;
-    private static final int SLOT = AppointmentService.SLOT_MINUTES;
+    // Orele oferite si duratele sunt multipli de 5 minute
+    private static final int ALIGN_MINUTES = 5;
 
     private static final LocalTime DEFAULT_OPEN = LocalTime.of(8, 0);
     private static final LocalTime DEFAULT_CLOSE = LocalTime.of(17, 0);
@@ -57,7 +63,8 @@ public class BookingService {
                 open(user),
                 close(user),
                 days(user),
-                capacity(user));
+                capacity(user),
+                InspectionDurations.allTypes(user));
     }
 
     @Transactional
@@ -72,6 +79,7 @@ public class BookingService {
         if (dto.getCapacity() < 1 || dto.getCapacity() > MAX_CAPACITY) {
             throw badRequest("Numarul de linii trebuie sa fie intre 1 si " + MAX_CAPACITY);
         }
+        Map<VehicleCategory, Integer> durations = durations(dto.getVehicleTypes());
 
         String slug = dto.getSlug() == null ? "" : dto.getSlug().trim().toLowerCase();
         if (slug.isEmpty()) {
@@ -88,7 +96,26 @@ public class BookingService {
         user.setBookingClose(dto.getClose());
         user.setBookingDays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
         user.setBookingCapacity(dto.getCapacity());
+        // Clientii vechi nu trimit tipurile: pastram ce era salvat
+        if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
         return getSettings(appUserRepository.save(user));
+    }
+
+    private static Map<VehicleCategory, Integer> durations(List<VehicleTypeDTO> types) {
+        if (types == null) return null;
+        Map<VehicleCategory, Integer> durations = new EnumMap<>(VehicleCategory.class);
+        for (VehicleTypeDTO type : types) {
+            if (type.category() == null || !type.enabled()) continue;
+            if (type.minutes() < InspectionDurations.MIN_MINUTES || type.minutes() > InspectionDurations.MAX_MINUTES
+                    || type.minutes() % ALIGN_MINUTES != 0) {
+                throw badRequest("Durata pentru " + type.category().label() + " trebuie sa fie intre "
+                        + InspectionDurations.MIN_MINUTES + " si " + InspectionDurations.MAX_MINUTES
+                        + " de minute, din 5 in 5");
+            }
+            durations.put(type.category(), type.minutes());
+        }
+        if (durations.isEmpty()) throw badRequest("Alegeti cel putin un tip de vehicul");
+        return durations;
     }
 
     // "ITP Auto Cluj-Napoca" -> "itp-auto-cluj-napoca"; adauga sufix daca e deja luat
@@ -118,40 +145,86 @@ public class BookingService {
                 open(station),
                 close(station),
                 days(station),
-                MAX_DAYS_AHEAD);
+                MAX_DAYS_AHEAD,
+                InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled).toList());
     }
 
-    public List<LocalTime> availableSlots(String slug, LocalDate date) {
-        return availableSlots(findStation(slug), date, LocalDateTime.now());
+    public List<LocalTime> availableSlots(String slug, LocalDate date, VehicleCategory category) {
+        AppUser station = findStation(slug);
+        return availableSlots(station, date, onlineCategory(station, category), LocalDateTime.now());
     }
 
-    List<LocalTime> availableSlots(AppUser station, LocalDate date, LocalDateTime now) {
+    // Orele la care o inspectie de tipul "category" incape intreaga pe una din liniile statiei.
+    // Se ofera orele din grila tipului (deschidere + k * durata) si orele la care se termina alte programari,
+    // ca un vehicul sa poata intra imediat dupa altul, fara goluri pe linie.
+    List<LocalTime> availableSlots(AppUser station, LocalDate date, VehicleCategory category, LocalDateTime now) {
         LocalDate today = now.toLocalDate();
         if (date.isBefore(today) || date.isAfter(today.plusDays(MAX_DAYS_AHEAD))) return List.of();
         if (!days(station).contains(date.getDayOfWeek().getValue())) return List.of();
 
-        // Programarile active din ziua respectiva (cu o marja de un slot la capete)
-        List<LocalDateTime> taken = appointmentRepository
-                .findActiveBetween(station.getId(),
-                        date.atTime(open(station)).minusMinutes(SLOT),
-                        date.atTime(close(station)).plusMinutes(SLOT))
-                .stream().map(Appointment::getAppointmentDate).toList();
+        int duration = InspectionDurations.minutesFor(station, category);
+        LocalDateTime dayOpen = date.atTime(open(station));
+        LocalDateTime dayClose = date.atTime(close(station));
+        List<Interval> taken = appointmentRepository
+                .findActiveBetween(station.getId(), dayOpen.minusMinutes(InspectionDurations.MAX_MINUTES), dayClose)
+                .stream()
+                .map(a -> new Interval(a.getAppointmentDate(),
+                        a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a))))
+                .filter(i -> i.end().isAfter(dayOpen))
+                .toList();
+
+        TreeSet<LocalDateTime> candidates = new TreeSet<>();
+        for (LocalDateTime t = dayOpen; !t.plusMinutes(duration).isAfter(dayClose); t = t.plusMinutes(duration)) {
+            candidates.add(t);
+        }
+        taken.forEach(i -> candidates.add(alignUp(i.end())));
 
         LocalDateTime earliest = now.plusMinutes(MIN_LEAD_MINUTES);
         int capacity = capacity(station);
         List<LocalTime> slots = new ArrayList<>();
-        int closeMinute = close(station).toSecondOfDay() / 60;
-        for (int m = open(station).toSecondOfDay() / 60; m + SLOT <= closeMinute; m += SLOT) {
-            LocalTime t = LocalTime.ofSecondOfDay(m * 60L);
-            LocalDateTime start = date.atTime(t);
-            if (start.isBefore(earliest)) continue;
-            // O programare la ora a ocupa intervalul [a, a + SLOT); se suprapune cu slotul daca a e in (start - SLOT, start + SLOT)
-            long overlapping = taken.stream()
-                    .filter(a -> a.isAfter(start.minusMinutes(SLOT)) && a.isBefore(start.plusMinutes(SLOT)))
-                    .count();
-            if (overlapping < capacity) slots.add(t);
+        for (LocalDateTime start : candidates) {
+            LocalDateTime end = start.plusMinutes(duration);
+            if (start.isBefore(dayOpen) || end.isAfter(dayClose) || start.isBefore(earliest)) continue;
+            if (maxConcurrent(taken, start, end) < capacity) slots.add(start.toLocalTime());
         }
         return slots;
+    }
+
+    record Interval(LocalDateTime start, LocalDateTime end) {
+    }
+
+    // Cate programari ruleaza simultan, cel mult, in [start, end). Maximul se atinge
+    // fie la start, fie la inceputul unei programari care incepe in interval.
+    static int maxConcurrent(List<Interval> taken, LocalDateTime start, LocalDateTime end) {
+        List<Interval> overlapping = taken.stream()
+                .filter(i -> i.start().isBefore(end) && i.end().isAfter(start))
+                .toList();
+        int max = 0;
+        for (Interval probe : overlapping) {
+            LocalDateTime point = probe.start().isAfter(start) ? probe.start() : start;
+            int count = (int) overlapping.stream()
+                    .filter(i -> !i.start().isAfter(point) && i.end().isAfter(point))
+                    .count();
+            max = Math.max(max, count);
+        }
+        return max;
+    }
+
+    private static LocalDateTime alignUp(LocalDateTime t) {
+        LocalDateTime minute = t.withSecond(0).withNano(0);
+        if (minute.isBefore(t)) minute = minute.plusMinutes(1);
+        int extra = minute.getMinute() % ALIGN_MINUTES;
+        return extra == 0 ? minute : minute.plusMinutes(ALIGN_MINUTES - extra);
+    }
+
+    // Tipul cerut de client, daca statia il primeste online; fara tip (pagini vechi) primul tip activ
+    private static VehicleCategory onlineCategory(AppUser station, VehicleCategory requested) {
+        Map<VehicleCategory, Integer> active = InspectionDurations.of(station);
+        if (requested == null) return active.keySet().stream().findFirst().orElse(VehicleCategory.CAR);
+        if (!active.containsKey(requested)) {
+            throw badRequest("Statia nu primeste programari online pentru acest tip de vehicul");
+        }
+        return requested;
     }
 
     @Transactional
@@ -166,8 +239,9 @@ public class BookingService {
         if (plate.length() > 15) throw badRequest("Numar de inmatriculare invalid");
         if (req.getAppointmentDate() == null) throw badRequest("Alegeti data si ora");
 
+        VehicleCategory category = onlineCategory(station, req.getVehicleCategory());
         LocalDateTime when = req.getAppointmentDate().withSecond(0).withNano(0);
-        if (!availableSlots(station, when.toLocalDate(), LocalDateTime.now()).contains(when.toLocalTime())) {
+        if (!availableSlots(station, when.toLocalDate(), category, LocalDateTime.now()).contains(when.toLocalTime())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ora aleasa nu mai este disponibila");
         }
 
@@ -178,6 +252,8 @@ public class BookingService {
                 .appointmentDate(when)
                 .status(AppointmentStatus.SCHEDULED)
                 .source(AppointmentSource.ONLINE)
+                .vehicleCategory(category)
+                .durationMinutes(InspectionDurations.minutesFor(station, category))
                 .user(station)
                 .build());
     }

@@ -94,13 +94,14 @@ class BookingIntegrationTest {
     void bookingFillsSlotAndShowsUpInManagerCalendar() throws Exception {
         enableBooking("statie-test", 1);
         JsonNode slots = getJson("/api/public/stations/statie-test/slots?date=" + day);
-        assertThat(slots).hasSize(18); // 08:00 - 17:00, sloturi de 30 min
+        assertThat(slots).hasSize(27); // 08:00 - 17:00, autoturism implicit 20 min
         assertThat(slots.get(0).asText()).isEqualTo("08:00:00");
+        assertThat(slots.get(1).asText()).isEqualTo("08:20:00");
 
         book("statie-test", "10:00", "Ion Pop", "0722 111 222").andExpect(status().isCreated());
 
         JsonNode after = getJson("/api/public/stations/statie-test/slots?date=" + day);
-        assertThat(after).hasSize(17);
+        assertThat(after).hasSize(26);
         assertThat(after.toString()).doesNotContain("10:00:00");
 
         // acelasi slot din nou -> ocupat
@@ -112,14 +113,74 @@ class BookingIntegrationTest {
         assertThat(calendar).hasSize(1);
         assertThat(calendar.get(0).get("source").asText()).isEqualTo("ONLINE");
         assertThat(calendar.get(0).get("clientName").asText()).isEqualTo("Ion Pop");
+        assertThat(calendar.get(0).get("vehicleCategory").asText()).isEqualTo("CAR");
+        assertThat(calendar.get(0).get("durationMinutes").asInt()).isEqualTo(20);
+    }
+
+    @Test
+    void longerInspectionsBlockTheirWholeIntervalAndCarsFitRightAfter() throws Exception {
+        enableBooking("durate", 1);
+        JsonNode station = getJson("/api/public/stations/durate");
+        assertThat(station.get("vehicleTypes")).hasSize(3);
+        assertThat(station.get("vehicleTypes").get(2).get("minutes").asInt()).isEqualTo(45);
+
+        // autoutilitarele au grila lor: 08:00, 08:45, 09:30, ...
+        String vans = getJson("/api/public/stations/durate/slots?category=VAN&date=" + day).toString();
+        assertThat(vans).contains("08:00:00", "08:45:00", "09:30:00").doesNotContain("10:00:00");
+
+        // autoutilitara 09:30 - 10:15
+        book("durate", "09:30", "Van", "0722111222", "VAN").andExpect(status().isCreated());
+
+        String cars = getJson("/api/public/stations/durate/slots?category=CAR&date=" + day).toString();
+        assertThat(cars).doesNotContain("09:20:00", "09:40:00", "10:00:00");
+        assertThat(cars).contains("09:00:00", "10:15:00", "10:20:00"); // 10:15 = imediat dupa autoutilitara
+
+        vans = getJson("/api/public/stations/durate/slots?category=VAN&date=" + day).toString();
+        assertThat(vans).contains("08:45:00", "10:15:00").doesNotContain("09:30:00");
+
+        book("durate", "10:00", "Ion", "0733111222", "CAR").andExpect(status().isConflict());
+        book("durate", "10:15", "Ion", "0733111222", "CAR").andExpect(status().isCreated()); // 10:15 - 10:35
+
+        // verificarea suprapunerilor din calendarul managerului tine cont de durata
+        assertThat(conflicts("09:50", 20)).hasSize(1);
+        assertThat(conflicts("10:00", 20)).hasSize(2); // autoutilitara + autoturismul de la 10:15
+        assertThat(conflicts("10:35", 20)).isEmpty();
+        assertThat(conflicts("09:00", 45)).hasSize(1);
+    }
+
+    @Test
+    void stationChoosesTypesAndDurations() throws Exception {
+        putSettings(settingsJson(true, "tipuri", 1, "[{'category':'CAR','minutes':7,'enabled':true}]"))
+                .andExpect(status().isBadRequest());
+        putSettings(settingsJson(true, "tipuri", 1, "[{'category':'CAR','minutes':20,'enabled':false}]"))
+                .andExpect(status().isBadRequest());
+        putSettings(settingsJson(true, "tipuri", 1, "[{'category':'CAR','minutes':25,'enabled':true},"
+                + "{'category':'MOTORCYCLE','minutes':15,'enabled':true}]"))
+                .andExpect(status().isOk());
+
+        JsonNode types = getJson("/api/public/stations/tipuri").get("vehicleTypes");
+        assertThat(types).hasSize(2);
+        assertThat(types.get(0).get("minutes").asInt()).isEqualTo(25);
+        assertThat(types.get(1).get("category").asText()).isEqualTo("MOTORCYCLE");
+        assertThat(getJson("/api/public/stations/tipuri/slots?category=MOTORCYCLE&date=" + day)).hasSize(36);
+
+        // tipurile dezactivate nu se pot programa online
+        book("tipuri", "10:00", "Van", "0722111222", "VAN").andExpect(status().isBadRequest());
+        // managerul vede si tipurile dezactivate, cu durata implicita
+        assertThat(settings().get("vehicleTypes")).hasSize(5);
     }
 
     @Test
     void capacityAllowsParallelBookings() throws Exception {
         enableBooking("doua-linii", 2);
-        book("doua-linii", "09:00", "Ion", "0722111222").andExpect(status().isCreated());
-        book("doua-linii", "09:00", "Ana", "0733111222").andExpect(status().isCreated());
+        book("doua-linii", "08:45", "Ion", "0722111222", "VAN").andExpect(status().isCreated()); // 08:45 - 09:30
+        book("doua-linii", "09:00", "Ana", "0733111222").andExpect(status().isCreated());        // 09:00 - 09:20
         book("doua-linii", "09:00", "Dan", "0744111222").andExpect(status().isConflict());
+        // a doua linie se elibereaza la 09:20, desi autoutilitara ruleaza pana la 09:30
+        book("doua-linii", "09:20", "Dan", "0744111222").andExpect(status().isCreated());
+        ip = ip + "9"; // limita anti-spam: 5 programari pe ora de pe acelasi IP
+        book("doua-linii", "09:20", "Eva", "0755111222").andExpect(status().isConflict());
+        book("doua-linii", "09:40", "Eva", "0755111222").andExpect(status().isCreated());
     }
 
     @Test
@@ -143,9 +204,9 @@ class BookingIntegrationTest {
                 .andExpect(status().isCreated());
         assertThat(appointments.count()).isEqualTo(before);
 
-        String[] times = {"08:00", "08:30", "09:00", "09:30", "10:00"};
+        String[] times = {"08:00", "08:20", "08:40", "09:00", "09:20"};
         for (String t : times) book("spam", t, "Ion", "0722111222").andExpect(status().isCreated());
-        book("spam", "10:30", "Ion", "0722111222").andExpect(status().isTooManyRequests());
+        book("spam", "09:40", "Ion", "0722111222").andExpect(status().isTooManyRequests());
     }
 
     // ---------- helpers ----------
@@ -162,20 +223,47 @@ class BookingIntegrationTest {
                 .andReturn().getResponse().getContentAsString());
     }
 
+    private ResultActions putSettings(String body) throws Exception {
+        return mvc.perform(put("/api/account/booking").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
     private static String settingsJson(boolean enabled, String slug, int capacity) {
+        return settingsJson(enabled, slug, capacity, null);
+    }
+
+    private static String settingsJson(boolean enabled, String slug, int capacity, String vehicleTypes) {
         // toate zilele, ca testele sa nu depinda de ziua saptamanii
         return "{\"enabled\":" + enabled + ",\"slug\":\"" + slug + "\",\"open\":\"08:00\",\"close\":\"17:00\","
-                + "\"days\":[1,2,3,4,5,6,7],\"capacity\":" + capacity + "}";
+                + "\"days\":[1,2,3,4,5,6,7],\"capacity\":" + capacity
+                + (vehicleTypes != null ? ",\"vehicleTypes\":" + vehicleTypes.replace('\'', '"') : "") + "}";
     }
 
     private ResultActions book(String slug, String time, String name, String phone) throws Exception {
+        return book(slug, time, name, phone, null);
+    }
+
+    private ResultActions book(String slug, String time, String name, String phone, String category) throws Exception {
         return mvc.perform(post("/api/public/stations/" + slug + "/appointments").header("X-Forwarded-For", ip)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(bookingJson(time, name, phone, null)));
+                .content(bookingJson(time, name, phone, null, category)));
+    }
+
+    private JsonNode conflicts(String time, int minutes) throws Exception {
+        return json.readTree(mvc.perform(get("/api/appointments/conflicts?date=" + day + "T" + time + ":00&minutes=" + minutes)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
     }
 
     private String bookingJson(String time, String name, String phone, String website) throws Exception {
+        return bookingJson(time, name, phone, website, null);
+    }
+
+    private String bookingJson(String time, String name, String phone, String website, String category) throws Exception {
         var body = new java.util.LinkedHashMap<String, Object>();
+        if (category != null) body.put("vehicleCategory", category);
         body.put("clientName", name);
         body.put("phone", phone);
         body.put("licensePlate", "CJ01" + UUID.randomUUID().toString().substring(0, 3).toUpperCase());

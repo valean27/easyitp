@@ -4,8 +4,9 @@ import type { Appointment } from '../types';
 export const getAppointments = (start: string, end: string): Promise<Appointment[]> =>
   api.get('/api/appointments', { params: { start, end } }).then((r) => r.data);
 
-export const getConflicts = (date: string, excludeId?: number): Promise<Appointment[]> =>
-  api.get('/api/appointments/conflicts', { params: { date, excludeId } }).then((r) => r.data);
+// Programarile care se suprapun cu intervalul [date, date + minutes)
+export const getConflicts = (date: string, minutes: number, excludeId?: number): Promise<Appointment[]> =>
+  api.get('/api/appointments/conflicts', { params: { date, minutes, excludeId } }).then((r) => r.data);
 
 export const createAppointment = (data: Omit<Appointment, 'id'>): Promise<Appointment> =>
   api.post('/api/appointments', data).then((r) => r.data);

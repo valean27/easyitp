@@ -9,7 +9,7 @@ import type { Appointment, AppointmentStatus } from '../types';
 import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
 import { toLocalIso } from '../utils/dates';
-import { itpPrefillFromAppointment } from '../utils/appointments';
+import { VEHICLE_SHORT_LABELS, appointmentMinutes, itpPrefillFromAppointment } from '../utils/appointments';
 
 const SLOT_MINUTES = 30;
 
@@ -57,9 +57,13 @@ function toEvent(a: Appointment): SchedulerEvent {
   return {
     id: a.id,
     title: `${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
-    description: [a.phone, a.status === 'CANCELLED' ? 'Anulat' : null].filter(Boolean).join(' · ') || undefined,
+    description:
+      [a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null, a.phone, a.status === 'CANCELLED' ? 'Anulat' : null]
+        .filter(Boolean)
+        .join(' · ') || undefined,
     start,
-    end: addMinutes(start, SLOT_MINUTES),
+    // Evenimentul ocupa exact cat dureaza inspectia (20 min autoturism, 45 min autoutilitara etc.)
+    end: addMinutes(start, appointmentMinutes(a)),
     color: a.source === 'ONLINE' && a.status === 'SCHEDULED' ? 'purple' : STATUS_COLOR[a.status],
     // Programarile finalizate sau anulate nu se mai muta
     draggable: a.status === 'SCHEDULED',
@@ -106,7 +110,7 @@ export default function CalendarPage() {
       prev.some((a) => a.id === saved.id) ? prev.map((a) => (a.id === saved.id ? saved : a)) : [...prev, saved]
     );
 
-  // Drag & drop: mutam programarea la noua ora (durata ramane 30 min)
+  // Drag & drop: mutam programarea la noua ora (durata ramane aceeasi)
   const handleEventsChange = async (next: SchedulerEvent[]) => {
     const moved = next.find((e) => {
       const old = appointments.find((a) => a.id === e.id);
@@ -123,6 +127,8 @@ export default function CalendarPage() {
         licensePlate: old.licensePlate,
         appointmentDate: newDate,
         status: old.status,
+        vehicleCategory: old.vehicleCategory,
+        durationMinutes: old.durationMinutes,
       });
       handleSaved(saved);
       setError(null);

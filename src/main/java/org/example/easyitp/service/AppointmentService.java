@@ -20,9 +20,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AppointmentService {
 
-    // Durata estimata a unei inspectii; programarile mai apropiate de atat se suprapun
-    public static final int SLOT_MINUTES = 30;
-
     private final AppointmentRepository appointmentRepository;
 
     public List<AppointmentDTO> getAppointments(Long userId, LocalDateTime start, LocalDateTime end) {
@@ -33,12 +30,14 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
-    // Programarile active care se suprapun cu un slot care incepe la "date"
-    public List<AppointmentDTO> getConflicts(Long userId, LocalDateTime date, Long excludeId) {
+    // Programarile active care se suprapun cu intervalul [date, date + minutes)
+    public List<AppointmentDTO> getConflicts(Long userId, LocalDateTime date, int minutes, Long excludeId) {
+        LocalDateTime end = date.plusMinutes(minutes);
         return appointmentRepository
-                .findActiveBetween(userId, date.minusMinutes(SLOT_MINUTES), date.plusMinutes(SLOT_MINUTES))
+                .findActiveBetween(userId, date.minusMinutes(InspectionDurations.MAX_MINUTES), end)
                 .stream()
                 .filter(a -> !Objects.equals(a.getId(), excludeId))
+                .filter(a -> a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a)).isAfter(date))
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -52,6 +51,8 @@ public class AppointmentService {
                 .licensePlate(dto.getLicensePlate())
                 .appointmentDate(dto.getAppointmentDate())
                 .status(dto.getStatus() != null ? dto.getStatus() : AppointmentStatus.SCHEDULED)
+                .vehicleCategory(dto.getVehicleCategory())
+                .durationMinutes(duration(dto, user))
                 .user(user)
                 .build();
         return toDto(appointmentRepository.save(appt));
@@ -66,6 +67,11 @@ public class AppointmentService {
         appt.setLicensePlate(dto.getLicensePlate());
         appt.setAppointmentDate(dto.getAppointmentDate());
         appt.setStatus(dto.getStatus() != null ? dto.getStatus() : appt.getStatus());
+        // Clientii vechi (fara tip) trimit null: pastram ce era salvat
+        if (dto.getVehicleCategory() != null || dto.getDurationMinutes() != null) {
+            appt.setVehicleCategory(dto.getVehicleCategory());
+            appt.setDurationMinutes(duration(dto, appt.getUser()));
+        }
         return toDto(appointmentRepository.save(appt));
     }
 
@@ -91,6 +97,18 @@ public class AppointmentService {
         if (dto.getClientName() == null || dto.getClientName().isBlank() || dto.getAppointmentDate() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Numele clientului si data sunt obligatorii");
         }
+        Integer minutes = dto.getDurationMinutes();
+        if (minutes != null && (minutes < InspectionDurations.MIN_MINUTES || minutes > InspectionDurations.MAX_MINUTES)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Durata trebuie sa fie intre "
+                    + InspectionDurations.MIN_MINUTES + " si " + InspectionDurations.MAX_MINUTES + " de minute");
+        }
+    }
+
+    // Durata aleasa de manager sau, daca lipseste, cea a statiei pentru tipul vehiculului
+    private static int duration(AppointmentDTO dto, AppUser station) {
+        return dto.getDurationMinutes() != null
+                ? dto.getDurationMinutes()
+                : InspectionDurations.minutesFor(station, dto.getVehicleCategory());
     }
 
     private AppointmentDTO toDto(Appointment appt) {
@@ -103,6 +121,8 @@ public class AppointmentService {
         dto.setStatus(appt.getStatus());
         dto.setItpRecordId(appt.getItpRecordId());
         dto.setSource(appt.getSource());
+        dto.setVehicleCategory(appt.getVehicleCategory());
+        dto.setDurationMinutes(InspectionDurations.minutesOf(appt));
         return dto;
     }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Globe, Loader2, CheckCircle2, AlertTriangle, Copy, Check, ExternalLink } from 'lucide-react';
-import type { BookingSettings } from '../types';
+import { Globe, Loader2, CheckCircle2, AlertTriangle, Copy, Check, ExternalLink, Timer } from 'lucide-react';
+import type { BookingSettings, VehicleCategory, VehicleType } from '../types';
 import { getBookingSettings, updateBookingSettings } from '../api/accountApi';
 import { WEEKDAYS_SHORT, bookingUrl } from '../utils/booking';
 
@@ -36,6 +36,9 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
 
   const update = (changes: Partial<BookingSettings>) => setSettings((s) => (s ? { ...s, ...changes } : s));
 
+  const updateType = (category: VehicleCategory, changes: Partial<VehicleType>) =>
+    update({ vehicleTypes: settings.vehicleTypes.map((t) => (t.category === category ? { ...t, ...changes } : t)) });
+
   const toggleDay = (day: number) =>
     update({ days: settings.days.includes(day) ? settings.days.filter((d) => d !== day) : [...settings.days, day].sort() });
 
@@ -58,7 +61,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         text:
           status === 409
             ? 'Link-ul este deja folosit de altă stație. Alegeți altul.'
-            : 'Verificați datele: link doar cu litere mici, cifre și cratime; ora de deschidere înaintea celei de închidere; cel puțin o zi.',
+            : 'Verificați datele: link doar cu litere mici, cifre și cratime; ora de deschidere înaintea celei de închidere; cel puțin o zi; cel puțin un tip de vehicul, cu durata între 10 și 120 de minute, din 5 în 5.',
         type: 'error',
       });
     } finally {
@@ -148,16 +151,58 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Mașini în același interval de 30 min</label>
+          <label className="block text-sm font-medium text-slate-600 mb-1">Linii ITP</label>
           <input
             type="number"
+            inputMode="numeric"
             min={1}
             max={10}
             value={settings.capacity}
             onChange={(e) => update({ capacity: Number(e.target.value) })}
             className={INPUT_CLS + ' w-24'}
           />
-          <p className="text-xs text-slate-400 mt-1">De obicei, numărul de linii ITP ale stației.</p>
+          <p className="text-xs text-slate-400 mt-1">Câte vehicule pot fi verificate în același timp.</p>
+        </div>
+
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1">
+            <Timer size={14} className="text-slate-400" />
+            Durata inspecției pe tip de vehicul
+          </label>
+          <p className="text-xs text-slate-400 mb-2">
+            Clientul alege tipul vehiculului, iar programarea blochează linia exact cât durează inspecția, fără
+            suprapuneri. Verificați timpii minimi impuși stației voastre de RAR. Tipurile nebifate nu apar pe pagina online.
+          </p>
+          <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
+            {settings.vehicleTypes.map((t) => (
+              <div key={t.category} className="flex items-center gap-3 px-3 py-2">
+                <label className="flex-1 flex items-center gap-2.5 min-w-0 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={t.enabled}
+                    onChange={(e) => updateType(t.category, { enabled: e.target.checked })}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className={`text-sm truncate ${t.enabled ? 'text-slate-700' : 'text-slate-400'}`}>{t.label}</span>
+                </label>
+                <div className="w-20 shrink-0">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={10}
+                    max={120}
+                    step={5}
+                    disabled={!t.enabled}
+                    value={t.minutes}
+                    onChange={(e) => updateType(t.category, { minutes: Number(e.target.value) })}
+                    aria-label={`Durata pentru ${t.label}`}
+                    className={INPUT_CLS + ' disabled:bg-slate-50 disabled:text-slate-300'}
+                  />
+                </div>
+                <span className="text-xs text-slate-400 w-6">min</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {settings.enabled && link && (
