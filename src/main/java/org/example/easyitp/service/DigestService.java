@@ -7,6 +7,7 @@ import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.AppointmentSource;
 import org.example.easyitp.entity.AppointmentStatus;
+import org.example.easyitp.entity.DigestChannel;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
@@ -17,6 +18,7 @@ import org.springframework.web.util.HtmlUtils;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -28,6 +30,8 @@ public class DigestService {
 
     private static final int EXPIRING_DAYS = 7;
     private static final int MAX_ROWS = 15;
+    // Mesajele WhatsApp trebuie sa ramana scurte
+    private static final int WHATSAPP_ROWS = 8;
     private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final DateTimeFormatter DAY_TIME = DateTimeFormatter.ofPattern("dd.MM HH:mm");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("HH:mm");
@@ -36,11 +40,12 @@ public class DigestService {
     private final AppointmentRepository appointmentRepository;
     private final ItpService itpService;
     private final EmailService emailService;
+    private final WhatsAppService whatsAppService;
 
     @Value("${app.url:https://easyitp.vercel.app}")
     private String appUrl;
 
-    public record Digest(String subject, String html, boolean empty) {
+    public record Digest(String subject, String html, String text, boolean empty) {
     }
 
     public record Result(int sent, int skipped, int failed) {
@@ -60,23 +65,32 @@ public class DigestService {
                 continue;
             }
             try {
-                emailService.send(user.getEmail(), digest.subject(), digest.html());
+                deliver(user, digest, false);
                 user.setLastDigestDate(today);
                 appUserRepository.save(user);
                 sent++;
-            } catch (EmailService.EmailException e) {
-                log.warn("Emailul zilnic pentru {} nu a fost trimis: {}", user.getEmail(), e.getMessage());
+            } catch (DeliveryException e) {
+                log.warn("Rezumatul zilnic pentru {} nu a fost trimis: {}", user.getEmail(), e.getMessage());
                 failed++;
             }
         }
-        log.info("Email zilnic {}: {} trimise, {} sarite, {} esuate", today, sent, skipped, failed);
+        log.info("Rezumat zilnic {}: {} trimise, {} sarite, {} esuate", today, sent, skipped, failed);
         return new Result(sent, skipped, failed);
     }
 
-    // Emailul de test din "Contul meu": se trimite chiar daca nu e nimic de raportat
+    // Mesajul de test din "Contul meu": se trimite chiar daca nu e nimic de raportat
     public void sendTest(AppUser user) {
-        Digest digest = build(user, LocalDate.now());
-        emailService.send(user.getEmail(), "[Test] " + digest.subject(), digest.html());
+        deliver(user, build(user, LocalDate.now()), true);
+    }
+
+    // Pe canalul ales de manager: email (implicit) sau WhatsApp prin CallMeBot
+    private void deliver(AppUser user, Digest digest, boolean test) {
+        String prefix = test ? "[Test] " : "";
+        if (user.getDigestChannel() == DigestChannel.WHATSAPP) {
+            whatsAppService.send(user.getWhatsappPhone(), user.getCallmebotApiKey(), prefix + digest.text());
+        } else {
+            emailService.send(user.getEmail(), prefix + digest.subject(), digest.html());
+        }
     }
 
     public Digest build(AppUser user, LocalDate today) {
@@ -107,64 +121,93 @@ public class DigestService {
         boolean empty = todayAppointments.isEmpty() && newOnline.isEmpty() && expiringSoon.isEmpty() && expired.isEmpty();
         String subject = subject(today, todayAppointments.size(), newOnline.size(), expiringSoon.size() + expired.size());
 
+        List<Section> sections = new ArrayList<>();
+        if (!todayAppointments.isEmpty()) {
+            sections.add(new Section("Programări azi (" + todayAppointments.size() + ")",
+                    todayAppointments.stream().map(a -> List.of(
+                            a.getAppointmentDate().format(TIME),
+                            a.getClientName() + (a.getSource() == AppointmentSource.ONLINE ? " (online)" : ""),
+                            Objects.toString(a.getLicensePlate(), ""),
+                            Objects.toString(a.getPhone(), ""))).toList(),
+                    "/calendar", "Deschide calendarul"));
+        }
+        if (!newOnline.isEmpty()) {
+            sections.add(new Section("Programări online noi (" + newOnline.size() + ")",
+                    newOnline.stream().map(a -> List.of(
+                            a.getAppointmentDate().format(DAY_TIME),
+                            a.getClientName(),
+                            Objects.toString(a.getLicensePlate(), ""),
+                            Objects.toString(a.getPhone(), ""))).toList(),
+                    null, null));
+        }
+        if (!expiringSoon.isEmpty()) {
+            sections.add(new Section("ITP expiră în următoarele " + EXPIRING_DAYS + " zile (" + expiringSoon.size() + ")",
+                    expiringSoon.stream().map(r -> List.of(
+                            r.getZileRamase() == 0 ? "azi" : "în " + r.getZileRamase() + (r.getZileRamase() == 1 ? " zi" : " zile"),
+                            r.getNumeSofer(),
+                            r.getNumarInmatriculare(),
+                            Objects.toString(r.getContact(), ""))).toList(),
+                    expired.isEmpty() ? "/reminders" : null, "Contactează clienții"));
+        }
+        if (!expired.isEmpty()) {
+            sections.add(new Section("ITP expirat, încă necontactați (" + expired.size() + ")",
+                    expired.stream().map(r -> List.of(
+                            "de " + Math.abs(r.getZileRamase()) + " zile",
+                            r.getNumeSofer(),
+                            r.getNumarInmatriculare(),
+                            Objects.toString(r.getContact(), ""))).toList(),
+                    "/reminders", "Contactează clienții"));
+        }
+
+        String station = Objects.toString(user.getStationName(), "Stația ta");
+        return new Digest(subject, renderHtml(station, today, sections, empty), renderText(station, today, sections, empty), empty);
+    }
+
+    private record Section(String title, List<List<String>> rows, String linkPath, String linkLabel) {
+    }
+
+    private String renderHtml(String station, LocalDate today, List<Section> sections, boolean empty) {
         StringBuilder html = new StringBuilder();
         html.append("<div style=\"font-family:Arial,sans-serif;max-width:600px;color:#1e293b\">")
                 .append("<h2 style=\"margin:0 0 4px\">Bună dimineața!</h2>")
                 .append("<p style=\"margin:0 0 16px;color:#64748b\">")
-                .append(esc(Objects.toString(user.getStationName(), "Stația ta"))).append(" · ").append(today.format(DAY))
+                .append(esc(station)).append(" · ").append(today.format(DAY))
                 .append("</p>");
-
         if (empty) {
             html.append("<p>Nimic de raportat azi: nicio programare și niciun client de contactat.</p>");
         }
-
-        if (!todayAppointments.isEmpty()) {
-            section(html, "Programări azi (" + todayAppointments.size() + ")");
-            table(html, todayAppointments.stream().limit(MAX_ROWS).map(a -> List.of(
-                    a.getAppointmentDate().format(TIME),
-                    a.getClientName() + (a.getSource() == AppointmentSource.ONLINE ? " (online)" : ""),
-                    Objects.toString(a.getLicensePlate(), ""),
-                    Objects.toString(a.getPhone(), ""))).toList());
-            more(html, todayAppointments.size());
-            button(html, "/calendar", "Deschide calendarul");
+        for (Section section : sections) {
+            section(html, section.title());
+            table(html, section.rows().stream().limit(MAX_ROWS).toList());
+            more(html, section.rows().size());
+            if (section.linkPath() != null) button(html, section.linkPath(), section.linkLabel());
         }
-
-        if (!newOnline.isEmpty()) {
-            section(html, "Programări online noi (" + newOnline.size() + ")");
-            table(html, newOnline.stream().limit(MAX_ROWS).map(a -> List.of(
-                    a.getAppointmentDate().format(DAY_TIME),
-                    a.getClientName(),
-                    Objects.toString(a.getLicensePlate(), ""),
-                    Objects.toString(a.getPhone(), ""))).toList());
-            more(html, newOnline.size());
-        }
-
-        if (!expiringSoon.isEmpty() || !expired.isEmpty()) {
-            if (!expiringSoon.isEmpty()) {
-                section(html, "ITP expiră în următoarele " + EXPIRING_DAYS + " zile (" + expiringSoon.size() + ")");
-                table(html, expiringSoon.stream().limit(MAX_ROWS).map(r -> List.of(
-                        r.getZileRamase() == 0 ? "azi" : "în " + r.getZileRamase() + (r.getZileRamase() == 1 ? " zi" : " zile"),
-                        r.getNumeSofer(),
-                        r.getNumarInmatriculare(),
-                        Objects.toString(r.getContact(), ""))).toList());
-                more(html, expiringSoon.size());
-            }
-            if (!expired.isEmpty()) {
-                section(html, "ITP expirat, încă necontactați (" + expired.size() + ")");
-                table(html, expired.stream().limit(MAX_ROWS).map(r -> List.of(
-                        "de " + Math.abs(r.getZileRamase()) + " zile",
-                        r.getNumeSofer(),
-                        r.getNumarInmatriculare(),
-                        Objects.toString(r.getContact(), ""))).toList());
-                more(html, expired.size());
-            }
-            button(html, "/reminders", "Contactează clienții");
-        }
-
         html.append("<p style=\"margin-top:24px;font-size:12px;color:#94a3b8\">")
                 .append("Primești acest email pentru că ești manager în EasyITP. Îl poți opri din „Contul meu”.</p></div>");
+        return html.toString();
+    }
 
-        return new Digest(subject, html.toString(), empty);
+    // Varianta pentru WhatsApp: text simplu, *bold* in stilul WhatsApp, liste scurte
+    private String renderText(String station, LocalDate today, List<Section> sections, boolean empty) {
+        StringBuilder text = new StringBuilder();
+        text.append("*EasyITP · ").append(station).append("*\n").append(today.format(DAY)).append("\n");
+        if (empty) {
+            text.append("\nNimic de raportat azi: nicio programare și niciun client de contactat.\n");
+        }
+        for (Section section : sections) {
+            text.append("\n*").append(section.title()).append("*\n");
+            section.rows().stream().limit(WHATSAPP_ROWS).forEach(row -> text.append("• ")
+                    .append(String.join(" · ", row.stream().filter(v -> v != null && !v.isBlank()).toList()))
+                    .append("\n"));
+            if (section.rows().size() > WHATSAPP_ROWS) {
+                text.append("…și încă ").append(section.rows().size() - WHATSAPP_ROWS).append("\n");
+            }
+        }
+        if (!sections.isEmpty()) {
+            boolean toContact = sections.stream().anyMatch(sec -> "/reminders".equals(sec.linkPath()));
+            text.append("\n").append(appUrl).append(toContact ? "/reminders" : "/calendar");
+        }
+        return text.toString().trim();
     }
 
     static String subject(LocalDate today, int appointments, int newOnline, int toContact) {

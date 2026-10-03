@@ -32,7 +32,7 @@ public class EmailService {
 
     public void send(String to, String subject, String html) {
         if (!isConfigured()) {
-            throw new EmailException("Trimiterea de emailuri nu este configurată (lipsește RESEND_API_KEY).");
+            throw new DeliveryException("Trimiterea de emailuri nu este configurată (lipsește RESEND_API_KEY).");
         }
         try {
             client.post()
@@ -44,7 +44,7 @@ public class EmailService {
                     .toBodilessEntity();
         } catch (RestClientResponseException e) {
             log.warn("Resend a refuzat emailul catre {}: {} {}", to, e.getStatusCode(), e.getResponseBodyAsString());
-            throw new EmailException(explain(e));
+            throw new DeliveryException(explain(e));
         }
     }
 
@@ -65,9 +65,4 @@ public class EmailService {
         return "Emailul nu a putut fi trimis (Resend " + e.getStatusCode().value() + ").";
     }
 
-    public static class EmailException extends RuntimeException {
-        public EmailException(String message) {
-            super(message);
-        }
-    }
 }

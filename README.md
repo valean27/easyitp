@@ -4,7 +4,7 @@ Aplicație pentru stații ITP: evidența inspecțiilor, clienți de contactat c�
 
 - **Manager (o stație ITP):** dashboard cu ITP-uri și programările zilei, listă „De contactat” cu mesaje WhatsApp/SMS gata scrise, calendar, rapoarte lunare cu export pentru contabilitate, import/export CSV.
 - **Clienți:** pagină publică de programare a stației (`/programare/<link>`), fără cont; programările apar în calendarul stației.
-- **Email zilnic** pentru manageri (Resend), pornit de `.github/workflows/daily-digest.yml`.
+- **Rezumat zilnic** pentru manageri, pe email (Resend) sau WhatsApp (CallMeBot, configurat de fiecare manager în „Contul meu”), pornit de `.github/workflows/daily-digest.yml`.
 - **Admin:** conturile managerilor (creare, resetare parolă, dezactivare) și cifre agregate pe stații.
 
 ## Rulare locală

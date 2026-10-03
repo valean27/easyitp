@@ -14,8 +14,11 @@ import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.VehicleRepository;
+import org.example.easyitp.service.DeliveryException;
 import org.example.easyitp.service.DigestService;
 import org.example.easyitp.service.EmailService;
+import org.example.easyitp.service.WhatsAppService;
+import org.example.easyitp.entity.DigestChannel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -38,7 +41,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +63,7 @@ class DigestIntegrationTest {
     @Autowired private ItpRecordRepository records;
     @Autowired private PasswordEncoder encoder;
     @MockBean private EmailService emailService;
+    @MockBean private WhatsAppService whatsAppService;
 
     private final LocalDate today = LocalDate.now();
     private AppUser busy;
@@ -107,7 +113,7 @@ class DigestIntegrationTest {
 
     @Test
     void respectsOptOutAndRetriesAfterFailure() {
-        doThrow(new EmailService.EmailException("Resend down")).when(emailService).send(anyString(), anyString(), anyString());
+        doThrow(new DeliveryException("Resend down")).when(emailService).send(anyString(), anyString(), anyString());
         assertThat(digestService.sendDailyDigests(today).failed()).isEqualTo(1);
         assertThat(users.findById(busy.getId()).orElseThrow().getLastDigestDate()).isNull();
 
@@ -138,10 +144,66 @@ class DigestIntegrationTest {
         verify(emailService).send(eq("ocupat@itp.ro"), subject.capture(), anyString());
         assertThat(subject.getValue()).startsWith("[Test]");
 
-        doThrow(new EmailService.EmailException("Cheia Resend este invalidă")).when(emailService).send(anyString(), anyString(), anyString());
+        doThrow(new DeliveryException("Cheia Resend este invalidă")).when(emailService).send(anyString(), anyString(), anyString());
         mvc.perform(post("/api/account/digest/test").header("Authorization", "Bearer " + token))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.message").value("Cheia Resend este invalidă"));
+    }
+
+    @Test
+    void whatsappChannelSendsShortTextInsteadOfEmail() {
+        busy.setDigestChannel(DigestChannel.WHATSAPP);
+        busy.setWhatsappPhone("0744123456");
+        busy.setCallmebotApiKey("key-1");
+        users.save(busy);
+
+        assertThat(digestService.sendDailyDigests(today).sent()).isEqualTo(1);
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        verify(whatsAppService).send(eq("0744123456"), eq("key-1"), text.capture());
+        verify(emailService, never()).send(anyString(), anyString(), anyString());
+        assertThat(text.getValue())
+                .startsWith("*EasyITP · ITP Ocupat*")
+                .contains("*Programări azi (1)*")
+                .contains("Dan Expira")
+                .contains("/reminders")
+                .doesNotContain("<div").doesNotContain("<table"); // fara HTML in WhatsApp
+    }
+
+    @Test
+    void digestSettingsValidateWhatsappAndNeverReturnTheKey() throws Exception {
+        String token = login();
+        mvc.perform(put("/api/account/digest").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true,\"channel\":\"WHATSAPP\",\"whatsappPhone\":\"0744123456\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("CallMeBot")));
+
+        mvc.perform(put("/api/account/digest").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true,\"channel\":\"WHATSAPP\",\"whatsappPhone\":\"0744123456\",\"callmebotApiKey\":\"secret-key\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.hasApiKey").value(true))
+                .andExpect(jsonPath("$.callmebotApiKey").doesNotExist());
+
+        // salvare fara cheie noua: cheia existenta se pastreaza
+        mvc.perform(put("/api/account/digest").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":true,\"channel\":\"WHATSAPP\",\"whatsappPhone\":\"0744 999 888\"}"))
+                .andExpect(status().isOk());
+        AppUser saved = users.findById(busy.getId()).orElseThrow();
+        assertThat(saved.getCallmebotApiKey()).isEqualTo("secret-key");
+        assertThat(saved.getWhatsappPhone()).isEqualTo("0744 999 888");
+
+        String body = mvc.perform(get("/api/account/digest").header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString();
+        assertThat(body).doesNotContain("secret-key");
+    }
+
+    private String login() throws Exception {
+        return com.jayway.jsonpath.JsonPath.read(mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"ocupat@itp.ro\",\"password\":\"secret12\"}"))
+                .andReturn().getResponse().getContentAsString(), "$.token");
     }
 
     private void appointment(AppUser user, String name, java.time.LocalDateTime when, AppointmentSource source) {

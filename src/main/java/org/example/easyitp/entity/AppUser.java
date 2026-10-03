@@ -56,6 +56,17 @@ public class AppUser {
 
     // Email zilnic catre manager; null = activ
     private Boolean digestEnabled;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private DigestChannel digestChannel;
+
+    // WhatsApp prin CallMeBot: numarul managerului si cheia lui personala
+    @Column(length = 30)
+    private String whatsappPhone;
+
+    @Column(length = 100)
+    private String callmebotApiKey;
+
     // Ziua ultimului email zilnic trimis, ca sa nu trimitem de doua ori
     private LocalDate lastDigestDate;
 

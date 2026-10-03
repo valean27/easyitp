@@ -139,3 +139,14 @@ export interface Report {
   months: ReportMonth[];
   topBrands: { brand: string; count: number }[];
 }
+
+export type DigestChannel = 'EMAIL' | 'WHATSAPP';
+
+export interface DigestSettings {
+  enabled: boolean;
+  channel: DigestChannel;
+  whatsappPhone: string | null;
+  // Doar la salvare; serverul nu o trimite niciodata inapoi
+  callmebotApiKey?: string;
+  hasApiKey: boolean;
+}
