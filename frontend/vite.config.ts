@@ -7,6 +7,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    // Pagina de calendar (MUI Scheduler) are ~700 kB, dar se incarca doar cand e deschisa
+    chunkSizeWarningLimit: 800,
+  },
   server: {
     proxy: {
       '/api': {
