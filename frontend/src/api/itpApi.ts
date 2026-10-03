@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { DashboardEntry, ImportResult, ItpFormData } from '../types';
+import type { DashboardEntry, ImportResult, ItpFormData, RegistrationScan } from '../types';
 
 const BASE = '/api/itp';
 
@@ -40,3 +40,15 @@ export const exportCsv = (): Promise<void> =>
     link.remove();
     window.URL.revokeObjectURL(url);
   });
+
+// Poza talonului -> datele vehiculului (poza nu se salveaza pe server)
+export const scanRegistration = (image: Blob): Promise<RegistrationScan> => {
+  const form = new FormData();
+  form.append('image', image, 'talon.jpg');
+  return api
+    .post(`${BASE}/scan-registration`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90_000,
+    })
+    .then((r) => r.data);
+};

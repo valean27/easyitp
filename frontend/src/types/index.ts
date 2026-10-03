@@ -52,6 +52,17 @@ export interface ImportResult {
   errors: string[];
 }
 
+// Datele citite de pe talon (campurile necitite sunt null)
+export interface RegistrationScan {
+  licensePlate: string | null;
+  vin: string | null;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
+  ownerName: string | null;
+  warnings: string[];
+}
+
 export interface StationInfo {
   stationName: string | null;
   address: string | null;

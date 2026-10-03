@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,5 +57,16 @@ public class CarService {
                 .orElseGet(() -> carModelRepository.save(
                         CarModel.builder().name(trimmed).make(make).build()));
         return new CarModelDTO(model.getId(), model.getName(), makeId);
+    }
+
+    // Parserul de marca/model construit din dictionarul curent (inclusiv marcile fara modele)
+    @Transactional(readOnly = true)
+    public VehicleNameParser vehicleNameParser() {
+        Map<String, List<String>> models = new LinkedHashMap<>();
+        carMakeRepository.findAllByOrderByNameAsc().forEach(m -> models.put(m.getName(), new ArrayList<>()));
+        for (CarModel model : carModelRepository.findAllWithMake()) {
+            models.computeIfAbsent(model.getMake().getName(), k -> new ArrayList<>()).add(model.getName());
+        }
+        return new VehicleNameParser(models);
     }
 }

@@ -6,13 +6,10 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.entity.AppUser;
-import org.example.easyitp.entity.CarModel;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.Vehicle;
-import org.example.easyitp.repository.CarMakeRepository;
-import org.example.easyitp.repository.CarModelRepository;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.VehicleRepository;
@@ -29,7 +26,6 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -61,14 +57,13 @@ public class CsvImportService {
     private final ClientRepository clientRepository;
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
-    private final CarMakeRepository carMakeRepository;
-    private final CarModelRepository carModelRepository;
+    private final CarService carService;
 
     @Transactional
     public ImportResultDTO importCsv(MultipartFile file, AppUser user) throws IOException {
         int imported = 0, updated = 0, skipped = 0;
         List<String> errors = new ArrayList<>();
-        VehicleNameParser vehicleNames = vehicleNameParser();
+        VehicleNameParser vehicleNames = carService.vehicleNameParser();
 
         try (Reader reader = new InputStreamReader(withoutBom(file.getBytes()), StandardCharsets.UTF_8);
              CSVParser parser = CSVFormat.DEFAULT.builder()
@@ -147,15 +142,6 @@ public class CsvImportService {
         // VIN-ul se pastreaza doar daca e complet (17 caractere); "wvw", "tmb" sunt doar prefixe
         if (vin.length() == 17) vehicle.setVin(vin.toUpperCase(Locale.ROOT));
         return vehicleRepository.save(vehicle);
-    }
-
-    private VehicleNameParser vehicleNameParser() {
-        Map<String, List<String>> models = new LinkedHashMap<>();
-        carMakeRepository.findAllByOrderByNameAsc().forEach(m -> models.put(m.getName(), new ArrayList<>()));
-        for (CarModel model : carModelRepository.findAllWithMake()) {
-            models.computeIfAbsent(model.getMake().getName(), k -> new ArrayList<>()).add(model.getName());
-        }
-        return new VehicleNameParser(models);
     }
 
     static LocalDate parseDate(String raw) {

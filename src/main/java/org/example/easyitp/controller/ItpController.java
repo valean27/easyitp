@@ -4,19 +4,23 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.DashboardDTO;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
+import org.example.easyitp.dto.RegistrationScanDTO;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.CsvImportService;
 import org.example.easyitp.service.ItpService;
+import org.example.easyitp.service.RegistrationScanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/itp")
@@ -26,6 +30,11 @@ public class ItpController {
     private final ItpService itpService;
     private final CsvImportService csvImportService;
     private final CurrentUser currentUser;
+    private final RegistrationScanService registrationScanService;
+
+    private static final Set<String> SCAN_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+    // Anthropic accepta imagini de pana la 5 MB (codate base64 cresc cu o treime)
+    private static final long MAX_SCAN_IMAGE_BYTES = 4L * 1024 * 1024;
 
     @GetMapping("/dashboard")
     public List<DashboardDTO> getDashboard() {
@@ -65,6 +74,26 @@ public class ItpController {
     public ResponseEntity<ImportResultDTO> importCsv(@RequestParam("file") MultipartFile file) throws IOException {
         ImportResultDTO result = csvImportService.importCsv(file, currentUser.get());
         return ResponseEntity.ok(result);
+    }
+
+    // Poza talonului -> campurile formularului ITP (poza nu se salveaza)
+    @PostMapping(value = "/scan-registration", consumes = "multipart/form-data")
+    public RegistrationScanDTO scanRegistration(@RequestParam("image") MultipartFile image) throws IOException {
+        String type = image.getContentType() == null ? "" : image.getContentType();
+        if (!SCAN_IMAGE_TYPES.contains(type)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trimiteți o poză JPEG, PNG sau WebP.");
+        }
+        if (image.isEmpty() || image.getSize() > MAX_SCAN_IMAGE_BYTES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Poza trebuie să aibă cel mult 4 MB.");
+        }
+        return registrationScanService.scan(currentUser.get().getId(), image.getBytes(), type);
+    }
+
+    // Mesajele de eroare ale scanarii ajung in interfata ca {"message": ...}
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> handleStatus(ResponseStatusException e) {
+        return ResponseEntity.status(e.getStatusCode())
+                .body(Map.of("message", e.getReason() == null ? "Eroare" : e.getReason()));
     }
 
     @DeleteMapping("/{id}")

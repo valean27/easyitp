@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import CreatableSelect from 'react-select/creatable';
 import type { SingleValue } from 'react-select';
-import { X, Loader2, History } from 'lucide-react';
+import { X, Loader2, History, Camera, ScanLine, AlertTriangle } from 'lucide-react';
 import type { DashboardEntry, ItpFormData, ItpStatus } from '../types';
-import { createItpEntry, updateItpEntry, lookupByPlate } from '../api/itpApi';
+import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration } from '../api/itpApi';
+import { shrinkImage } from '../utils/image';
 import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
 import type { CarMake, CarModel } from '../api/carApi';
@@ -91,6 +93,9 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   const [lastLookup, setLastLookup] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<{ text: string; warnings: string[]; type: 'success' | 'error' } | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
 
   const [makeOptions, setMakeOptions] = useState<SelectOption[]>([]);
   const [modelOptions, setModelOptions] = useState<SelectOption[]>([]);
@@ -141,8 +146,10 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   }, [makesLoading]);
 
   // Client care revine: completam datele vehiculului din ultimul lui ITP (doar campurile goale)
-  const handlePlateBlur = async () => {
-    const plate = form.licensePlate.trim();
+  const handlePlateBlur = () => lookupPlate(form.licensePlate, !form.brand);
+
+  const lookupPlate = async (rawPlate: string, brandEmpty: boolean) => {
+    const plate = rawPlate.trim();
     if (isEdit || plate.length < 4 || plate === lastLookup) return;
     setLastLookup(plate);
     try {
@@ -161,10 +168,40 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
         vin: f.vin || prev.vin || '',
         validityMonths: prev.valabilitateLuni,
       }));
-      if (!form.brand && prev.marca) await selectMakeModel(makeOptions, prev.marca, prev.model);
+      if (brandEmpty && prev.marca) await selectMakeModel(makeOptions, prev.marca, prev.model);
       setLookupNote(`Client cunoscut: ultimul ITP pe ${prev.dataItp}. Datele vehiculului au fost completate.`);
     } catch {
       setLookupNote(null);
+    }
+  };
+
+  // Poza talonului -> numar, VIN, marca, model, an; numele titularului doar daca numele e gol
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setScanning(true);
+    setScanNote(null);
+    try {
+      const scan = await scanRegistration(await shrinkImage(file));
+      setForm((f) => ({
+        ...f,
+        licensePlate: scan.licensePlate ?? f.licensePlate,
+        vin: scan.vin ?? f.vin,
+        brand: scan.brand ?? f.brand,
+        model: scan.brand ? scan.model ?? '' : f.model,
+        year: scan.year ?? f.year,
+      }));
+      if (scan.brand) await selectMakeModel(makeOptions, scan.brand, scan.model);
+      // Client care revine: numele si telefonul vin din ultimul ITP, altfel numele titularului de pe talon
+      if (scan.licensePlate) await lookupPlate(scan.licensePlate, !scan.brand && !form.brand);
+      if (scan.ownerName) setForm((f) => ({ ...f, name: f.name || scan.ownerName! }));
+      setScanNote({ text: 'Date completate din talon. Verifică-le înainte de salvare.', warnings: scan.warnings, type: 'success' });
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? (err.response?.data as { message?: string })?.message : undefined;
+      setScanNote({ text: message ?? 'Talonul nu a putut fi citit. Încearcă din nou.', warnings: [], type: 'error' });
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -277,6 +314,38 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
           <form id="add-itp-form" onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
+            {!isEdit && (
+              <div>
+                <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden onChange={handlePhoto} />
+                <button
+                  type="button"
+                  onClick={() => photoInput.current?.click()}
+                  disabled={scanning}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 text-sm font-medium text-blue-700 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-70 transition-colors"
+                >
+                  {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                  {scanning ? 'Se citește talonul...' : 'Scanează talonul'}
+                </button>
+                {scanNote && (
+                  <div
+                    className={`mt-2 text-xs rounded-lg px-2.5 py-1.5 border ${
+                      scanNote.type === 'success'
+                        ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+                        : 'text-red-600 bg-red-50 border-red-200'
+                    }`}
+                  >
+                    <p className="flex items-center gap-1.5">
+                      {scanNote.type === 'success' ? <ScanLine size={12} className="shrink-0" /> : <AlertTriangle size={12} className="shrink-0" />}
+                      {scanNote.text}
+                    </p>
+                    {scanNote.warnings.map((w) => (
+                      <p key={w} className="mt-1 text-amber-700">{w}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Numarul primul: pentru clientii care revin completeaza restul datelor */}
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">
