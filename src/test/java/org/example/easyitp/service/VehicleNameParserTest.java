@@ -1,5 +1,6 @@
 package org.example.easyitp.service;
 
+import org.example.easyitp.config.CarDictionary;
 import org.example.easyitp.service.VehicleNameParser.ParsedVehicle;
 import org.junit.jupiter.api.Test;
 
@@ -77,5 +78,36 @@ class VehicleNameParserTest {
         assertThat(parser.parse("remorca")).isEqualTo(new ParsedVehicle("Remorca", null, null));
         assertThat(parser.parse("lancia")).isEqualTo(new ParsedVehicle("Lancia", null, null));
         assertThat(parser.parse("")).isEqualTo(new ParsedVehicle("Necunoscut", null, null));
+    }
+
+    @Test
+    void worksWithTheFullDictionary() {
+        VehicleNameParser full = new VehicleNameParser(CarDictionary.load());
+        assertThat(full.parse("cherry omoda 5")).isEqualTo(new ParsedVehicle("Chery", "Omoda 5", null));
+        assertThat(full.parse("OMODA 5 2024")).isEqualTo(new ParsedVehicle("Omoda", "5", 2024));
+        assertThat(full.parse("byd seal u")).isEqualTo(new ParsedVehicle("BYD", "Seal U", null));
+        assertThat(full.parse("ssang yong tivoli")).isEqualTo(new ParsedVehicle("SsangYong", "Tivoli", null));
+        assertThat(full.parse("land rover defender")).isEqualTo(new ParsedVehicle("Land Rover", "Defender", null));
+        assertThat(full.parse("alfa 159")).isEqualTo(new ParsedVehicle("Alfa Romeo", "159", null));
+        assertThat(full.parse("lancia ypsilon")).isEqualTo(new ParsedVehicle("Lancia", "Ypsilon", null));
+        assertThat(full.parse("vw lt")).isEqualTo(new ParsedVehicle("Volkswagen", "LT", null));
+        assertThat(full.parse("lexus rx")).isEqualTo(new ParsedVehicle("Lexus", "RX", null));
+        assertThat(full.parse("mercedes glc")).isEqualTo(new ParsedVehicle("Mercedes-Benz", "GLC", null));
+        assertThat(full.parse("bmw x5")).isEqualTo(new ParsedVehicle("BMW", "X5", null));
+        // modelul singur, fara marca
+        assertThat(full.parse("passat")).isEqualTo(new ParsedVehicle("Volkswagen", "Passat", null));
+        assertThat(full.parse("qashqai")).isEqualTo(new ParsedVehicle("Nissan", "Qashqai", null));
+        assertThat(full.parse("500")).isEqualTo(new ParsedVehicle("Fiat", "500", null));
+        assertThat(full.parse("sportage")).isEqualTo(new ParsedVehicle("Kia", "Sportage", null));
+        assertThat(full.parse("fiesta")).isEqualTo(new ParsedVehicle("Ford", "Fiesta", null));
+        assertThat(full.parse("remorca")).isEqualTo(new ParsedVehicle("Remorca", null, null));
+    }
+
+    @Test
+    void fullDictionaryHasNoDuplicateMakesOrModels() {
+        var data = CarDictionary.load();
+        assertThat(data.keySet().stream().map(VehicleNameParser::key)).doesNotHaveDuplicates();
+        data.forEach((make, models) -> assertThat(models.stream().map(VehicleNameParser::key))
+                .as(make).doesNotHaveDuplicates());
     }
 }

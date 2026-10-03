@@ -26,9 +26,13 @@ public class VehicleNameParser {
             Map.entry("hiunday", "hyundai"), Map.entry("hyunday", "hyundai"), Map.entry("hiundai", "hyundai"), Map.entry("huyndai", "hyundai"),
             Map.entry("peogeot", "peugeot"), Map.entry("pegeot", "peugeot"),
             Map.entry("scoda", "skoda"), Map.entry("citroien", "citroen"),
-            Map.entry("bmv", "bmw"), Map.entry("toyta", "toyota"), Map.entry("opell", "opel"));
+            Map.entry("bmv", "bmw"), Map.entry("toyta", "toyota"), Map.entry("opell", "opel"),
+            Map.entry("alfa", "alfa romeo"), Map.entry("cherry", "chery"), Map.entry("kgm", "ssangyong"), Map.entry("chevy", "chevrolet"),
+            Map.entry("porche", "porsche"), Map.entry("wolkswagen", "volkswagen"), Map.entry("folkswagen", "volkswagen"),
+            Map.entry("mitsubisi", "mitsubishi"), Map.entry("mitsubishy", "mitsubishi"), Map.entry("landrover", "land rover"),
+            Map.entry("rangerover", "land rover"), Map.entry("lexsus", "lexus"));
 
-    private static final Set<String> MULTI_WORD_PREFIXES = Set.of("alfa", "land", "mercedes");
+    private static final Set<String> MULTI_WORD_PREFIXES = Set.of("alfa", "land", "mercedes", "ssang", "great", "aston", "rolls");
 
     // cheie normalizata -> nume canonic din dictionar
     private final Map<String, String> makes = new HashMap<>();
@@ -168,7 +172,7 @@ public class VehicleNameParser {
     }
 
     // Comparatie fara majuscule, diacritice, spatii si cratime ("Citroën" = "citroen", "Mercedes-Benz" = "mercedes benz")
-    static String key(String s) {
+    public static String key(String s) {
         return Normalizer.normalize(s, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT)
