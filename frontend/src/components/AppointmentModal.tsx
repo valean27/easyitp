@@ -110,8 +110,8 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
   const canStartItp = isEdit && onStartItp && !appointment.itpRecordId && appointment.status !== 'CANCELLED';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="modal-overlay">
+      <div className="modal-panel sm:max-w-md">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">{isEdit ? 'Editează Programare' : 'Programare Nouă'}</h2>
           <button

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EventCalendar } from '@mui/x-scheduler/event-calendar';
 import { roRO } from '@mui/x-scheduler/locales';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -66,7 +66,16 @@ function toEvent(a: Appointment): SchedulerEvent {
   };
 }
 
+// Pe telefon meniul lateral (sertarul MUI) ramane deschis dupa ce alegi o vedere sau o zi; nu are prop
+// de control, asa ca apasam noi butonul lui de inchidere (daca sertarul nu e deschis, nu se intampla nimic)
+function closeCompactDrawer(container: HTMLElement | null) {
+  window.setTimeout(() => {
+    container?.querySelector<HTMLButtonElement>('.MuiEventCalendar-sidePanelDrawerCloseButton')?.click();
+  }, 150);
+}
+
 export default function CalendarPage() {
+  const calendarRef = useRef<HTMLDivElement>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +158,7 @@ export default function CalendarPage() {
             {error}
           </div>
         )}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" style={{ height: 'calc(100dvh - 7.5rem)' }}>
+        <div ref={calendarRef} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" style={{ height: 'calc(100dvh - 7.5rem)' }}>
           <ThemeProvider theme={theme}>
             <EventCalendar
               events={events}
@@ -168,9 +177,11 @@ export default function CalendarPage() {
               preferencesMenuConfig={false}
               areEventsResizable={false}
               eventCreation={{ interaction: 'click', duration: SLOT_MINUTES }}
+              onViewChange={() => closeCompactDrawer(calendarRef.current)}
               onVisibleDateChange={(date) => {
                 const next = rangeAround(new Date(date as Date));
                 if (next.key !== range.key) setRange(next);
+                closeCompactDrawer(calendarRef.current);
               }}
               // Folosim formularul nostru (verificare suprapuneri, "Începe ITP") in locul dialogului MUI
               onEventEditingStart={(occurrence, details) => {

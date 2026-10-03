@@ -258,16 +258,17 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[92vh] flex flex-col overflow-hidden">
+    <div className="modal-overlay">
+      <div className="modal-panel sm:max-w-lg">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
-          <h2 className="text-lg font-semibold text-slate-800">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+          <h2 className="text-base sm:text-lg font-semibold text-slate-800">
             {isEdit ? 'Editează Înregistrare ITP' : appointmentId ? 'ITP din Programare' : 'Adaugă Înregistrare ITP'}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
+            aria-label="Închide"
+            className="p-2 sm:p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
           >
             <X size={18} />
           </button>
@@ -275,7 +276,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
-          <form id="add-itp-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <form id="add-itp-form" onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
             {/* Numarul primul: pentru clientii care revin completeaza restul datelor */}
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -289,6 +290,9 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 value={form.licensePlate}
                 onChange={handleChange}
                 onBlur={handlePlateBlur}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                autoComplete="off"
                 placeholder="B 123 ABC"
                 className={INPUT_CLS + ' uppercase font-mono font-semibold'}
               />
@@ -305,7 +309,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
               <legend className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
                 Date Șofer
               </legend>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Nume Șofer <span className="text-red-500">*</span>
@@ -323,7 +327,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">Telefon</label>
                   <input
-                    type="text"
+                    type="tel"
                     name="phone"
                     value={form.phone}
                     onChange={handleChange}
@@ -341,7 +345,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
               </legend>
 
               {/* Make + Model row */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Creatable Make */}
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -358,6 +362,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     formatCreateLabel={(v) => `Adaugă "${v}"`}
                     noOptionsMessage={() => 'Tastează pentru a adăuga'}
                     classNamePrefix="rs"
+                    menuPlacement="auto"
                     styles={rsStyles}
                   />
                   {/* hidden required sentinel */}
@@ -385,13 +390,14 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     formatCreateLabel={(v) => `Adaugă "${v}"`}
                     noOptionsMessage={() => 'Tastează pentru a adăuga'}
                     classNamePrefix="rs"
+                    menuPlacement="auto"
                     styles={rsStyles}
                   />
                 </div>
               </div>
 
               {/* Year + VIN row */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     An fabricație
@@ -399,6 +405,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   <input
                     type="number"
                     name="year"
+                    inputMode="numeric"
                     value={form.year ?? ''}
                     onChange={handleChange}
                     placeholder={String(CURRENT_YEAR)}
@@ -427,7 +434,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
               <legend className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
                 Date ITP
               </legend>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Data Efectuare ITP <span className="text-red-500">*</span>
@@ -459,7 +466,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Rezultat ITP <span className="text-red-500">*</span>
@@ -484,6 +491,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   <input
                     type="number"
                     name="mileage"
+                    inputMode="numeric"
                     value={form.mileage ?? ''}
                     onChange={handleChange}
                     placeholder="ex: 120000"
@@ -498,6 +506,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 <input
                   type="number"
                   name="price"
+                  inputMode="decimal"
                   value={form.price ?? ''}
                   onChange={handleChange}
                   placeholder="ex: 150"
@@ -529,11 +538,11 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+        <div className="flex justify-end gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-slate-100 bg-slate-50 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
           >
             Anulează
           </button>
@@ -541,7 +550,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
             form="add-itp-form"
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 sm:py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
             Salvează

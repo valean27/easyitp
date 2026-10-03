@@ -50,10 +50,10 @@ export default function ImportCsvModal({ onClose, onSuccess }: Props) {
   const isDone = result !== null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <div className="modal-overlay">
+      <div className="modal-panel sm:max-w-md">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">Import CSV</h2>
           <button
             onClick={onClose}
@@ -63,7 +63,7 @@ export default function ImportCsvModal({ onClose, onSuccess }: Props) {
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-4">
+        <div className="px-6 py-5 space-y-4 overflow-y-auto">
           {!isDone ? (
             <>
               {/* Drop zone */}

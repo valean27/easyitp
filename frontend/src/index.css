@@ -13,3 +13,22 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Ferestrele modale: pe telefon urca de jos ca un panou pe toata latimea, pe ecrane mari stau centrate */
+@layer components {
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm;
+  }
+  .modal-panel {
+    @apply bg-white shadow-2xl w-full max-h-[94dvh] sm:max-h-[92vh] sm:mx-4 rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden;
+  }
+}
+
+/* iPhone face zoom pe orice camp cu font sub 16px cand primeste focus; pe telefon le dam 16px */
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
