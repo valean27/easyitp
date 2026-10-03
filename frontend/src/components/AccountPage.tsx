@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw } from 'lucide-react';
 import { getProfile, updateProfile, changePassword } from '../api/accountApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
 const INPUT_CLS =

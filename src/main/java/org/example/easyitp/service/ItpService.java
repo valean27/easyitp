@@ -259,7 +259,7 @@ public class ItpService {
     @Transactional
     public void deleteItpRecord(Long id, Long userId) {
         ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
-                .orElseThrow(() -> new RuntimeException("Record not found or access denied"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
         itpRecordRepository.delete(record);
     }
 

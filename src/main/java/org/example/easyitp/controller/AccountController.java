@@ -6,9 +6,9 @@ import org.example.easyitp.dto.ProfileDTO;
 import org.example.easyitp.dto.StationInfoDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.security.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,22 +21,17 @@ public class AccountController {
     private static final int MIN_PASSWORD_LENGTH = 6;
 
     private final AppUserRepository appUserRepository;
+    private final CurrentUser currentUser;
     private final PasswordEncoder passwordEncoder;
-
-    private AppUser currentUser() {
-        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-    }
 
     @GetMapping("/me")
     public ProfileDTO getProfile() {
-        return toDto(currentUser());
+        return toDto(currentUser.get());
     }
 
     @PutMapping("/me")
     public ProfileDTO updateProfile(@RequestBody StationInfoDTO request) {
-        AppUser user = currentUser();
+        AppUser user = currentUser.get();
         user.setStationName(trimToNull(request.getStationName()));
         user.setAddress(trimToNull(request.getAddress()));
         user.setPhone(trimToNull(request.getPhone()));
@@ -46,7 +41,7 @@ public class AccountController {
 
     @PutMapping("/password")
     public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
-        AppUser user = currentUser();
+        AppUser user = currentUser.get();
         if (request.getCurrentPassword() == null
                 || !passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Parola curenta este gresita");

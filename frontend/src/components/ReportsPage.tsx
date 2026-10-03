@@ -3,7 +3,7 @@ import { BarChart3, Banknote, ClipboardCheck, Calculator, BadgeCheck, Download, 
 import type { ManagerSummary, Report } from '../types';
 import { getReport, exportReport } from '../api/reportApi';
 import { getManagers } from '../api/adminApi';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/auth';
 import BarChart from './BarChart';
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];

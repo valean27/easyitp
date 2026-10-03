@@ -1,6 +1,7 @@
+import { Suspense } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/auth';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -96,7 +97,15 @@ export default function Layout() {
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-20 text-slate-400">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </div>
       </div>
     </div>

@@ -133,7 +133,6 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
       })
       .catch(() => setMakeOptions([]))
       .finally(() => setMakesLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry]);
 
   useEffect(() => {

@@ -1,14 +1,18 @@
+import { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import UserManagementPage from './components/UserManagementPage';
 import LoginPage from './components/LoginPage';
-import CalendarPage from './components/CalendarPage';
-import AccountPage from './components/AccountPage';
-import RemindersPage from './components/RemindersPage';
-import ReportsPage from './components/ReportsPage';
+
+// Paginile se incarca la cerere, ca login-ul sa nu descarce calendarul, rapoartele etc.
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const UserManagementPage = lazy(() => import('./components/UserManagementPage'));
+const CalendarPage = lazy(() => import('./components/CalendarPage'));
+const AccountPage = lazy(() => import('./components/AccountPage'));
+const RemindersPage = lazy(() => import('./components/RemindersPage'));
+const ReportsPage = lazy(() => import('./components/ReportsPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri
 function Home() {

@@ -5,16 +5,13 @@ import org.example.easyitp.dto.DashboardDTO;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.entity.ItpRecord;
-import org.example.easyitp.entity.AppUser;
-import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.ItpService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -26,22 +23,16 @@ import java.util.Map;
 public class ItpController {
 
     private final ItpService itpService;
-    private final AppUserRepository appUserRepository;
-
-    private AppUser currentUser() {
-        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return appUserRepository.findByEmail(email)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-    }
+    private final CurrentUser currentUser;
 
     @GetMapping("/dashboard")
     public List<DashboardDTO> getDashboard() {
-        return itpService.getDashboard(currentUser().getId());
+        return itpService.getDashboard(currentUser.get().getId());
     }
 
     @GetMapping("/export")
     public ResponseEntity<byte[]> exportCsv() throws IOException {
-        byte[] data = itpService.generateCsvExport(currentUser().getId());
+        byte[] data = itpService.generateCsvExport(currentUser.get().getId());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .header("Content-Disposition", "attachment; filename=\"itp_export.csv\"")
@@ -50,7 +41,7 @@ public class ItpController {
 
     @GetMapping("/lookup")
     public ResponseEntity<DashboardDTO> lookupByPlate(@RequestParam String plate) {
-        return itpService.lookupByPlate(plate, currentUser().getId())
+        return itpService.lookupByPlate(plate, currentUser.get().getId())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
     }
@@ -58,25 +49,25 @@ public class ItpController {
     @PostMapping
     // Doar id-ul: entitatea serializata ar include vehicul -> client -> utilizator (cu hash-ul parolei)
     public ResponseEntity<Map<String, Long>> createItpEntry(@RequestBody ItpFormDTO form) {
-        ItpRecord saved = itpService.createItpEntry(form, currentUser());
+        ItpRecord saved = itpService.createItpEntry(form, currentUser.get());
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", saved.getId()));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateItpEntry(@PathVariable Long id, @RequestBody ItpFormDTO form) {
-        itpService.updateItpEntry(id, form, currentUser().getId());
+        itpService.updateItpEntry(id, form, currentUser.get().getId());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(value = "/import", consumes = "multipart/form-data")
     public ResponseEntity<ImportResultDTO> importCsv(@RequestParam("file") MultipartFile file) throws IOException {
-        ImportResultDTO result = itpService.importCsv(file, currentUser());
+        ImportResultDTO result = itpService.importCsv(file, currentUser.get());
         return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItpRecord(@PathVariable Long id) {
-        itpService.deleteItpRecord(id, currentUser().getId());
+        itpService.deleteItpRecord(id, currentUser.get().getId());
         return ResponseEntity.noContent().build();
     }
 }

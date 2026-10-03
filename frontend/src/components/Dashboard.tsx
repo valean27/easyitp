@@ -37,6 +37,15 @@ function getStatusBadge(status: ItpStatus) {
   );
 }
 
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      <span className="text-sm text-slate-500 w-36 shrink-0">{label}</span>
+      <span className="text-sm font-medium text-slate-800 break-words">{value ?? '—'}</span>
+    </div>
+  );
+}
+
 const normalizePlate = (plate: string | null) => (plate ?? '').toUpperCase().replace(/[\s-]/g, '');
 
 function DetailsModal({
@@ -48,14 +57,6 @@ function DetailsModal({
   history: DashboardEntry[];
   onClose: () => void;
 }) {
-  function Row({ label, value }: { label: string; value: React.ReactNode }) {
-    return (
-      <div className="flex gap-3">
-        <span className="text-sm text-slate-500 w-36 shrink-0">{label}</span>
-        <span className="text-sm font-medium text-slate-800 break-words">{value ?? '—'}</span>
-      </div>
-    );
-  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[92vh] flex flex-col overflow-hidden">
