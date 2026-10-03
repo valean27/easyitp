@@ -14,4 +14,5 @@ public class AppointmentDTO {
     private String licensePlate;
     private LocalDateTime appointmentDate;
     private AppointmentStatus status;
+    private Long itpRecordId;
 }

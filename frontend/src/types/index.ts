@@ -41,6 +41,7 @@ export interface ItpFormData {
   mileage: number | null;
   price: number | null;
   observations: string;
+  appointmentId?: number;
 }
 
 export interface ImportResult {
@@ -95,4 +96,5 @@ export interface Appointment {
   licensePlate: string | null;
   appointmentDate: string;
   status: AppointmentStatus;
+  itpRecordId?: number | null;
 }

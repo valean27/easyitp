@@ -33,6 +33,10 @@ public class Appointment {
     @Column(name = "status", nullable = false)
     private AppointmentStatus status;
 
+    // ITP-ul efectuat la aceasta programare (setat cand programarea e finalizata cu ITP)
+    @Column(name = "itp_record_id")
+    private Long itpRecordId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude

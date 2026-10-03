@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import CreatableSelect from 'react-select/creatable';
 import type { SingleValue } from 'react-select';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, History } from 'lucide-react';
 import type { DashboardEntry, ItpFormData, ItpStatus } from '../types';
-import { createItpEntry, updateItpEntry } from '../api/itpApi';
+import { createItpEntry, updateItpEntry, lookupByPlate } from '../api/itpApi';
+import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
 import type { CarMake, CarModel } from '../api/carApi';
 
@@ -12,6 +13,10 @@ interface Props {
   onSuccess: () => void;
   // Daca e setat, modalul editeaza inregistrarea existenta
   entry?: DashboardEntry;
+  // Date precompletate la adaugare (ex. dintr-o programare)
+  prefill?: Partial<ItpFormData>;
+  // Programarea din care se face ITP-ul; devine "Finalizat" la salvare
+  appointmentId?: number;
 }
 
 type SelectOption = { value: number; label: string };
@@ -77,9 +82,13 @@ function formFromEntry(entry: DashboardEntry): ItpFormData {
   };
 }
 
-export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
+export default function AddItpModal({ onClose, onSuccess, entry, prefill, appointmentId }: Props) {
   const isEdit = !!entry;
-  const [form, setForm] = useState<ItpFormData>(() => (entry ? formFromEntry(entry) : emptyForm));
+  const [form, setForm] = useState<ItpFormData>(() =>
+    entry ? formFromEntry(entry) : { ...emptyForm, testDate: todayIso(), ...prefill }
+  );
+  const [lookupNote, setLookupNote] = useState<string | null>(null);
+  const [lastLookup, setLastLookup] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,35 +99,75 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
   const [makesLoading, setMakesLoading] = useState(true);
   const [modelsLoading, setModelsLoading] = useState(false);
 
+  // Preselecteaza marca si modelul (la editare sau dupa cautarea dupa numar)
+  const selectMakeModel = async (options: SelectOption[], brand: string, model: string | null) => {
+    const make = options.find((o) => o.label.toLowerCase() === brand.toLowerCase());
+    if (!make) {
+      setSelectedMake({ value: -1, label: brand });
+      setSelectedModel(model ? { value: -1, label: model } : null);
+      return;
+    }
+    setSelectedMake(make);
+    setModelsLoading(true);
+    try {
+      const models: CarModel[] = await getModels(make.value);
+      const modelOpts = models.map((m) => ({ value: m.id, label: m.name }));
+      setModelOptions(modelOpts);
+      if (model) {
+        const found = modelOpts.find((o) => o.label.toLowerCase() === model.toLowerCase());
+        setSelectedModel(found ?? { value: -1, label: model });
+      } else {
+        setSelectedModel(null);
+      }
+    } finally {
+      setModelsLoading(false);
+    }
+  };
+
   useEffect(() => {
     getMakes()
       .then(async (data: CarMake[]) => {
         const options = data.map((m) => ({ value: m.id, label: m.name }));
         setMakeOptions(options);
-        if (!entry?.marca) return;
-        // La editare preselectam marca si modelul existente
-        const make = options.find((o) => o.label.toLowerCase() === entry.marca.toLowerCase());
-        if (!make) {
-          setSelectedMake({ value: -1, label: entry.marca });
-          return;
-        }
-        setSelectedMake(make);
-        setModelsLoading(true);
-        try {
-          const models: CarModel[] = await getModels(make.value);
-          const modelOpts = models.map((m) => ({ value: m.id, label: m.name }));
-          setModelOptions(modelOpts);
-          if (entry.model) {
-            const model = modelOpts.find((o) => o.label.toLowerCase() === entry.model!.toLowerCase());
-            setSelectedModel(model ?? { value: -1, label: entry.model });
-          }
-        } finally {
-          setModelsLoading(false);
-        }
+        if (entry?.marca) await selectMakeModel(options, entry.marca, entry.model);
       })
       .catch(() => setMakeOptions([]))
       .finally(() => setMakesLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry]);
+
+  useEffect(() => {
+    if (!isEdit && prefill?.licensePlate && !makesLoading) handlePlateBlur();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [makesLoading]);
+
+  // Client care revine: completam datele vehiculului din ultimul lui ITP (doar campurile goale)
+  const handlePlateBlur = async () => {
+    const plate = form.licensePlate.trim();
+    if (isEdit || plate.length < 4 || plate === lastLookup) return;
+    setLastLookup(plate);
+    try {
+      const prev = await lookupByPlate(plate);
+      if (!prev) {
+        setLookupNote(null);
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        name: f.name || prev.numeSofer,
+        phone: f.phone || prev.contact || '',
+        brand: f.brand || prev.marca,
+        model: f.model || prev.model || '',
+        year: f.year ?? prev.year,
+        vin: f.vin || prev.vin || '',
+        validityMonths: prev.valabilitateLuni,
+      }));
+      if (!form.brand && prev.marca) await selectMakeModel(makeOptions, prev.marca, prev.model);
+      setLookupNote(`Client cunoscut: ultimul ITP pe ${prev.dataItp}. Datele vehiculului au fost completate.`);
+    } catch {
+      setLookupNote(null);
+    }
+  };
 
   const loadModels = async (makeId: number) => {
     setModelsLoading(true);
@@ -198,7 +247,7 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
       if (entry) {
         await updateItpEntry(entry.id, form);
       } else {
-        await createItpEntry(form);
+        await createItpEntry({ ...form, appointmentId });
       }
       onSuccess();
       onClose();
@@ -215,7 +264,7 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">
-            {isEdit ? 'Editează Înregistrare ITP' : 'Adaugă Înregistrare ITP'}
+            {isEdit ? 'Editează Înregistrare ITP' : appointmentId ? 'ITP din Programare' : 'Adaugă Înregistrare ITP'}
           </h2>
           <button
             onClick={onClose}
@@ -228,6 +277,30 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
           <form id="add-itp-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+            {/* Numarul primul: pentru clientii care revin completeaza restul datelor */}
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">
+                Nr. Înmatriculare <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="licensePlate"
+                required
+                autoFocus={!isEdit && !form.licensePlate}
+                value={form.licensePlate}
+                onChange={handleChange}
+                onBlur={handlePlateBlur}
+                placeholder="B 123 ABC"
+                className={INPUT_CLS + ' uppercase font-mono font-semibold'}
+              />
+              {lookupNote && (
+                <p className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 mt-2">
+                  <History size={12} className="shrink-0" />
+                  {lookupNote}
+                </p>
+              )}
+            </div>
+
             {/* Driver */}
             <fieldset className="space-y-3">
               <legend className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
@@ -318,7 +391,7 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
                 </div>
               </div>
 
-              {/* Year + License plate row */}
+              {/* Year + VIN row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
@@ -336,33 +409,17 @@ export default function AddItpModal({ onClose, onSuccess, entry }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">
-                    Nr. Înmatriculare <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">VIN</label>
                   <input
                     type="text"
-                    name="licensePlate"
-                    required
-                    value={form.licensePlate}
+                    name="vin"
+                    value={form.vin}
                     onChange={handleChange}
-                    placeholder="B 123 ABC"
-                    className={INPUT_CLS + ' uppercase'}
+                    placeholder="17 caractere (opțional)"
+                    maxLength={17}
+                    className={INPUT_CLS + ' font-mono uppercase'}
                   />
                 </div>
-              </div>
-
-              {/* VIN */}
-              <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1">VIN</label>
-                <input
-                  type="text"
-                  name="vin"
-                  value={form.vin}
-                  onChange={handleChange}
-                  placeholder="17 caractere (opțional)"
-                  maxLength={17}
-                  className={INPUT_CLS + ' font-mono uppercase'}
-                />
               </div>
             </fieldset>
 

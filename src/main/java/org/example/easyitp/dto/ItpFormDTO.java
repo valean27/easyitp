@@ -21,4 +21,6 @@ public class ItpFormDTO {
     private Integer mileage;
     private Double price;
     private String observations;
+    // Optional: programarea din care s-a facut ITP-ul (devine "Finalizat")
+    private Long appointmentId;
 }

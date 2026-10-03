@@ -20,6 +20,16 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsByUserId(Long userId);
 
+    @Query("""
+            SELECT a FROM Appointment a
+            WHERE a.user.id = :userId AND a.status <> org.example.easyitp.entity.AppointmentStatus.CANCELLED
+              AND a.appointmentDate > :from AND a.appointmentDate < :to
+            ORDER BY a.appointmentDate
+            """)
+    List<Appointment> findActiveBetween(@Param("userId") Long userId,
+                                        @Param("from") LocalDateTime from,
+                                        @Param("to") LocalDateTime to);
+
     // [userId, numar programari in interval]
     @Query("SELECT a.user.id, COUNT(a) FROM Appointment a WHERE a.appointmentDate >= :start AND a.appointmentDate < :end GROUP BY a.user.id")
     List<Object[]> countByUserBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);

@@ -24,6 +24,8 @@ import type { Profile, Reminder, ReminderStatus } from '../types';
 import { getReminders, updateReminderStatus } from '../api/reminderApi';
 import { getProfile } from '../api/accountApi';
 import { normalizePhone, renderReminder, smsLink, whatsappLink } from '../utils/reminderMessage';
+import AppointmentModal from './AppointmentModal';
+import { formatTime } from '../utils/dates';
 
 type StatusTab = 'TODO' | ReminderStatus | 'ALL';
 type Urgency = 'ALL' | '7' | '14' | '30' | 'EXPIRED';
@@ -100,11 +102,13 @@ function ReminderCard({
   reminder,
   profile,
   onStatus,
+  onSchedule,
   busy,
 }: {
   reminder: Reminder;
   profile: Profile | null;
   onStatus: (r: Reminder, status: ReminderStatus | null) => void;
+  onSchedule: (r: Reminder) => void;
   busy: boolean;
 }) {
   const [showMessage, setShowMessage] = useState(false);
@@ -219,12 +223,13 @@ function ReminderCard({
           Contactat
         </button>
         <button
-          disabled={busy || status === 'SCHEDULED'}
-          onClick={() => onStatus(reminder, 'SCHEDULED')}
-          className={`${ACTION_BTN} border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700`}
+          disabled={busy}
+          onClick={() => onSchedule(reminder)}
+          className={`${ACTION_BTN} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+          title="Creează programarea în calendar și marchează clientul ca Programat"
         >
           <CalendarCheck size={13} />
-          Programat
+          Programează
         </button>
         <button
           disabled={busy || status === 'NOT_INTERESTED'}
@@ -260,6 +265,8 @@ export default function RemindersPage() {
   const [urgency, setUrgency] = useState<Urgency>('ALL');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [scheduling, setScheduling] = useState<Reminder | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -354,6 +361,15 @@ export default function RemindersPage() {
             </span>
           </div>
         )}
+        {notice && (
+          <div className="flex items-center gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+            <CalendarCheck size={16} className="shrink-0" />
+            <span className="flex-1">{notice}</span>
+            <button onClick={() => setNotice(null)} className="text-xs opacity-60 hover:opacity-100">
+              Închide
+            </button>
+          </div>
+        )}
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0" />
@@ -419,9 +435,32 @@ export default function RemindersPage() {
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {visible.map((r) => (
-              <ReminderCard key={r.id} reminder={r} profile={profile} onStatus={handleStatus} busy={busyId === r.id} />
+              <ReminderCard
+                key={r.id}
+                reminder={r}
+                profile={profile}
+                onStatus={handleStatus}
+                onSchedule={setScheduling}
+                busy={busyId === r.id}
+              />
             ))}
           </div>
+        )}
+
+        {scheduling && (
+          <AppointmentModal
+            initial={{
+              clientName: scheduling.numeSofer,
+              phone: scheduling.contact ?? '',
+              licensePlate: scheduling.numarInmatriculare,
+            }}
+            onClose={() => setScheduling(null)}
+            onSaved={(appt) => {
+              handleStatus(scheduling, 'SCHEDULED');
+              const [y, m, d] = appt.appointmentDate.slice(0, 10).split('-');
+              setNotice(`${scheduling.numeSofer} a fost programat pe ${d}.${m}.${y} la ${formatTime(appt.appointmentDate)}.`);
+            }}
+          />
         )}
 
         <p className="text-xs text-slate-400 px-1">

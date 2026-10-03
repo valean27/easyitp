@@ -33,13 +33,14 @@ public class ItpRecord {
     private LocalDate nextItpDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "VARCHAR(20) DEFAULT 'PASSED'")
+    // Fara columnDefinition: ddl-auto=update genera la fiecare pornire un ALTER invalid pentru Postgres
+    @Column(name = "status", length = 20)
     private ItpStatus status;
 
     @Column(name = "mileage")
     private Integer mileage;
 
-    @Column(name = "price", columnDefinition = "DOUBLE PRECISION DEFAULT 0")
+    @Column(name = "price")
     private Double price;
 
     @Column(name = "observations", columnDefinition = "TEXT")

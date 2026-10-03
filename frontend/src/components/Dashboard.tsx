@@ -21,6 +21,7 @@ import { getDashboard, deleteItpRecord, exportCsv } from '../api/itpApi';
 import type { DashboardEntry, ImportResult, ItpStatus } from '../types';
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
+import TodayAgenda from './TodayAgenda';
 
 function getStatusBadge(status: ItpStatus) {
   const cfg: Record<ItpStatus, { label: string; cls: string }> = {
@@ -366,6 +367,8 @@ export default function Dashboard() {
             color="bg-red-50"
           />
         </div>
+
+        <TodayAgenda onItpSaved={fetchData} />
 
         {/* Table Card */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">

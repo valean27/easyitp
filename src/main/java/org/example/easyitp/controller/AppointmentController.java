@@ -37,6 +37,12 @@ public class AppointmentController {
         return appointmentService.getAppointments(currentUser().getId(), startDt, endDt);
     }
 
+    @GetMapping("/conflicts")
+    public List<AppointmentDTO> getConflicts(@RequestParam String date,
+                                             @RequestParam(required = false) Long excludeId) {
+        return appointmentService.getConflicts(currentUser().getId(), LocalDateTime.parse(date), excludeId);
+    }
+
     @PostMapping
     public ResponseEntity<AppointmentDTO> create(@RequestBody AppointmentDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/itp")
@@ -47,10 +48,18 @@ public class ItpController {
                 .body(data);
     }
 
+    @GetMapping("/lookup")
+    public ResponseEntity<DashboardDTO> lookupByPlate(@RequestParam String plate) {
+        return itpService.lookupByPlate(plate, currentUser().getId())
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+
     @PostMapping
-    public ResponseEntity<ItpRecord> createItpEntry(@RequestBody ItpFormDTO form) {
+    // Doar id-ul: entitatea serializata ar include vehicul -> client -> utilizator (cu hash-ul parolei)
+    public ResponseEntity<Map<String, Long>> createItpEntry(@RequestBody ItpFormDTO form) {
         ItpRecord saved = itpService.createItpEntry(form, currentUser());
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", saved.getId()));
     }
 
     @PutMapping("/{id}")

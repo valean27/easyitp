@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -74,6 +75,7 @@ public class ItpService {
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final CarService carService;
+    private final AppointmentService appointmentService;
 
     public List<DashboardDTO> getDashboard(Long userId) {
         List<ItpRecord> records = itpRecordRepository.findAllByUserId(userId);
@@ -200,7 +202,21 @@ public class ItpService {
                 .observations(form.getObservations())
                 .build();
 
-        return itpRecordRepository.save(record);
+        record = itpRecordRepository.save(record);
+        if (form.getAppointmentId() != null) {
+            appointmentService.completeWithItp(form.getAppointmentId(), user.getId(), record.getId());
+        }
+        return record;
+    }
+
+    // Ultimul ITP al unui vehicul dupa numar, pentru precompletarea formularului la clientii care revin
+    public Optional<DashboardDTO> lookupByPlate(String plate, Long userId) {
+        String normalized = PlateUtils.normalize(plate);
+        if (normalized.isEmpty()) return Optional.empty();
+        return itpRecordRepository.findAllByUserId(userId).stream()
+                .filter(r -> normalized.equals(PlateUtils.normalize(r.getVehicle().getLicensePlate())))
+                .reduce((a, b) -> isNewer(b, a) ? b : a)
+                .map(r -> toDto(r, true));
     }
 
     // Clientul si vehiculul pot fi comune mai multor inregistrari (import), deci modificarile lor se propaga

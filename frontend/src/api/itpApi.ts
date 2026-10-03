@@ -9,6 +9,10 @@ export const getDashboard = (): Promise<DashboardEntry[]> =>
 export const createItpEntry = (data: ItpFormData): Promise<void> =>
   api.post(BASE, data).then((r) => r.data);
 
+// Ultimul ITP pentru un numar (null daca vehiculul nu e cunoscut)
+export const lookupByPlate = (plate: string): Promise<DashboardEntry | null> =>
+  api.get(`${BASE}/lookup`, { params: { plate } }).then((r) => (r.status === 204 ? null : r.data));
+
 export const updateItpEntry = (id: number, data: ItpFormData): Promise<void> =>
   api.put(`${BASE}/${id}`, data).then(() => undefined);
 
