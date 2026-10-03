@@ -1,9 +1,10 @@
 name: Keep backend awake
 
-# Render free adoarme dupa 15 min fara trafic; il pingam in orele de lucru (ora Romaniei ~07-20)
+# Render free adoarme dupa 15 min fara trafic. GitHub ruleaza cron-urile cu intarzieri mari,
+# deci asta e doar o plasa de siguranta; pingul principal vine de la un monitor extern (UptimeRobot).
 on:
   schedule:
-    - cron: '*/10 4-17 * * 1-6'
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
