@@ -17,3 +17,10 @@ export const getBookingSettings = (): Promise<BookingSettings> =>
 
 export const updateBookingSettings = (data: BookingSettings): Promise<BookingSettings> =>
   api.put(`${BASE}/booking`, data).then((r) => r.data);
+
+export const updateDigest = (enabled: boolean): Promise<Profile> =>
+  api.put(`${BASE}/digest`, { enabled }).then((r) => r.data);
+
+// Trimite acum emailul zilnic catre utilizatorul logat; la eroare, mesajul vine de la server
+export const sendTestDigest = (): Promise<string> =>
+  api.post(`${BASE}/digest/test`).then((r) => r.data.message);

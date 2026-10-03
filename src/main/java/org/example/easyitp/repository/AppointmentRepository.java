@@ -1,6 +1,7 @@
 package org.example.easyitp.repository;
 
 import org.example.easyitp.entity.Appointment;
+import org.example.easyitp.entity.AppointmentSource;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,6 +20,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     Optional<Appointment> findByIdAndUserId(Long id, Long userId);
 
     boolean existsByUserId(Long userId);
+
+    List<Appointment> findByUserIdAndSourceAndCreatedAtAfterOrderByAppointmentDateAsc(
+            Long userId, AppointmentSource source, LocalDateTime createdAfter);
 
     @Query("""
             SELECT a FROM Appointment a

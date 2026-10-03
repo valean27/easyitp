@@ -41,8 +41,17 @@ public class Appointment {
     @Column(name = "itp_record_id")
     private Long itpRecordId;
 
+    // null pentru programarile create inainte de aceasta coloana
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
     private AppUser user;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 }

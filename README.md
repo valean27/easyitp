@@ -4,6 +4,7 @@ Aplicație pentru stații ITP: evidența inspecțiilor, clienți de contactat c�
 
 - **Manager (o stație ITP):** dashboard cu ITP-uri și programările zilei, listă „De contactat” cu mesaje WhatsApp/SMS gata scrise, calendar, rapoarte lunare cu export pentru contabilitate, import/export CSV.
 - **Clienți:** pagină publică de programare a stației (`/programare/<link>`), fără cont; programările apar în calendarul stației.
+- **Email zilnic** pentru manageri (Resend), pornit de `.github/workflows/daily-digest.yml`.
 - **Admin:** conturile managerilor (creare, resetare parolă, dezactivare) și cifre agregate pe stații.
 
 ## Rulare locală
@@ -37,6 +38,10 @@ cd frontend && npm test  # utilitare frontend (Vitest)
 | `JWT_SECRET` | minim 32 de caractere |
 | `ADMIN_PASSWORD` | parola contului `admin@itp.ro` (sincronizată la pornire) |
 | `ALLOWED_ORIGINS` | originile CORS, ex. `https://easyitp.vercel.app` |
+| `RESEND_API_KEY` | cheia Resend pentru emailul zilnic (fără ea, emailurile sunt oprite) |
+| `MAIL_FROM` | expeditorul, implicit `EasyITP <onboarding@resend.dev>` |
+| `APP_URL` | adresa aplicației pentru link-urile din email, implicit `https://easyitp.vercel.app` |
+| `CRON_SECRET` | secretul cu care GitHub Actions pornește emailul zilnic (și ca secret în GitHub) |
 | `PORT` | implicit 8080 |
 | `VITE_API_BASE_URL` | (frontend) adresa backend-ului |
 

@@ -3,6 +3,7 @@ package org.example.easyitp.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -52,6 +53,11 @@ public class AppUser {
 
     // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
     private Integer bookingCapacity;
+
+    // Email zilnic catre manager; null = activ
+    private Boolean digestEnabled;
+    // Ziua ultimului email zilnic trimis, ca sa nu trimitem de doua ori
+    private LocalDate lastDigestDate;
 
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;

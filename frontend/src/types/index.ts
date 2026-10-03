@@ -62,6 +62,7 @@ export interface Profile extends StationInfo {
   reminderTemplate: string | null;
   bookingSlug: string | null;
   bookingEnabled: boolean;
+  digestEnabled: boolean;
 }
 
 export interface BookingSettings {

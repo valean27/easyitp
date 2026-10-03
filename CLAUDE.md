@@ -8,9 +8,10 @@ ITP (vehicle inspection) station management app. One manager = one ITP station: 
 
 ## Layout
 - `src/main/java/org/example/easyitp/` — `controller/`, `service/`, `repository/`, `entity/`, `dto/`, `security/` (JwtUtil, JwtRequestFilter, CurrentUser), `config/` (SecurityConfig incl. CORS, DataSeeder).
-- `src/main/resources/application.properties` — config via env: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (>= 32 bytes), `ADMIN_PASSWORD`, `ALLOWED_ORIGINS`, `SHOW_SQL`, `PORT` (default 8080). `ddl-auto=update` (avoid `columnDefinition`; it breaks the Postgres ALTER).
+- `src/main/resources/application.properties` — config via env: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (>= 32 bytes), `ADMIN_PASSWORD`, `ALLOWED_ORIGINS`, `SHOW_SQL`, `RESEND_API_KEY`, `MAIL_FROM`, `APP_URL`, `CRON_SECRET`, `PORT` (default 8080). Default JVM time zone is set to Europe/Bucharest (`TimeZoneConfig`). `ddl-auto=update` (avoid `columnDefinition`; it breaks the Postgres ALTER).
 - `frontend/src/` — `api/` (one module per backend controller, shared `axiosInstance.ts`), `components/` (pages + modals; pages are lazy-loaded in `App.tsx`), `context/` (`AuthContext.tsx` provider, `auth.ts` context + `useAuth`), `utils/` (pure helpers with `*.test.ts`), `types/index.ts`.
 - Public booking page `/programare/:slug` (no login): backend `/api/public/**` is permitAll, rate-limited per IP (`BookingRateLimiter`) with a honeypot field; settings per station on `AppUser.booking*`.
+- Daily digest email: GitHub Actions (`daily-digest.yml`) calls `POST /api/internal/daily-digest` with `X-Cron-Secret`; `DigestService` builds it, `EmailService` sends via Resend. Never commit API keys.
 - Data scoping: every manager query filters by `client.user.id`; legacy clients may have `user_id = null` and must be skipped.
 - Same license plate (ignoring spaces/dashes/case, `PlateUtils`) = same vehicle; only the latest ITP per vehicle counts for expiry.
 

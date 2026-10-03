@@ -3,6 +3,7 @@ import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, Mes
 import { getProfile, updateProfile, changePassword } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
+import DigestCard from './DigestCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
@@ -240,6 +241,7 @@ export default function AccountPage() {
             {user?.role === 'MANAGER' && (
               <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
             )}
+            {user?.role === 'MANAGER' && <DigestCard />}
             <PasswordCard />
           </div>
         </div>

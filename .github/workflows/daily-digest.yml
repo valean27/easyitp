@@ -1,0 +1,23 @@
+name: Daily digest email
+
+# Emailul de dimineata pentru manageri (luni-sambata, 07:30 vara / 06:30 iarna, ora Romaniei).
+# Apelul trezeste si serverul Render, care pe planul gratuit doarme. Backend-ul nu trimite
+# de doua ori in aceeasi zi, deci o rulare repetata manual e sigura.
+on:
+  schedule:
+    - cron: '30 4 * * 1-6'
+  workflow_dispatch:
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wake backend
+        run: curl -fsS -m 120 --retry 3 --retry-all-errors https://easyitp.onrender.com/api/health
+      - name: Send digests
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -m 120 --retry 2 --retry-all-errors -X POST \
+            -H "X-Cron-Secret: $CRON_SECRET" \
+            https://easyitp.onrender.com/api/internal/daily-digest

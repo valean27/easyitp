@@ -15,4 +15,5 @@ public class ProfileDTO {
     // Pentru link-ul de programare online din mesaje si din "Contul meu"
     private String bookingSlug;
     private boolean bookingEnabled;
+    private boolean digestEnabled;
 }

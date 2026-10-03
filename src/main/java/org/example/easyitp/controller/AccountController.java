@@ -9,11 +9,15 @@ import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.BookingService;
+import org.example.easyitp.service.DigestService;
+import org.example.easyitp.service.EmailService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/account")
@@ -25,6 +29,7 @@ public class AccountController {
     private final AppUserRepository appUserRepository;
     private final CurrentUser currentUser;
     private final BookingService bookingService;
+    private final DigestService digestService;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
@@ -68,9 +73,28 @@ public class AccountController {
         return bookingService.updateSettings(currentUser.get(), request);
     }
 
+    @PutMapping("/digest")
+    public ProfileDTO updateDigest(@RequestBody Map<String, Boolean> body) {
+        AppUser user = currentUser.get();
+        user.setDigestEnabled(Boolean.TRUE.equals(body.get("enabled")));
+        return toDto(appUserRepository.save(user));
+    }
+
+    // Trimite acum emailul zilnic catre utilizatorul logat; mesajul de eroare ajunge in interfata
+    @PostMapping("/digest/test")
+    public ResponseEntity<Map<String, String>> sendTestDigest() {
+        try {
+            digestService.sendTest(currentUser.get());
+            return ResponseEntity.ok(Map.of("message", "Emailul a fost trimis."));
+        } catch (EmailService.EmailException e) {
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage()));
+        }
+    }
+
     private ProfileDTO toDto(AppUser u) {
         return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
-                u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()));
+                u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()),
+                !Boolean.FALSE.equals(u.getDigestEnabled()));
     }
 
     private static String trimToNull(String s) {
