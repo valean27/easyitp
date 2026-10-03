@@ -77,6 +77,10 @@ public class AppUser {
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 
+    // Doar pentru conturile FLEET: firma pe care o administreaza
+    @Column(name = "fleet_id")
+    private Long fleetId;
+
     // null pentru conturile vechi = activ
     private Boolean active;
 

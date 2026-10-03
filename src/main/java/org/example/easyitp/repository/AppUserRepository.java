@@ -20,4 +20,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByBookingSlug(String bookingSlug);
 
     boolean existsByBookingSlug(String bookingSlug);
+
+    List<AppUser> findByFleetId(Long fleetId);
 }

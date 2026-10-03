@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2 } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 
@@ -17,7 +17,14 @@ const MANAGER_NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', short: 'Acasă', icon: LayoutDashboard, end: true },
   { to: '/reminders', label: 'De contactat', short: 'Contactați', icon: BellRing },
   { to: '/calendar', label: 'Calendar', short: 'Calendar', icon: CalendarDays },
+  { to: '/fleets', label: 'Flote', short: 'Flote', icon: Truck },
   { to: '/reports', label: 'Rapoarte', short: 'Rapoarte', icon: BarChart3 },
+  { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
+];
+
+// Firma (rol FLEET) vede doar portalul flotei si contul ei
+const FLEET_NAV: NavItem[] = [
+  { to: '/', label: 'Flota mea', short: 'Flota', icon: Truck, end: true },
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];
 
@@ -30,7 +37,7 @@ const ADMIN_NAV: NavItem[] = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const items = user?.role === 'ADMIN' ? ADMIN_NAV : MANAGER_NAV;
+  const items = user?.role === 'ADMIN' ? ADMIN_NAV : user?.role === 'FLEET' ? FLEET_NAV : MANAGER_NAV;
 
   const handleLogout = () => {
     logout();
@@ -83,7 +90,7 @@ export default function Layout() {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-slate-700 truncate">{user?.email}</p>
               <p className="text-xs text-slate-400 truncate">
-                {user?.role === 'ADMIN' ? 'Administrator' : user?.stationName || 'Manager ITP'}
+                {user?.role === 'ADMIN' ? 'Administrator' : user?.role === 'FLEET' ? 'Portal flotă' : user?.stationName || 'Manager ITP'}
               </p>
             </div>
             <button

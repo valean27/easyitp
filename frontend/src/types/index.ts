@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'MANAGER';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'FLEET';
 
 export type ItpStatus = 'PASSED' | 'FAILED' | 'RECHECK';
 
@@ -175,4 +175,70 @@ export interface DigestSettings {
   // Doar la salvare; serverul nu o trimite niciodata inapoi
   callmebotApiKey?: string;
   hasApiKey: boolean;
+}
+
+// ---------- Flote (clienti B2B) ----------
+
+export interface Fleet {
+  id: number;
+  name: string;
+  cui: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  plates: string[];
+  // contul cu care se logheaza firma; null daca nu are inca
+  accountEmail: string | null;
+}
+
+export type FleetInput = Omit<Fleet, 'id' | 'accountEmail'>;
+
+export interface FleetSummary {
+  id: number;
+  name: string;
+  cui: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  vehicleCount: number;
+  expiredCount: number;
+  expiringCount: number;
+  accountEmail: string | null;
+}
+
+// Campurile ITP sunt null pentru masinile care n-au facut inca ITP la statie
+export interface FleetVehicle {
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  lastItpDate: string | null;
+  nextItpDate: string | null;
+  daysLeft: number | null;
+  status: ItpStatus | null;
+}
+
+export interface FleetOverview {
+  fleetName: string;
+  stationName: string | null;
+  stationPhone: string | null;
+  stationAddress: string | null;
+  bookingSlug: string | null;
+  vehicles: FleetVehicle[];
+}
+
+export interface StatementRow {
+  date: string;
+  plate: string;
+  brand: string | null;
+  model: string | null;
+  status: ItpStatus;
+  validityMonths: number | null;
+  price: number | null;
+}
+
+export interface FleetStatement {
+  fleetName: string;
+  cui: string | null;
+  stationName: string | null;
+  month: string; // yyyy-MM
+  rows: StatementRow[];
+  total: number;
 }

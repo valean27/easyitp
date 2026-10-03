@@ -7,6 +7,7 @@ import org.example.easyitp.dto.StationInfoDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.repository.FleetRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.service.ItpService;
@@ -30,6 +31,7 @@ public class AdminController {
     private static final int MIN_PASSWORD_LENGTH = 6;
 
     private final AppUserRepository appUserRepository;
+    private final FleetRepository fleetRepository;
     private final ItpService itpService;
     private final AppointmentRepository appointmentRepository;
     private final ClientRepository clientRepository;
@@ -123,7 +125,8 @@ public class AdminController {
     @DeleteMapping("/managers/{id}")
     public ResponseEntity<Void> deleteManager(@PathVariable Long id) {
         AppUser user = findManager(id);
-        if (clientRepository.existsByUserId(id) || appointmentRepository.existsByUserId(id)) {
+        if (clientRepository.existsByUserId(id) || appointmentRepository.existsByUserId(id)
+                || fleetRepository.existsByStationId(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Managerul are date; dezactivati contul");
         }
         appUserRepository.delete(user);

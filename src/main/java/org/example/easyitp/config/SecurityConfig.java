@@ -43,7 +43,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/api/health", "/api/public/**", "/api/internal/**", "/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
+                // Conturile de flota vad doar portalul lor si isi pot schimba parola
+                .requestMatchers("/api/fleet-portal/**").hasRole("FLEET")
+                .requestMatchers("/api/account/me", "/api/account/password").authenticated()
+                .requestMatchers("/api/fleets/**").hasRole("MANAGER")
+                .anyRequest().hasAnyRole("ADMIN", "MANAGER")
             )
             // Token lipsa/expirat -> 401, ca frontend-ul sa poata deloga utilizatorul
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))

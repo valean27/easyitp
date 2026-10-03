@@ -14,11 +14,15 @@ const AccountPage = lazy(() => import('./components/AccountPage'));
 const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
+const FleetsPage = lazy(() => import('./components/FleetsPage'));
+const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
 
-// Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri
+// Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
   const { user } = useAuth();
-  return user?.role === 'ADMIN' ? <Navigate to="/users" replace /> : <Dashboard />;
+  if (user?.role === 'ADMIN') return <Navigate to="/users" replace />;
+  if (user?.role === 'FLEET') return <FleetPortalPage />;
+  return <Dashboard />;
 }
 
 function App() {
@@ -61,7 +65,22 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route
+              path="fleets"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <FleetsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}>
+                  <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="account" element={<AccountPage />} />
             <Route
               path="users"
