@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
@@ -38,25 +38,32 @@ export default function Layout() {
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider px-3 mb-2 mt-1">
             Navigare
           </p>
-          <NavLink to="/" end className={navCls}>
-            <LayoutDashboard size={16} />
-            Dashboard
-          </NavLink>
-          <NavLink to="/reminders" className={navCls}>
-            <BellRing size={16} />
-            De contactat
-          </NavLink>
-          <NavLink to="/calendar" className={navCls}>
-            <CalendarDays size={16} />
-            Calendar
-          </NavLink>
-
-          {user?.role === 'ADMIN' && (
+          {/* Adminul nu are statie proprie: vede doar managerii si rapoartele */}
+          {user?.role === 'ADMIN' ? (
             <NavLink to="/users" className={navCls}>
               <Users size={16} />
               Manageri
             </NavLink>
+          ) : (
+            <>
+              <NavLink to="/" end className={navCls}>
+                <LayoutDashboard size={16} />
+                Dashboard
+              </NavLink>
+              <NavLink to="/reminders" className={navCls}>
+                <BellRing size={16} />
+                De contactat
+              </NavLink>
+              <NavLink to="/calendar" className={navCls}>
+                <CalendarDays size={16} />
+                Calendar
+              </NavLink>
+            </>
           )}
+          <NavLink to="/reports" className={navCls}>
+            <BarChart3 size={16} />
+            Rapoarte
+          </NavLink>
           <NavLink to="/account" className={navCls}>
             <UserCog size={16} />
             Contul meu

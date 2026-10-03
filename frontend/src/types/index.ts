@@ -98,3 +98,19 @@ export interface Appointment {
   status: AppointmentStatus;
   itpRecordId?: number | null;
 }
+
+export interface ReportMonth {
+  month: number;
+  count: number;
+  revenue: number;
+  passed: number;
+  failed: number;
+  recheck: number;
+}
+
+export interface Report {
+  year: number;
+  availableYears: number[];
+  months: ReportMonth[];
+  topBrands: { brand: string; count: number }[];
+}

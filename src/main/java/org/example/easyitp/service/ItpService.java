@@ -122,7 +122,9 @@ public class ItpService {
 
         Map<Long, StationStats> result = new HashMap<>();
         for (ItpRecord r : records) {
-            StationStats s = result.computeIfAbsent(r.getVehicle().getClient().getUser().getId(), k -> new StationStats());
+            Long ownerId = ownerId(r);
+            if (ownerId == null) continue;
+            StationStats s = result.computeIfAbsent(ownerId, k -> new StationStats());
             s.total++;
             if (!r.getTestDate().isBefore(monthStart)) {
                 s.thisMonth++;
@@ -150,12 +152,18 @@ public class ItpService {
         for (ItpRecord r : records) {
             Vehicle v = r.getVehicle();
             String plate = PlateUtils.normalize(v.getLicensePlate());
-            String key = v.getClient().getUser().getId() + ":" + (plate.isEmpty() ? "v" + v.getId() : plate);
+            String key = ownerId(r) + ":" + (plate.isEmpty() ? "v" + v.getId() : plate);
             latestByVehicle.merge(key, r, (a, b) -> isNewer(b, a) ? b : a);
         }
         Set<Long> ids = new HashSet<>();
         latestByVehicle.values().forEach(r -> ids.add(r.getId()));
         return ids;
+    }
+
+    // Managerul caruia ii apartine inregistrarea; null pentru clientii vechi creati fara utilizator
+    private static Long ownerId(ItpRecord r) {
+        AppUser user = r.getVehicle().getClient().getUser();
+        return user != null ? user.getId() : null;
     }
 
     private static boolean isNewer(ItpRecord a, ItpRecord b) {
