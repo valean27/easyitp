@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Trash2, AlertTriangle, ClipboardCheck, CheckCircle2 } from 'lucide-react';
+import { X, Loader2, Trash2, AlertTriangle, ClipboardCheck, CheckCircle2, Globe } from 'lucide-react';
 import { createAppointment, updateAppointment, deleteAppointment, getConflicts } from '../api/appointmentApi';
 import type { Appointment, AppointmentStatus } from '../types';
 import { formatTime } from '../utils/dates';
@@ -123,6 +123,12 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
         </div>
 
         <form id="appointment-form" onSubmit={handleSubmit} className="px-6 py-5 space-y-3 overflow-y-auto">
+          {appointment?.source === 'ONLINE' && (
+            <div className="flex items-center gap-2 text-sm text-violet-700 bg-violet-50 border border-violet-200 rounded-lg px-3 py-2">
+              <Globe size={14} className="shrink-0" />
+              Programare făcută de client pe pagina online.
+            </div>
+          )}
           {appointment?.itpRecordId && (
             <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
               <CheckCircle2 size={14} className="shrink-0" />

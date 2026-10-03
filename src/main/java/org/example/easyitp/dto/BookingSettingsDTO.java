@@ -1,0 +1,21 @@
+package org.example.easyitp.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalTime;
+import java.util.List;
+
+// Setarile programarii online ale unei statii (editate de manager in "Contul meu")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookingSettingsDTO {
+    private boolean enabled;
+    private String slug;
+    private LocalTime open;
+    private LocalTime close;
+    private List<Integer> days; // 1 = luni ... 7 = duminica
+    private int capacity;
+}

@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { Profile, StationInfo } from '../types';
+import type { BookingSettings, Profile, StationInfo } from '../types';
 
 const BASE = '/api/account';
 
@@ -11,3 +11,9 @@ export const updateProfile = (data: StationInfo & { reminderTemplate: string | n
 
 export const changePassword = (currentPassword: string, newPassword: string): Promise<void> =>
   api.put(`${BASE}/password`, { currentPassword, newPassword }).then(() => undefined);
+
+export const getBookingSettings = (): Promise<BookingSettings> =>
+  api.get(`${BASE}/booking`).then((r) => r.data);
+
+export const updateBookingSettings = (data: BookingSettings): Promise<BookingSettings> =>
+  api.put(`${BASE}/booking`, data).then((r) => r.data);

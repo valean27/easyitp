@@ -12,4 +12,7 @@ public class ProfileDTO {
     private String address;
     private String phone;
     private String reminderTemplate;
+    // Pentru link-ul de programare online din mesaje si din "Contul meu"
+    private String bookingSlug;
+    private boolean bookingEnabled;
 }

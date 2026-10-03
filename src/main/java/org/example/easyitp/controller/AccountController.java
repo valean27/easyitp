@@ -1,12 +1,14 @@
 package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.easyitp.dto.BookingSettingsDTO;
 import org.example.easyitp.dto.ChangePasswordRequest;
 import org.example.easyitp.dto.ProfileDTO;
 import org.example.easyitp.dto.StationInfoDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.security.CurrentUser;
+import org.example.easyitp.service.BookingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,7 @@ public class AccountController {
 
     private final AppUserRepository appUserRepository;
     private final CurrentUser currentUser;
+    private final BookingService bookingService;
     private final PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
@@ -55,9 +58,19 @@ public class AccountController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/booking")
+    public BookingSettingsDTO getBookingSettings() {
+        return bookingService.getSettings(currentUser.get());
+    }
+
+    @PutMapping("/booking")
+    public BookingSettingsDTO updateBookingSettings(@RequestBody BookingSettingsDTO request) {
+        return bookingService.updateSettings(currentUser.get(), request);
+    }
+
     private ProfileDTO toDto(AppUser u) {
         return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
-                u.getReminderTemplate());
+                u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()));
     }
 
     private static String trimToNull(String s) {

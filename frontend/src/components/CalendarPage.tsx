@@ -38,7 +38,7 @@ export default function CalendarPage() {
 
   const events = appointments.map((a) => ({
     id: String(a.id),
-    title: `${a.itpRecordId ? '✓ ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
+    title: `${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
     start: a.appointmentDate,
     color: APPOINTMENT_STATUS_COLORS[a.status],
     extendedProps: { appointment: a },
@@ -56,7 +56,7 @@ export default function CalendarPage() {
           <div>
             <h1 className="text-lg font-bold text-slate-800">Calendar Programări</h1>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Click pe un slot pentru a adăuga · Click pe o programare pentru a edita sau a începe ITP-ul
+              Click pe un slot pentru a adăuga · Click pe o programare pentru a edita sau a începe ITP-ul · 🌐 = făcută online
             </p>
           </div>
           {loading && (

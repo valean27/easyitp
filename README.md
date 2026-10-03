@@ -3,6 +3,7 @@
 Aplicație pentru stații ITP: evidența inspecțiilor, clienți de contactat când le expiră ITP-ul, programări și rapoarte.
 
 - **Manager (o stație ITP):** dashboard cu ITP-uri și programările zilei, listă „De contactat” cu mesaje WhatsApp/SMS gata scrise, calendar, rapoarte lunare cu export pentru contabilitate, import/export CSV.
+- **Clienți:** pagină publică de programare a stației (`/programare/<link>`), fără cont; programările apar în calendarul stației.
 - **Admin:** conturile managerilor (creare, resetare parolă, dezactivare) și cifre agregate pe stații.
 
 ## Rulare locală

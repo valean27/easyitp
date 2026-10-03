@@ -102,6 +102,7 @@ public class AppointmentService {
         dto.setAppointmentDate(appt.getAppointmentDate());
         dto.setStatus(appt.getStatus());
         dto.setItpRecordId(appt.getItpRecordId());
+        dto.setSource(appt.getSource());
         return dto;
     }
 }

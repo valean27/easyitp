@@ -25,6 +25,7 @@ import { getReminders, updateReminderStatus } from '../api/reminderApi';
 import { getProfile } from '../api/accountApi';
 import { normalizePhone, renderReminder, smsLink, whatsappLink } from '../utils/reminderMessage';
 import AppointmentModal from './AppointmentModal';
+import { bookingUrl } from '../utils/booking';
 import { formatTime } from '../utils/dates';
 
 type StatusTab = 'TODO' | ReminderStatus | 'ALL';
@@ -123,6 +124,7 @@ function ReminderCard({
     statie: profile?.stationName ?? null,
     adresa: profile?.address ?? null,
     telefon: profile?.phone ?? null,
+    link: profile?.bookingEnabled && profile.bookingSlug ? bookingUrl(profile.bookingSlug) : null,
   });
 
   // Deschiderea WhatsApp/SMS marcheaza automat clientul ca "Contactat"

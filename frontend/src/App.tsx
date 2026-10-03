@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/auth';
@@ -13,6 +13,7 @@ const CalendarPage = lazy(() => import('./components/CalendarPage'));
 const AccountPage = lazy(() => import('./components/AccountPage'));
 const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
+const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri
 function Home() {
@@ -26,6 +27,15 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Pagina publica de programare: fara login si fara meniul aplicatiei */}
+          <Route
+            path="/programare/:slug"
+            element={
+              <Suspense fallback={null}>
+                <PublicBookingPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/"
             element={

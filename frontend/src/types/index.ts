@@ -60,6 +60,27 @@ export interface Profile extends StationInfo {
   email: string;
   role: UserRole;
   reminderTemplate: string | null;
+  bookingSlug: string | null;
+  bookingEnabled: boolean;
+}
+
+export interface BookingSettings {
+  enabled: boolean;
+  slug: string | null;
+  open: string; // HH:mm:ss
+  close: string;
+  days: number[]; // 1 = luni ... 7 = duminica
+  capacity: number;
+}
+
+export interface PublicStation {
+  name: string;
+  address: string | null;
+  phone: string | null;
+  open: string;
+  close: string;
+  days: number[];
+  maxDaysAhead: number;
 }
 
 export interface Reminder {
@@ -97,6 +118,7 @@ export interface Appointment {
   appointmentDate: string;
   status: AppointmentStatus;
   itpRecordId?: number | null;
+  source?: 'MANUAL' | 'ONLINE' | null;
 }
 
 export interface ReportMonth {

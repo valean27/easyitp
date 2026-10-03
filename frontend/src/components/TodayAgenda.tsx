@@ -97,6 +97,11 @@ export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) 
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-medium text-slate-800">{a.clientName}</span>
                 {a.licensePlate && <span className="ml-2 font-mono text-xs text-slate-500">{a.licensePlate}</span>}
+                {a.source === 'ONLINE' && (
+                  <span className="ml-2 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-violet-100 text-violet-700">
+                    Online
+                  </span>
+                )}
                 {a.phone && <span className="ml-2 text-xs text-slate-400 hidden sm:inline">{a.phone}</span>}
               </div>
               <span className={`hidden sm:inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLS[a.status]}`}>

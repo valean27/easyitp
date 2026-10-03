@@ -1,6 +1,7 @@
 package org.example.easyitp.dto;
 
 import lombok.Data;
+import org.example.easyitp.entity.AppointmentSource;
 import org.example.easyitp.entity.AppointmentStatus;
 
 import java.time.LocalDateTime;
@@ -15,4 +16,5 @@ public class AppointmentDTO {
     private LocalDateTime appointmentDate;
     private AppointmentStatus status;
     private Long itpRecordId;
+    private AppointmentSource source;
 }

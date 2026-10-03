@@ -2,7 +2,7 @@
 
 export const DEFAULT_REMINDER_TEMPLATE =
   'Bună ziua, {nume}! Vă reamintim că ITP-ul pentru {numar} {expira} {data}. ' +
-  'Vă așteptăm la {statie}. Adresa: {adresa}. Programări la {telefon}.';
+  'Vă așteptăm la {statie}. Adresa: {adresa}. Programări la {telefon}. Programare online: {link}';
 
 export const TEMPLATE_PLACEHOLDERS: { key: string; description: string }[] = [
   { key: '{nume}', description: 'numele clientului' },
@@ -13,6 +13,7 @@ export const TEMPLATE_PLACEHOLDERS: { key: string; description: string }[] = [
   { key: '{statie}', description: 'numele stației' },
   { key: '{adresa}', description: 'adresa stației' },
   { key: '{telefon}', description: 'telefonul stației' },
+  { key: '{link}', description: 'link-ul de programare online (dacă e activă)' },
 ];
 
 export interface ReminderMessageData {
@@ -24,6 +25,8 @@ export interface ReminderMessageData {
   statie: string | null;
   adresa: string | null;
   telefon: string | null;
+  // Link-ul de programare online; null daca statia nu o are activa
+  link?: string | null;
 }
 
 function formatDate(iso: string): string {
@@ -42,6 +45,7 @@ export function renderReminder(template: string | null | undefined, data: Remind
     '{statie}': data.statie?.trim() ?? '',
     '{adresa}': data.adresa?.trim() ?? '',
     '{telefon}': data.telefon?.trim() ?? '',
+    '{link}': data.link?.trim() ?? '',
   };
   const text = (template?.trim() || DEFAULT_REMINDER_TEMPLATE);
   const sentences = text.split(/(?<=[.!?])\s+/);

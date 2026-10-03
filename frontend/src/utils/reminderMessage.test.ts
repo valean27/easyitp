@@ -20,6 +20,12 @@ describe('renderReminder', () => {
     );
   });
 
+  it('adds the online booking link when the station has one', () => {
+    expect(renderReminder(null, { ...data, link: 'https://easyitp.vercel.app/programare/itp-cluj' })).toMatch(
+      /Programări la 0711 222 333\. Programare online: https:\/\/easyitp\.vercel\.app\/programare\/itp-cluj$/
+    );
+  });
+
   it('uses past tense for expired ITP', () => {
     expect(renderReminder(null, { ...data, expirat: true })).toContain('a expirat pe 15.10.2026');
   });

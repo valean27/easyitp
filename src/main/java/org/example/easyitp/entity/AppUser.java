@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "app_users")
@@ -35,6 +36,22 @@ public class AppUser {
     // Mesajul de reamintire ITP cu placeholdere ({nume}, {numar}, ...); null = mesajul implicit
     @Column(columnDefinition = "TEXT")
     private String reminderTemplate;
+
+    // Programare online (pagina publica /programare/{bookingSlug}); null = valorile implicite din BookingService
+    private Boolean bookingEnabled;
+
+    @Column(unique = true, length = 60)
+    private String bookingSlug;
+
+    private LocalTime bookingOpen;
+    private LocalTime bookingClose;
+
+    // Zilele lucratoare ca numere ISO separate prin virgula (1 = luni ... 7 = duminica)
+    @Column(length = 20)
+    private String bookingDays;
+
+    // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
+    private Integer bookingCapacity;
 
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;

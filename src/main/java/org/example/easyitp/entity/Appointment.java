@@ -33,6 +33,10 @@ public class Appointment {
     @Column(name = "status", nullable = false)
     private AppointmentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", length = 20)
+    private AppointmentSource source;
+
     // ITP-ul efectuat la aceasta programare (setat cand programarea e finalizata cu ITP)
     @Column(name = "itp_record_id")
     private Long itpRecordId;

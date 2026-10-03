@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw } from 'lucide-react';
 import { getProfile, updateProfile, changePassword } from '../api/accountApi';
 import { useAuth } from '../context/auth';
+import BookingSettingsCard from './BookingSettingsCard';
+import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
 const INPUT_CLS =
@@ -49,7 +51,7 @@ function Card({ icon, title, children }: { icon: React.ReactNode; title: string;
   );
 }
 
-function StationCard() {
+function StationCard({ bookingLink }: { bookingLink: string | null }) {
   const { updateUser } = useAuth();
   const [stationName, setStationName] = useState('');
   const [address, setAddress] = useState('');
@@ -147,6 +149,7 @@ function StationCard() {
                 statie: stationName,
                 adresa: address,
                 telefon: phone,
+                link: bookingLink,
               })}
             </p>
           </div>
@@ -214,6 +217,7 @@ function PasswordCard() {
 
 export default function AccountPage() {
   const { user } = useAuth();
+  const [bookingLink, setBookingLink] = useState<string | null>(null);
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -230,9 +234,14 @@ export default function AccountPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-6 py-6">
-        <div className="grid gap-6 lg:grid-cols-2 max-w-4xl">
-          {user?.role === 'MANAGER' && <StationCard />}
-          <PasswordCard />
+        <div className="grid gap-6 lg:grid-cols-2 max-w-5xl items-start">
+          {user?.role === 'MANAGER' && <StationCard bookingLink={bookingLink} />}
+          <div className="space-y-6">
+            {user?.role === 'MANAGER' && (
+              <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
+            )}
+            <PasswordCard />
+          </div>
         </div>
       </main>
     </div>
