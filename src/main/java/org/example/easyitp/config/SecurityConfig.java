@@ -42,7 +42,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/health", "/api/public/**", "/api/internal/**", "/error").permitAll()
+                .requestMatchers("/api/auth/**", "/api/health", "/api/health/deep", "/api/public/**", "/api/internal/**", "/error").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Conturile de flota vad doar portalul lor si isi pot schimba parola

@@ -86,6 +86,13 @@ class ApiIntegrationTest {
     }
 
     @Test
+    void deepHealthChecksTheDatabaseWithoutLogin() throws Exception {
+        mvc.perform(get("/api/health/deep"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.database").value("UP"));
+    }
+
+    @Test
     void endpointsRequireTokenAndAdminRole() throws Exception {
         mvc.perform(get("/api/itp/dashboard")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/managers").header("Authorization", bearer(manager)))

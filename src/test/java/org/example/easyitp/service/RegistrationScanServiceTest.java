@@ -103,6 +103,18 @@ class RegistrationScanServiceTest {
     }
 
     @Test
+    void failedScansDoNotUseTheDailyQuota() {
+        RegistrationScanService svc = service("k");
+        status = 529;
+        for (int i = 0; i < RegistrationScanService.MAX_SCANS_PER_DAY + 5; i++) {
+            assertThatThrownBy(() -> svc.scan(7L, new byte[]{1}, "image/jpeg")).hasMessageContaining("nu a putut fi citit");
+        }
+        // serviciul si-a revenit: cererea ajunge din nou la model (nu e oprita de limita zilnica)
+        status = 200;
+        assertThatThrownBy(() -> svc.scan(7L, new byte[]{1}, "image/jpeg")).hasMessageNotContaining("limita");
+    }
+
+    @Test
     void reportsUpstreamErrorsAndMissingConfiguration() {
         status = 529;
         assertThatThrownBy(() -> service("k").scan(1L, new byte[]{1}, "image/jpeg"))

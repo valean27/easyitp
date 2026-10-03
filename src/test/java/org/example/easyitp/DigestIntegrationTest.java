@@ -112,10 +112,23 @@ class DigestIntegrationTest {
     }
 
     @Test
+    void aConcurrentRunThatAlreadyClaimedTheDayIsNotSentTwice() {
+        // alta rulare (retry-ul din GitHub Actions) a rezervat deja ziua acestui manager
+        assertThat(users.claimDigest(busy.getId(), today)).isEqualTo(1);
+        assertThat(users.claimDigest(busy.getId(), today)).isZero();
+
+        assertThat(digestService.sendDailyDigests(today).sent()).isZero();
+        verify(emailService, never()).send(eq("ocupat@itp.ro"), anyString(), anyString());
+    }
+
+    @Test
     void respectsOptOutAndRetriesAfterFailure() {
         doThrow(new DeliveryException("Resend down")).when(emailService).send(anyString(), anyString(), anyString());
         assertThat(digestService.sendDailyDigests(today).failed()).isEqualTo(1);
         assertThat(users.findById(busy.getId()).orElseThrow().getLastDigestDate()).isNull();
+        // ziua a fost eliberata: urmatoarea rulare reincearca
+        assertThat(digestService.sendDailyDigests(today).failed()).isEqualTo(1);
+        busy = users.findById(busy.getId()).orElseThrow();
 
         busy.setDigestEnabled(false);
         users.save(busy);

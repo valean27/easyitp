@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.time.Duration;
 import java.util.Locale;
 
 // Trimite mesaje WhatsApp catre propriul numar al managerului prin CallMeBot (gratuit, uz personal).
@@ -22,7 +23,8 @@ public class WhatsAppService {
     private final RestClient client;
 
     public WhatsAppService(@Value("${callmebot.url:https://api.callmebot.com}") String baseUrl) {
-        this.client = RestClient.builder().baseUrl(baseUrl).build();
+        this.client = RestClient.builder().baseUrl(baseUrl)
+                .requestFactory(HttpTimeouts.factory(Duration.ofSeconds(10), Duration.ofSeconds(30))).build();
     }
 
     public void send(String phone, String apiKey, String text) {
@@ -30,16 +32,22 @@ public class WhatsAppService {
         if (to == null) throw new DeliveryException("Numărul de WhatsApp nu este valid.");
         if (apiKey == null || apiKey.isBlank()) throw new DeliveryException("Lipsește cheia CallMeBot.");
 
-        ResponseEntity<String> response;
-        try {
-            // Valorile din variabilele de template sunt codate complet ("+" -> %2B, diacritice, linii noi)
-            response = client.get()
-                    .uri("/whatsapp.php?phone={phone}&text={text}&apikey={apikey}", to, text, apiKey.trim())
-                    .retrieve()
-                    .toEntity(String.class);
-        } catch (RestClientException e) {
-            log.warn("CallMeBot indisponibil pentru {}: {}", to, e.getClass().getSimpleName());
-            throw new DeliveryException("Serviciul CallMeBot nu răspunde. Încercați mai târziu.");
+        ResponseEntity<String> response = null;
+        for (int attempt = 1; response == null; attempt++) {
+            try {
+                // Valorile din variabilele de template sunt codate complet ("+" -> %2B, diacritice, linii noi)
+                response = client.get()
+                        .uri("/whatsapp.php?phone={phone}&text={text}&apikey={apikey}", to, text, apiKey.trim())
+                        .retrieve()
+                        .toEntity(String.class);
+            } catch (RestClientException e) {
+                if (attempt < 2 && HttpTimeouts.notConnected(e)) {
+                    pauseBeforeRetry();
+                    continue;
+                }
+                log.warn("CallMeBot indisponibil pentru {}: {}", to, e.getClass().getSimpleName());
+                throw new DeliveryException("Serviciul CallMeBot nu răspunde. Încercați mai târziu.");
+            }
         }
         // CallMeBot raspunde cu o pagina HTML; erorile (cheie gresita, numar neactivat) apar in text
         String body = response.getBody() == null ? "" : response.getBody().toLowerCase(Locale.ROOT);
@@ -49,6 +57,14 @@ public class WhatsAppService {
         if (body.contains("error")) {
             log.warn("CallMeBot a refuzat mesajul pentru {}: {}", to, body.length() > 300 ? body.substring(0, 300) : body);
             throw new DeliveryException("CallMeBot a refuzat mesajul. Verificați numărul și cheia.");
+        }
+    }
+
+    private static void pauseBeforeRetry() {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

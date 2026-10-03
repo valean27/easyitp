@@ -89,8 +89,24 @@ public class RegistrationScanService {
         DailyCount used = scansToday.merge(userId, new DailyCount(today, 1),
                 (old, one) -> old.day().equals(today) ? new DailyCount(today, old.count() + 1) : one);
         if (used.count() > MAX_SCANS_PER_DAY) {
+            refund(userId, today);
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Ați atins limita de scanări pentru azi.");
         }
+        try {
+            return callModel(image, mediaType);
+        } catch (ResponseStatusException e) {
+            // Serviciul n-a raspuns sau n-a intors campurile: nu e vina utilizatorului, scanarea nu se numara
+            if (e.getStatusCode().is5xxServerError()) refund(userId, today);
+            throw e;
+        }
+    }
+
+    private void refund(Long userId, LocalDate day) {
+        scansToday.computeIfPresent(userId,
+                (id, c) -> c.day().equals(day) && c.count() > 0 ? new DailyCount(day, c.count() - 1) : c);
+    }
+
+    private RegistrationScanDTO callModel(byte[] image, String mediaType) {
         Map<String, Object> request = Map.of(
                 "model", model,
                 "max_tokens", 1024,

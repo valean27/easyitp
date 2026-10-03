@@ -60,16 +60,16 @@ public class DigestService {
                 continue;
             }
             Digest digest = build(user, today);
-            if (digest.empty()) {
+            // Alta rulare (ex. retry-ul din GitHub Actions cand serverul raspunde greu) l-a luat deja
+            if (digest.empty() || appUserRepository.claimDigest(user.getId(), today) == 0) {
                 skipped++;
                 continue;
             }
             try {
                 deliver(user, digest, false);
-                user.setLastDigestDate(today);
-                appUserRepository.save(user);
                 sent++;
             } catch (DeliveryException e) {
+                appUserRepository.releaseDigest(user.getId(), today, user.getLastDigestDate());
                 log.warn("Rezumatul zilnic pentru {} nu a fost trimis: {}", user.getEmail(), e.getMessage());
                 failed++;
             }

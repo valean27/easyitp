@@ -10,6 +10,10 @@ RUN mvn -B clean package -DskipTests
 # Run stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+# Fara root in container
+RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/target/*.jar app.jar
+USER app
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","app.jar"]
+# Render free are 512 MB: heap-ul la 75% din memoria containerului; ora Romaniei inca de la pornirea JVM
+ENTRYPOINT ["java","-XX:MaxRAMPercentage=75","-Duser.timezone=Europe/Bucharest","-jar","app.jar"]

@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
+import { isNaturallySlow, requestFinished, requestStarted } from '../utils/serverStatus';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -10,13 +11,31 @@ api.interceptors.request.use((config) => {
     const { token } = JSON.parse(stored) as { token: string };
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Pentru bannerul "serverul porneste": urmarim cat dureaza cererile obisnuite
+  if (!isNaturallySlow(config.url)) {
+    (config as TrackedConfig).tracked = true;
+    requestStarted();
+  }
   return config;
 });
 
+type TrackedConfig = InternalAxiosRequestConfig & { tracked?: boolean };
+
+function finish(config: TrackedConfig | undefined) {
+  if (config?.tracked) {
+    config.tracked = false;
+    requestFinished();
+  }
+}
+
 // Token expirat/invalid -> delogare si redirect la login
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    finish(response.config);
+    return response;
+  },
   (error) => {
+    finish(error.config);
     const isLoginCall = error.config?.url?.includes('/api/auth/');
     if (error.response?.status === 401 && !isLoginCall) {
       localStorage.removeItem('auth_user');

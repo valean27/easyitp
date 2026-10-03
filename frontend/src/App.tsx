@@ -5,6 +5,7 @@ import { useAuth } from './context/auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './components/LoginPage';
+import ServerWakeBanner from './components/ServerWakeBanner';
 
 // Paginile se incarca la cerere, ca login-ul sa nu descarce calendarul, rapoartele etc.
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -28,6 +29,7 @@ function Home() {
 function App() {
   return (
     <BrowserRouter>
+      <ServerWakeBanner />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
