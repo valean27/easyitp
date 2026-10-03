@@ -17,8 +17,8 @@ import {
   Pencil,
   History,
 } from 'lucide-react';
-import { getDashboard, deleteItpRecord, exportCsv } from '../api/itpApi';
-import type { DashboardEntry, ImportResult, ItpStatus } from '../types';
+import { getRecords, getSummary, getHistory, deleteItpRecord, exportCsv } from '../api/itpApi';
+import type { DashboardEntry, DashboardSummary, ImportResult, ItpStatus } from '../types';
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
 import TodayAgenda from './TodayAgenda';
@@ -46,17 +46,21 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-const normalizePlate = (plate: string | null) => (plate ?? '').toUpperCase().replace(/[\s-]/g, '');
+const PAGE_SIZE = 50;
+const EMPTY_SUMMARY: DashboardSummary = { vehicles: 0, valid: 0, expiringSoon: 0, expired: 0 };
 
-function DetailsModal({
-  entry,
-  history,
-  onClose,
-}: {
-  entry: DashboardEntry;
-  history: DashboardEntry[];
-  onClose: () => void;
-}) {
+function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () => void }) {
+  // Istoricul vehiculului vine de la server (tabelul are doar pagina curenta)
+  const [history, setHistory] = useState<DashboardEntry[]>([entry]);
+  useEffect(() => {
+    if (!entry.numarInmatriculare) return;
+    getHistory(entry.numarInmatriculare)
+      .then((rows) => {
+        if (rows.length > 0) setHistory(rows);
+      })
+      .catch(() => {});
+  }, [entry.numarInmatriculare]);
+
   return (
     <div className="modal-overlay">
       <div className="modal-panel sm:max-w-lg">
@@ -201,10 +205,16 @@ interface Toast {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [data, setData] = useState<DashboardEntry[]>([]);
+  const [rows, setRows] = useState<DashboardEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [summary, setSummary] = useState<DashboardSummary>(EMPTY_SUMMARY);
   const [onlyLatest, setOnlyLatest] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
+  // Cautarea pleaca spre server la o mica pauza dupa tastare
+  const [query, setQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -231,15 +241,37 @@ export default function Dashboard() {
     }
   }, [showToast]);
 
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Raspunsurile vechi (tastare rapida) nu suprascriu rezultatul cererii mai noi
+  const requestId = useRef(0);
   const fetchData = useCallback(async () => {
+    const id = ++requestId.current;
     setLoading(true);
     try {
-      const rows = await getDashboard();
-      setData(rows);
+      const [result, stats] = await Promise.all([
+        getRecords({ page, size: PAGE_SIZE, q: query, onlyLatest }),
+        getSummary(),
+      ]);
+      if (id !== requestId.current) return;
+      // Pagina a ramas goala (ex. dupa stergere): mergem la cea dinainte
+      if (result.items.length === 0 && page > 0) {
+        setPage(page - 1);
+        return;
+      }
+      setRows(result.items);
+      setTotal(result.total);
+      setSummary(stats);
+      setLoadError(false);
+    } catch {
+      if (id === requestId.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [page, query, onlyLatest]);
 
   useEffect(() => {
     fetchData();
@@ -264,31 +296,9 @@ export default function Dashboard() {
     );
   }, [fetchData, showToast]);
 
-  const filtered = data.filter((row) => !onlyLatest || row.ultimul).filter(
-    (row) =>
-      row.numeSofer.toLowerCase().includes(search.toLowerCase()) ||
-      row.numarInmatriculare.toLowerCase().includes(search.toLowerCase()) ||
-      row.marca.toLowerCase().includes(search.toLowerCase()) ||
-      (row.vin ?? '').toLowerCase().includes(search.toLowerCase())
-  );
-
-  // Expirarea conteaza doar pentru ultimul ITP al fiecarui vehicul
-  const latest = data.filter((r) => r.ultimul);
-  const totalCount = data.length;
-  const shownTotal = onlyLatest ? latest.length : totalCount;
-  const expiredCount = latest.filter((r) => r.zileRamase < 0).length;
-  const expiringSoonCount = latest.filter(
-    (r) => r.zileRamase >= 0 && r.zileRamase <= 30
-  ).length;
-  const validCount = latest.filter((r) => r.zileRamase > 30).length;
-
-  const historyFor = (entry: DashboardEntry) => {
-    const plate = normalizePlate(entry.numarInmatriculare);
-    if (!plate) return [entry];
-    return data
-      .filter((r) => normalizePlate(r.numarInmatriculare) === plate)
-      .sort((a, b) => b.dataItp.localeCompare(a.dataItp));
-  };
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const firstShown = total === 0 ? 0 : page * PAGE_SIZE + 1;
+  const lastShown = Math.min(total, (page + 1) * PAGE_SIZE);
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -347,26 +357,26 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard
             label="Vehicule"
-            value={latest.length}
+            value={summary.vehicles}
             icon={<Car size={18} className="text-blue-600" />}
             color="bg-blue-50"
           />
           <StatCard
             label="ITP valid"
-            value={validCount}
+            value={summary.valid}
             icon={<CheckCircle2 size={18} className="text-emerald-600" />}
             color="bg-emerald-50"
           />
           <StatCard
             label="Expiră în 30 zile"
-            value={expiringSoonCount}
+            value={summary.expiringSoon}
             icon={<Clock size={18} className="text-amber-600" />}
             color="bg-amber-50"
             onClick={() => navigate('/reminders')}
           />
           <StatCard
             label="Expirat"
-            value={expiredCount}
+            value={summary.expired}
             icon={<AlertTriangle size={18} className="text-red-600" />}
             color="bg-red-50"
           />
@@ -381,14 +391,17 @@ export default function Dashboard() {
             <h2 className="text-base font-semibold text-slate-800">
               Înregistrări ITP
               <span className="ml-2 text-sm font-normal text-slate-400">
-                ({filtered.length} din {shownTotal})
+                ({total})
               </span>
             </h2>
             <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none sm:ml-auto sm:mr-3">
               <input
                 type="checkbox"
                 checked={onlyLatest}
-                onChange={(e) => setOnlyLatest(e.target.checked)}
+                onChange={(e) => {
+                  setOnlyLatest(e.target.checked);
+                  setPage(0);
+                }}
                 className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               Doar ultimul ITP pe vehicul
@@ -402,7 +415,10 @@ export default function Dashboard() {
                 type="text"
                 placeholder="Caută după nume, nr. înmatriculare..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
                 className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -410,12 +426,20 @@ export default function Dashboard() {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            {loading ? (
+            {loading && rows.length === 0 ? (
               <div className="flex items-center justify-center py-20 text-slate-400">
                 <Loader2 size={24} className="animate-spin mr-2" />
                 Se încarcă...
               </div>
-            ) : filtered.length === 0 ? (
+            ) : loadError && rows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                <AlertTriangle size={36} className="opacity-40" />
+                <p className="text-sm">Înregistrările nu au putut fi încărcate.</p>
+                <button onClick={fetchData} className="text-sm font-medium text-blue-600 hover:underline">
+                  Încearcă din nou
+                </button>
+              </div>
+            ) : rows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
                 <Car size={40} className="opacity-30" />
                 <p className="text-sm">
@@ -426,7 +450,7 @@ export default function Dashboard() {
               <>
               {/* Telefon: carduri in loc de tabelul lat */}
               <ul className="md:hidden divide-y divide-slate-100">
-                {filtered.map((row) => {
+                {rows.map((row) => {
                   const border = !row.ultimul
                     ? 'border-l-slate-200'
                     : row.zileRamase < 0
@@ -506,7 +530,7 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filtered.map((row, idx) => {
+                  {rows.map((row, idx) => {
                     const rowCls = row.ultimul ? getRowStyle(row.zileRamase) : 'text-slate-400';
                     return (
                       <tr
@@ -514,7 +538,7 @@ export default function Dashboard() {
                         className={`hover:brightness-95 transition-colors ${rowCls}`}
                       >
                         <td className="px-4 py-3 text-xs text-slate-400 font-mono">
-                          {idx + 1}
+                          {page * PAGE_SIZE + idx + 1}
                         </td>
                         <td className="px-4 py-3 font-medium whitespace-nowrap">
                           {row.numeSofer}
@@ -589,6 +613,32 @@ export default function Dashboard() {
               </>
             )}
           </div>
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-100 text-sm text-slate-500">
+              <span>
+                {firstShown}–{lastShown} din {total}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0 || loading}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40"
+                >
+                  Înapoi
+                </button>
+                <span className="tabular-nums">
+                  {page + 1} / {pageCount}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+                  disabled={page >= pageCount - 1 || loading}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40"
+                >
+                  Înainte
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Legend */}
@@ -658,7 +708,7 @@ export default function Dashboard() {
       )}
 
       {viewEntry && (
-        <DetailsModal entry={viewEntry} history={historyFor(viewEntry)} onClose={() => setViewEntry(null)} />
+        <DetailsModal entry={viewEntry} onClose={() => setViewEntry(null)} />
       )}
     </div>
   );

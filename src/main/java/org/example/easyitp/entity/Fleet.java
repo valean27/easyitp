@@ -35,6 +35,8 @@ public class Fleet {
     private String contactPhone;
 
     // Numerele asa cum le-a scris managerul (cu majuscule); se compara normalizate (PlateUtils)
+    // Lista de flote incarca numerele pentru mai multe firme dintr-o singura interogare
+    @org.hibernate.annotations.BatchSize(size = 50)
     @ElementCollection
     @CollectionTable(name = "fleet_plates", joinColumns = @JoinColumn(name = "fleet_id"))
     @Column(name = "plate", length = 20)

@@ -30,6 +30,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     List<AppUser> findByFleetId(Long fleetId);
 
+    List<AppUser> findByFleetIdIn(java.util.Collection<Long> fleetIds);
+
     // Rezerva ziua pentru rezumatul zilnic: un singur apel reuseste (1), chiar daca doua rulari pornesc deodata
     @Transactional
     @Modifying(clearAutomatically = true)

@@ -43,29 +43,33 @@ public class ReportService {
     private final ItpRecordRepository itpRecordRepository;
     private final AppUserRepository appUserRepository;
 
-    // Managerul vede doar statia lui; adminul vede toate statiile sau una anume (stationId)
-    private List<ItpRecord> recordsFor(AppUser user, Long stationId) {
-        if (user.getRole() != Role.ADMIN) {
-            return itpRecordRepository.findAllByUserId(user.getId());
-        }
+    // Managerul vede doar statia lui; adminul vede toate statiile (null) sau una anume (stationId)
+    private Long scope(AppUser user, Long stationId) {
+        if (user.getRole() != Role.ADMIN) return user.getId();
         if (stationId != null) {
             appUserRepository.findById(stationId)
                     .filter(u -> u.getRole() == Role.MANAGER)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Statie inexistenta"));
-            return itpRecordRepository.findAllByUserId(stationId);
         }
-        // Clientii vechi fara manager nu apartin niciunei statii
-        return itpRecordRepository.findAllWithVehicle().stream()
-                .filter(r -> r.getVehicle().getClient().getUser() != null)
-                .toList();
+        return stationId;
     }
 
+    // Doar ITP-urile din interval (nu toata baza)
+    private List<ItpRecord> recordsFor(Long stationId, LocalDate from, LocalDate to) {
+        return stationId != null
+                ? itpRecordRepository.findByUserIdAndTestDateBetween(stationId, from, to)
+                : itpRecordRepository.findAllStationsTestDateBetween(from, to);
+    }
+
+    @Transactional(readOnly = true)
     public ReportDTO yearReport(AppUser user, Long stationId, int year) {
-        List<ItpRecord> records = recordsFor(user, stationId);
+        Long station = scope(user, stationId);
+        // anul raportului + anul dinainte (pentru clientii care au revenit)
+        List<ItpRecord> records = recordsFor(station, LocalDate.of(year - 1, 1, 1), LocalDate.of(year, 12, 31));
 
         TreeSet<Integer> years = new TreeSet<>(Comparator.reverseOrder());
         years.add(LocalDate.now().getYear());
-        records.forEach(r -> years.add(r.getTestDate().getYear()));
+        years.addAll(itpRecordRepository.distinctYears(station));
 
         long[] count = new long[12], passed = new long[12], failed = new long[12], recheck = new long[12];
         double[] revenue = new double[12];
@@ -165,8 +169,7 @@ public class ReportService {
     public byte[] exportCsv(AppUser user, Long stationId, LocalDate from, LocalDate to) {
         boolean admin = user.getRole() == Role.ADMIN;
         boolean withStation = admin && stationId == null;
-        List<ItpRecord> records = recordsFor(user, stationId).stream()
-                .filter(r -> !r.getTestDate().isBefore(from) && !r.getTestDate().isAfter(to))
+        List<ItpRecord> records = recordsFor(scope(user, stationId), from, to).stream()
                 .sorted(Comparator.comparing(ItpRecord::getTestDate).thenComparing(ItpRecord::getId))
                 .toList();
 

@@ -2,6 +2,8 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.DashboardDTO;
+import org.example.easyitp.dto.DashboardPageDTO;
+import org.example.easyitp.dto.DashboardSummaryDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.dto.ReminderDTO;
 import org.example.easyitp.entity.Client;
@@ -13,6 +15,8 @@ import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.VehicleRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,6 +54,10 @@ public class ItpService {
     private final ItpRecordRepository itpRecordRepository;
     private final AppointmentService appointmentService;
 
+    static final int MAX_PAGE_SIZE = 100;
+    private static final int EXPIRING_SOON_DAYS = 30;
+
+    // Toata statia (exportul CSV si endpoint-ul vechi /dashboard)
     public List<DashboardDTO> getDashboard(Long userId) {
         List<ItpRecord> records = itpRecordRepository.findAllByUserId(userId);
         Set<Long> latest = latestRecordIds(records);
@@ -57,22 +66,69 @@ public class ItpService {
                 .collect(Collectors.toList());
     }
 
-    // Clientii de sunat: ultimul ITP al fiecarui vehicul, care expira curand sau a expirat recent
-    public List<ReminderDTO> getReminders(Long userId) {
-        List<ItpRecord> records = itpRecordRepository.findAllByUserId(userId);
-        Set<Long> latest = latestRecordIds(records);
+    // O pagina din tabel, filtrata pe server; "CJ13FAN" gaseste si "CJ 13-FAN"
+    @Transactional(readOnly = true)
+    public DashboardPageDTO page(Long userId, String query, boolean onlyLatest, int page, int size) {
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        int safePage = Math.max(page, 0);
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String plate = PlateUtils.normalize(q);
+        Page<ItpRecord> result = itpRecordRepository.searchStation(userId, onlyLatest,
+                q.isEmpty() ? "" : "%" + escapeLike(q) + "%",
+                plate.isEmpty() ? "" : "%" + escapeLike(plate) + "%",
+                PageRequest.of(safePage, safeSize));
+        Set<Long> latest;
+        if (onlyLatest) {
+            latest = result.stream().map(ItpRecord::getId).collect(Collectors.toSet());
+        } else if (result.isEmpty()) {
+            latest = Set.of();
+        } else {
+            latest = new HashSet<>(itpRecordRepository.latestIdsAmong(userId,
+                    result.stream().map(ItpRecord::getId).toList()));
+        }
+        List<DashboardDTO> items = result.stream().map(r -> toDto(r, latest.contains(r.getId()))).toList();
+        return new DashboardPageDTO(items, result.getTotalElements(), safePage, safeSize);
+    }
+
+    // Caracterele speciale din LIKE se cauta ca text
+    private static String escapeLike(String s) {
+        return s.replace("!", "!!").replace("%", "!%").replace("_", "!_");
+    }
+
+    @Transactional(readOnly = true)
+    public DashboardSummaryDTO summary(Long userId) {
         LocalDate today = LocalDate.now();
-        return records.stream()
-                .filter(r -> latest.contains(r.getId()))
+        Object[] row = itpRecordRepository.latestSummary(userId, today, today.plusDays(EXPIRING_SOON_DAYS)).get(0);
+        long vehicles = number(row[0]), expired = number(row[1]), soon = number(row[2]);
+        return new DashboardSummaryDTO(vehicles, vehicles - expired - soon, soon, expired);
+    }
+
+    // Toate ITP-urile unui vehicul (dupa numar), cel mai nou primul
+    @Transactional(readOnly = true)
+    public List<DashboardDTO> history(String plate, Long userId) {
+        String normalized = PlateUtils.normalize(plate);
+        if (normalized.isEmpty()) return List.of();
+        List<ItpRecord> records = itpRecordRepository.findByPlate(userId, normalized);
+        return records.stream().map(r -> toDto(r, r == records.get(0))).toList();
+    }
+
+    private static long number(Object value) {
+        return value == null ? 0 : ((Number) value).longValue();
+    }
+
+    // Clientii de sunat: ultimul ITP al fiecarui vehicul, care expira curand sau a expirat recent
+    @Transactional(readOnly = true)
+    public List<ReminderDTO> getReminders(Long userId) {
+        LocalDate today = LocalDate.now();
+        return itpRecordRepository.findLatestExpiringBetween(userId,
+                        today.minusDays(REMINDER_DAYS_EXPIRED), today.plusDays(REMINDER_DAYS_AHEAD)).stream()
                 .map(r -> {
-                    long days = ChronoUnit.DAYS.between(today, r.getNextItpDate());
-                    if (days > REMINDER_DAYS_AHEAD || days < -REMINDER_DAYS_EXPIRED) return null;
                     Vehicle v = r.getVehicle();
                     Client c = v.getClient();
                     return new ReminderDTO(r.getId(), c.getName(), c.getPhone(), v.getBrand(), v.getModel(),
-                            v.getLicensePlate(), r.getNextItpDate(), days, r.getReminderStatus(), r.getReminderAt());
+                            v.getLicensePlate(), r.getNextItpDate(), ChronoUnit.DAYS.between(today, r.getNextItpDate()),
+                            r.getReminderStatus(), r.getReminderAt());
                 })
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -85,27 +141,21 @@ public class ItpService {
     }
 
     // Statistici per statie (cheie = id manager) pentru pagina adminului
+    // Calculat in baza de date (GROUP BY), fara sa incarcam inregistrarile tuturor statiilor
+    @Transactional(readOnly = true)
     public Map<Long, StationStats> stationStats(int expiringSoonDays) {
-        List<ItpRecord> records = itpRecordRepository.findAllWithVehicle();
-        Set<Long> latest = latestRecordIds(records);
         LocalDate today = LocalDate.now();
-        LocalDate monthStart = today.withDayOfMonth(1);
-        LocalDate soon = today.plusDays(expiringSoonDays);
-
         Map<Long, StationStats> result = new HashMap<>();
-        for (ItpRecord r : records) {
-            Long ownerId = ownerId(r);
-            if (ownerId == null) continue;
-            StationStats s = result.computeIfAbsent(ownerId, k -> new StationStats());
-            s.total++;
-            if (!r.getTestDate().isBefore(monthStart)) {
-                s.thisMonth++;
-                s.revenueThisMonth += r.getPrice() != null ? r.getPrice() : 0.0;
-            }
-            if (latest.contains(r.getId())) {
-                if (r.getNextItpDate().isBefore(today)) s.expired++;
-                else if (!r.getNextItpDate().isAfter(soon)) s.expiringSoon++;
-            }
+        for (Object[] row : itpRecordRepository.stationTotals(today.withDayOfMonth(1))) {
+            StationStats s = result.computeIfAbsent((Long) row[0], k -> new StationStats());
+            s.total = number(row[1]);
+            s.thisMonth = number(row[2]);
+            s.revenueThisMonth = row[3] == null ? 0 : ((Number) row[3]).doubleValue();
+        }
+        for (Object[] row : itpRecordRepository.stationExpiry(today, today.plusDays(expiringSoonDays))) {
+            StationStats s = result.computeIfAbsent((Long) row[0], k -> new StationStats());
+            s.expired = number(row[1]);
+            s.expiringSoon = number(row[2]);
         }
         return result;
     }
@@ -191,13 +241,9 @@ public class ItpService {
     }
 
     // Ultimul ITP al unui vehicul dupa numar, pentru precompletarea formularului la clientii care revin
+    @Transactional(readOnly = true)
     public Optional<DashboardDTO> lookupByPlate(String plate, Long userId) {
-        String normalized = PlateUtils.normalize(plate);
-        if (normalized.isEmpty()) return Optional.empty();
-        return itpRecordRepository.findAllByUserId(userId).stream()
-                .filter(r -> normalized.equals(PlateUtils.normalize(r.getVehicle().getLicensePlate())))
-                .reduce((a, b) -> isNewer(b, a) ? b : a)
-                .map(r -> toDto(r, true));
+        return history(plate, userId).stream().findFirst();
     }
 
     // Clientul si vehiculul pot fi comune mai multor inregistrari (import), deci modificarile lor se propaga

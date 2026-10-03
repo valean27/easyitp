@@ -1,10 +1,23 @@
 import api from './axiosInstance';
-import type { DashboardEntry, ImportResult, ItpFormData, RegistrationScan } from '../types';
+import type { DashboardEntry, DashboardPage, DashboardSummary, ImportResult, ItpFormData, RegistrationScan } from '../types';
 
 const BASE = '/api/itp';
 
-export const getDashboard = (): Promise<DashboardEntry[]> =>
-  api.get(`${BASE}/dashboard`).then((r) => r.data);
+export interface RecordsQuery {
+  page: number;
+  size: number;
+  q: string;
+  onlyLatest: boolean;
+}
+
+export const getRecords = (params: RecordsQuery): Promise<DashboardPage> =>
+  api.get(`${BASE}/records`, { params }).then((r) => r.data);
+
+export const getSummary = (): Promise<DashboardSummary> => api.get(`${BASE}/summary`).then((r) => r.data);
+
+// Toate ITP-urile unui vehicul, cel mai nou primul
+export const getHistory = (plate: string): Promise<DashboardEntry[]> =>
+  api.get(`${BASE}/history`, { params: { plate } }).then((r) => r.data);
 
 export const createItpEntry = (data: ItpFormData): Promise<void> =>
   api.post(BASE, data).then((r) => r.data);

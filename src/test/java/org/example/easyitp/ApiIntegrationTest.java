@@ -116,6 +116,46 @@ class ApiIntegrationTest {
         login("m1@itp.ro", "newpass1");
     }
 
+    // ---------- dashboard paginat (A3) ----------
+
+    @Test
+    void recordsArePagedSearchableByPlateWithoutSpacesAndMarkTheLatest() throws Exception {
+        LocalDate today = LocalDate.now();
+        createItp(manager, "Ion Pop", "CJ 13-FAN", today.minusYears(2));
+        createItp(manager, "Ion Pop", "cj13fan", today.minusMonths(1));
+        createItp(manager, "Ana Expirat", "B100XYZ", today.minusYears(1).minusDays(5));
+        createItp(manager, "Dan Curand", "AB01DAN", today.minusYears(1).plusDays(10));
+        createItp(otherManager, "Strain", "CJ13FAN", today);
+
+        JsonNode latest = getJson("/api/itp/records?q=CJ13FAN", manager);
+        assertThat(latest.get("total").asLong()).isEqualTo(1);
+        assertThat(latest.get("items").get(0).get("ultimul").asBoolean()).isTrue();
+
+        JsonNode all = getJson("/api/itp/records?q=cj 13&onlyLatest=false", manager);
+        assertThat(all.get("total").asLong()).isEqualTo(2);
+        long latestFlags = 0;
+        for (JsonNode item : all.get("items")) if (item.get("ultimul").asBoolean()) latestFlags++;
+        assertThat(latestFlags).isEqualTo(1);
+
+        JsonNode page = getJson("/api/itp/records?size=2&page=1&onlyLatest=false", manager);
+        assertThat(page.get("total").asLong()).isEqualTo(4);
+        assertThat(page.get("items")).hasSize(2);
+        assertThat(getJson("/api/itp/records?q=%", manager).get("total").asLong()).isZero();
+        assertThat(getJson("/api/itp/records?q=ana", manager).get("total").asLong()).isEqualTo(1);
+
+        JsonNode summary = getJson("/api/itp/summary", manager);
+        assertThat(summary.get("vehicles").asLong()).isEqualTo(3);
+        assertThat(summary.get("expired").asLong()).isEqualTo(1);
+        assertThat(summary.get("expiringSoon").asLong()).isEqualTo(1);
+        assertThat(summary.get("valid").asLong()).isEqualTo(1);
+
+        JsonNode history = getJson("/api/itp/history?plate=CJ-13 FAN", manager);
+        assertThat(history).hasSize(2);
+        assertThat(history.get(0).get("dataItp").asText()).isEqualTo(today.minusMonths(1).toString());
+        assertThat(getJson("/api/itp/lookup?plate=cj13fan", manager).get("dataItp").asText())
+                .isEqualTo(today.minusMonths(1).toString());
+    }
+
     // ---------- securitate (A1) ----------
 
     @Test

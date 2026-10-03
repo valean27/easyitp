@@ -28,6 +28,22 @@ export interface DashboardEntry {
   inspector: string | null;
 }
 
+// O pagina din tabelul dashboard-ului (filtrata pe server)
+export interface DashboardPage {
+  items: DashboardEntry[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+// Cardurile din dashboard (pe ultimul ITP al fiecarui vehicul)
+export interface DashboardSummary {
+  vehicles: number;
+  valid: number;
+  expiringSoon: number;
+  expired: number;
+}
+
 export interface ItpFormData {
   name: string;
   phone: string;

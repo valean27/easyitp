@@ -2,6 +2,8 @@ package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.DashboardDTO;
+import org.example.easyitp.dto.DashboardPageDTO;
+import org.example.easyitp.dto.DashboardSummaryDTO;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.dto.RegistrationScanDTO;
@@ -36,9 +38,30 @@ public class ItpController {
     // Anthropic accepta imagini de pana la 5 MB (codate base64 cresc cu o treime)
     private static final long MAX_SCAN_IMAGE_BYTES = 4L * 1024 * 1024;
 
+    // Toata statia, nepaginat (interfata foloseste /records; pastrat pentru compatibilitate)
     @GetMapping("/dashboard")
     public List<DashboardDTO> getDashboard() {
         return itpService.getDashboard(currentUser.get().getId());
+    }
+
+    // Tabelul din dashboard, paginat si filtrat pe server
+    @GetMapping("/records")
+    public DashboardPageDTO records(@RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "50") int size,
+                                    @RequestParam(defaultValue = "") String q,
+                                    @RequestParam(defaultValue = "true") boolean onlyLatest) {
+        return itpService.page(currentUser.get().getId(), q, onlyLatest, page, size);
+    }
+
+    @GetMapping("/summary")
+    public DashboardSummaryDTO summary() {
+        return itpService.summary(currentUser.get().getId());
+    }
+
+    // Istoricul ITP al unui vehicul (dupa numar)
+    @GetMapping("/history")
+    public List<DashboardDTO> history(@RequestParam String plate) {
+        return itpService.history(plate, currentUser.get().getId());
     }
 
     @GetMapping("/export")

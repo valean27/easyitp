@@ -1,7 +1,6 @@
 package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.easyitp.dto.DashboardDTO;
 import org.example.easyitp.dto.FleetDTOs.FleetAccountRequest;
 import org.example.easyitp.dto.FleetDTOs.FleetDTO;
 import org.example.easyitp.dto.FleetDTOs.FleetOverviewDTO;
@@ -11,9 +10,13 @@ import org.example.easyitp.dto.FleetDTOs.FleetVehicleDTO;
 import org.example.easyitp.dto.FleetDTOs.StatementRowDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Fleet;
+import org.example.easyitp.entity.ItpRecord;
+import org.example.easyitp.entity.ItpStatus;
+import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.FleetRepository;
+import org.example.easyitp.repository.ItpRecordRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,25 +43,32 @@ public class FleetService {
 
     static final int EXPIRING_DAYS = 30;
     private static final int MAX_PLATES = 2000;
+    private static final int PLATES_PER_QUERY = 500;
     private static final int MIN_PASSWORD_LENGTH = 6;
 
     private final FleetRepository fleetRepository;
     private final AppUserRepository appUserRepository;
-    private final ItpService itpService;
+    private final ItpRecordRepository itpRecordRepository;
     private final PasswordEncoder passwordEncoder;
 
     // ---------- managerul statiei ----------
 
+    // Cateva interogari pentru toate firmele (nu cate una pe firma)
     @Transactional(readOnly = true)
     public List<FleetSummaryDTO> list(AppUser station) {
-        List<DashboardDTO> latest = latestPerVehicle(station);
+        List<Fleet> fleets = fleetRepository.findByStationIdOrderByNameAsc(station.getId());
+        Map<String, ItpRecord> latest = latestByPlate(station.getId(),
+                fleets.stream().flatMap(f -> f.getPlates().stream()).toList());
+        Map<Long, String> emails = fleets.isEmpty() ? Map.of()
+                : appUserRepository.findByFleetIdIn(fleets.stream().map(Fleet::getId).toList()).stream()
+                        .collect(Collectors.toMap(AppUser::getFleetId, AppUser::getEmail, (a, b) -> a));
         LocalDate today = LocalDate.now();
-        return fleetRepository.findByStationIdOrderByNameAsc(station.getId()).stream().map(f -> {
+        return fleets.stream().map(f -> {
             List<FleetVehicleDTO> vehicles = vehicles(f, latest);
             long expired = vehicles.stream().filter(v -> v.nextItpDate() != null && v.nextItpDate().isBefore(today)).count();
             long expiring = vehicles.stream().filter(v -> v.daysLeft() != null && v.daysLeft() >= 0 && v.daysLeft() <= EXPIRING_DAYS).count();
             return new FleetSummaryDTO(f.getId(), f.getName(), f.getCui(), f.getContactName(), f.getContactPhone(),
-                    f.getPlates().size(), expired, expiring, accountEmail(f));
+                    f.getPlates().size(), expired, expiring, emails.get(f.getId()));
         }).toList();
     }
 
@@ -162,21 +172,21 @@ public class FleetService {
         AppUser station = fleet.getStation();
         String slug = Boolean.TRUE.equals(station.getBookingEnabled()) ? station.getBookingSlug() : null;
         return new FleetOverviewDTO(fleet.getName(), station.getStationName(), station.getPhone(), station.getAddress(),
-                slug, vehicles(fleet, latestPerVehicle(station)));
+                slug, vehicles(fleet, latestByPlate(station.getId(), fleet.getPlates())));
     }
 
     // Masinile flotei, cele cu ITP-ul expirat sau cel mai aproape de expirare primele
-    private static List<FleetVehicleDTO> vehicles(Fleet fleet, List<DashboardDTO> latestPerVehicle) {
-        Map<String, DashboardDTO> byPlate = latestPerVehicle.stream()
-                .collect(Collectors.toMap(d -> PlateUtils.normalize(d.getNumarInmatriculare()), d -> d, (a, b) -> a));
+    private static List<FleetVehicleDTO> vehicles(Fleet fleet, Map<String, ItpRecord> latestByPlate) {
         LocalDate today = LocalDate.now();
         return fleet.getPlates().stream()
                 .map(plate -> {
-                    DashboardDTO d = byPlate.get(PlateUtils.normalize(plate));
-                    if (d == null) return new FleetVehicleDTO(plate, null, null, null, null, null, null);
+                    ItpRecord r = latestByPlate.get(PlateUtils.normalize(plate));
+                    if (r == null) return new FleetVehicleDTO(plate, null, null, null, null, null, null);
+                    Vehicle v = r.getVehicle();
                     // numarul asa cum e scris in fisa ITP ("CJ 13 FAN"), nu cum l-a tastat managerul ("cj13fan")
-                    return new FleetVehicleDTO(d.getNumarInmatriculare(), d.getMarca(), d.getModel(), d.getDataItp(), d.getDataUrmatorItp(),
-                            ChronoUnit.DAYS.between(today, d.getDataUrmatorItp()), d.getStatus());
+                    return new FleetVehicleDTO(v.getLicensePlate(), v.getBrand(), v.getModel(), r.getTestDate(), r.getNextItpDate(),
+                            ChronoUnit.DAYS.between(today, r.getNextItpDate()),
+                            r.getStatus() != null ? r.getStatus() : ItpStatus.PASSED);
                 })
                 .sorted(Comparator.comparing(FleetVehicleDTO::nextItpDate, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
@@ -184,21 +194,30 @@ public class FleetService {
 
     private FleetStatementDTO statement(Fleet fleet, YearMonth month) {
         Set<String> plates = fleet.getPlates().stream().map(PlateUtils::normalize).collect(Collectors.toSet());
-        List<StatementRowDTO> rows = itpService.getDashboard(fleet.getStation().getId()).stream()
-                .filter(d -> d.getDataItp() != null && YearMonth.from(d.getDataItp()).equals(month))
-                .filter(d -> plates.contains(PlateUtils.normalize(d.getNumarInmatriculare())))
-                .sorted(Comparator.comparing(DashboardDTO::getDataItp).thenComparing(DashboardDTO::getNumarInmatriculare))
-                .map(d -> new StatementRowDTO(d.getDataItp(), d.getNumarInmatriculare(), d.getMarca(), d.getModel(),
-                        d.getStatus(), d.getValabilitateLuni(), d.getPrice()))
+        List<StatementRowDTO> rows = itpRecordRepository
+                .findByUserIdAndTestDateBetween(fleet.getStation().getId(), month.atDay(1), month.atEndOfMonth()).stream()
+                .filter(r -> plates.contains(r.getVehicle().getNormalizedPlate()))
+                .sorted(Comparator.comparing(ItpRecord::getTestDate)
+                        .thenComparing(r -> r.getVehicle().getLicensePlate()))
+                .map(r -> new StatementRowDTO(r.getTestDate(), r.getVehicle().getLicensePlate(), r.getVehicle().getBrand(),
+                        r.getVehicle().getModel(), r.getStatus() != null ? r.getStatus() : ItpStatus.PASSED,
+                        r.getValidityMonths(), r.getPrice()))
                 .toList();
         double total = rows.stream().mapToDouble(r -> r.price() != null ? r.price() : 0).sum();
         return new FleetStatementDTO(fleet.getName(), fleet.getCui(), fleet.getStation().getStationName(),
                 month.toString(), rows, Math.round(total * 100) / 100.0);
     }
 
-    // Doar ultimul ITP al fiecarui vehicul conteaza pentru scadenta
-    private List<DashboardDTO> latestPerVehicle(AppUser station) {
-        return itpService.getDashboard(station.getId()).stream().filter(DashboardDTO::isUltimul).toList();
+    // Ultimul ITP al fiecarui numar (doar el conteaza pentru scadenta); interogari pe bucati, ca lista IN sa ramana mica
+    private Map<String, ItpRecord> latestByPlate(Long stationId, List<String> plates) {
+        List<String> normalized = plates.stream().map(PlateUtils::normalize).filter(p -> !p.isEmpty()).distinct().toList();
+        Map<String, ItpRecord> result = new java.util.HashMap<>();
+        for (int i = 0; i < normalized.size(); i += PLATES_PER_QUERY) {
+            List<String> chunk = normalized.subList(i, Math.min(i + PLATES_PER_QUERY, normalized.size()));
+            itpRecordRepository.findLatestByPlates(stationId, chunk)
+                    .forEach(r -> result.putIfAbsent(r.getVehicle().getNormalizedPlate(), r));
+        }
+        return result;
     }
 
     // ---------- ajutatoare ----------

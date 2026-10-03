@@ -14,11 +14,10 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
     Optional<Vehicle> findByVinAndClientUserId(String vin, Long userId);
 
-    // Comparam numerele fara spatii/cratime si fara diferente de majuscule (vezi PlateUtils.normalize)
+    // Comparam numerele fara spatii/cratime si fara diferente de majuscule (coloana normalized_plate, indexata)
     @Query("""
             SELECT v FROM Vehicle v JOIN FETCH v.client c
-            WHERE c.user.id = :userId
-              AND UPPER(REPLACE(REPLACE(v.licensePlate, ' ', ''), '-', '')) = :plate
+            WHERE c.user.id = :userId AND v.normalizedPlate = :plate
             ORDER BY v.id DESC
             """)
     List<Vehicle> findByNormalizedPlate(@Param("plate") String normalizedPlate, @Param("userId") Long userId);
