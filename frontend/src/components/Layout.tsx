@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
+import ThemeSwitcher from './ThemeSwitcher';
 
 interface NavItem {
   to: string;
@@ -82,7 +83,8 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-slate-100">
+        <div className="p-3 border-t border-slate-100 space-y-2">
+          <ThemeSwitcher compact />
           <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-slate-50">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0">
               {user?.email?.[0]?.toUpperCase() ?? '?'}

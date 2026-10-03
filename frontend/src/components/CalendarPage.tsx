@@ -10,6 +10,7 @@ import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
 import { toLocalIso } from '../utils/dates';
 import { VEHICLE_SHORT_LABELS, appointmentMinutes, itpPrefillFromAppointment } from '../utils/appointments';
+import { useTheme } from '../context/theme';
 
 const SLOT_MINUTES = 30;
 
@@ -31,13 +32,18 @@ const STATUS_COLOR: Record<AppointmentStatus, SchedulerEventColor> = {
   CANCELLED: 'grey',
 };
 
-// Tema MUI aliniata cu restul aplicatiei (Tailwind): fontul paginii si albastrul principal
-const theme = createTheme({
-  typography: { fontFamily: 'inherit' },
-  palette: { primary: { main: '#2563eb' } },
-  shape: { borderRadius: 10 },
-  components: { MuiButton: { styleOverrides: { root: { textTransform: 'none', fontWeight: 600 } } } },
-});
+// Tema MUI aliniata cu restul aplicatiei (Tailwind): fontul paginii, albastrul principal si tema luminoasa/intunecata
+function muiTheme(mode: 'light' | 'dark') {
+  return createTheme({
+    typography: { fontFamily: 'inherit' },
+    palette:
+      mode === 'dark'
+        ? { mode, primary: { main: '#60a5fa' }, background: { default: '#0b1120', paper: '#131c2e' }, divider: '#263044' }
+        : { mode, primary: { main: '#2563eb' } },
+    shape: { borderRadius: 10 },
+    components: { MuiButton: { styleOverrides: { root: { textTransform: 'none', fontWeight: 600 } } } },
+  });
+}
 
 function addMinutes(iso: string, minutes: number): string {
   return toLocalIso(new Date(new Date(iso).getTime() + minutes * 60_000));
@@ -80,6 +86,8 @@ function closeCompactDrawer(container: HTMLElement | null) {
 
 export default function CalendarPage() {
   const calendarRef = useRef<HTMLDivElement>(null);
+  const { resolved } = useTheme();
+  const theme = useMemo(() => muiTheme(resolved), [resolved]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -46,7 +46,7 @@ export default function BarChart({ data, formatValue, height = 220, color = '#25
       <svg viewBox={`0 0 ${WIDTH} ${height}`} className="w-full h-auto" role="img">
         {ticks.map((t) => (
           <g key={t}>
-            <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(t)} y2={y(t)} stroke="#e2e8f0" strokeWidth={1} />
+            <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(t)} y2={y(t)} style={{ stroke: 'var(--color-slate-200, #e2e8f0)' }} strokeWidth={1} />
             <text x={PAD.left - 8} y={y(t)} textAnchor="end" dominantBaseline="middle" className="fill-slate-400" fontSize={11}>
               {formatValue(t)}
             </text>
@@ -77,12 +77,12 @@ export default function BarChart({ data, formatValue, height = 220, color = '#25
       </svg>
       {hovered && (
         <div
-          className="pointer-events-none absolute top-0 -translate-x-1/2 bg-slate-800 text-white text-xs rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap"
+          className="pointer-events-none absolute top-0 -translate-x-1/2 bg-[#1e293b] text-white text-xs rounded-lg px-2.5 py-1.5 shadow-lg whitespace-nowrap ring-1 ring-white/10"
           style={{ left: `${Math.min(88, Math.max(12, tooltipLeft))}%` }}
         >
-          <div className="text-slate-300">{hovered.label}</div>
+          <div className="text-[#cbd5e1]">{hovered.label}</div>
           <div className="font-semibold">{formatValue(hovered.value)}</div>
-          {hovered.detail && <div className="text-slate-300">{hovered.detail}</div>}
+          {hovered.detail && <div className="text-[#cbd5e1]">{hovered.detail}</div>}
         </div>
       )}
     </div>

@@ -401,7 +401,7 @@ export default function RemindersPage() {
                 key={c.key}
                 onClick={() => setUrgency(c.key)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  urgency === c.key ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  urgency === c.key ? 'bg-slate-800 text-white dark:text-slate-50' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 {c.label}

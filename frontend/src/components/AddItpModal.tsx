@@ -30,22 +30,29 @@ const rsStyles = {
   control: (base: object, state: { isFocused: boolean }) => ({
     ...base,
     borderRadius: '0.5rem',
-    borderColor: state.isFocused ? 'transparent' : '#e2e8f0',
-    boxShadow: state.isFocused ? '0 0 0 2px #3b82f6' : '0 0 0 1px #e2e8f0',
+    backgroundColor: 'var(--surface)',
+    borderColor: state.isFocused ? 'transparent' : 'var(--color-slate-200, #e2e8f0)',
+    boxShadow: state.isFocused ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--color-slate-200, #e2e8f0)',
     fontSize: '0.875rem',
     minHeight: '38px',
-    '&:hover': { borderColor: '#cbd5e1' },
+    '&:hover': { borderColor: 'var(--color-slate-300, #cbd5e1)' },
   }),
   option: (base: object, state: { isSelected: boolean; isFocused: boolean }) => ({
     ...base,
     fontSize: '0.875rem',
-    backgroundColor: state.isSelected ? '#2563eb' : state.isFocused ? '#eff6ff' : 'white',
-    color: state.isSelected ? 'white' : '#1e293b',
+    backgroundColor: state.isSelected ? '#2563eb' : state.isFocused ? 'var(--color-slate-100, #f1f5f9)' : 'var(--surface)',
+    color: state.isSelected ? 'white' : 'var(--color-slate-800, #1e293b)',
     cursor: 'pointer',
   }),
-  menu: (base: object) => ({ ...base, borderRadius: '0.5rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,.1)' }),
-  placeholder: (base: object) => ({ ...base, color: '#94a3b8', fontSize: '0.875rem' }),
-  singleValue: (base: object) => ({ ...base, fontSize: '0.875rem', color: '#1e293b' }),
+  menu: (base: object) => ({
+    ...base,
+    backgroundColor: 'var(--surface)',
+    borderRadius: '0.5rem',
+    boxShadow: '0 10px 25px -5px rgba(0,0,0,.25), 0 0 0 1px var(--color-slate-200, #e2e8f0)',
+  }),
+  placeholder: (base: object) => ({ ...base, color: 'var(--color-slate-400, #94a3b8)', fontSize: '0.875rem' }),
+  singleValue: (base: object) => ({ ...base, fontSize: '0.875rem', color: 'var(--color-slate-800, #1e293b)' }),
+  input: (base: object) => ({ ...base, color: 'var(--color-slate-800, #1e293b)' }),
 };
 
 const INPUT_CLS =

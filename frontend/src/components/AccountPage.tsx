@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, X, Plus } from 'lucide-react';
+import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, X, Plus } from 'lucide-react';
 import { getProfile, updateProfile, changePassword, getInspectors, updateInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
+import ThemeSwitcher from './ThemeSwitcher';
 import DigestCard from './DigestCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
@@ -329,7 +330,7 @@ export default function AccountPage() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-        <div className="grid gap-6 lg:grid-cols-2 max-w-5xl items-start">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 max-w-5xl items-start">
           {user?.role === 'MANAGER' && <StationCard bookingLink={bookingLink} />}
           <div className="space-y-6">
             {user?.role === 'MANAGER' && (
@@ -337,6 +338,9 @@ export default function AccountPage() {
             )}
             {user?.role === 'MANAGER' && <InspectorsCard />}
             {user?.role === 'MANAGER' && <DigestCard />}
+            <Card icon={<Palette size={15} className="text-blue-600" />} title="Aspect">
+              <ThemeSwitcher />
+            </Card>
             <PasswordCard />
           </div>
         </div>
