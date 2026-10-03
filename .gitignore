@@ -42,3 +42,6 @@ node_modules/
 
 ### Date reale (CSV-uri cu clienti) - nu se comit niciodata ###
 /*.csv
+
+# Notite locale de sesiune (Claude)
+/.claude/SCRATCHBOARD.md
