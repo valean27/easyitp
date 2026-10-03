@@ -30,4 +30,5 @@ public class DashboardDTO {
     private String observations;
     // false = vehiculul are un ITP mai nou (inregistrare istorica)
     private boolean ultimul;
+    private String inspector;
 }

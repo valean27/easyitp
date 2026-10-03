@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut } from 'lucide-react';
-import { getProfile, updateProfile, changePassword } from '../api/accountApi';
+import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, X, Plus } from 'lucide-react';
+import { getProfile, updateProfile, changePassword, getInspectors, updateInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
 import DigestCard from './DigestCard';
@@ -163,6 +163,87 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
   );
 }
 
+// Inspectorii statiei: doar nume, alese in formularul ITP; rapoartele arata cate verificari a facut fiecare
+function InspectorsCard() {
+  const [names, setNames] = useState<string[] | null>(null);
+  const [draft, setDraft] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<Message>(null);
+
+  useEffect(() => {
+    getInspectors()
+      .then(setNames)
+      .catch(() => setMessage({ text: 'Lista nu a putut fi încărcată.', type: 'error' }));
+  }, []);
+
+  const save = async (next: string[]) => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      setNames(await updateInspectors(next));
+    } catch {
+      setMessage({ text: 'Lista nu a putut fi salvată.', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name || !names) return;
+    setDraft('');
+    save([...names, name]);
+  };
+
+  return (
+    <Card icon={<HardHat size={15} className="text-blue-600" />} title="Inspectori">
+      <div className="space-y-3">
+        <p className="text-xs text-slate-500">
+          La fiecare ITP alegi cine a făcut verificarea, iar în Rapoarte vezi câte verificări și câte respingeri are fiecare.
+          Nu au nevoie de cont.
+        </p>
+        {names === null ? (
+          message ? <MessageBox message={message} /> : <Loader2 size={16} className="animate-spin text-slate-400" />
+        ) : (
+          <>
+            {names.length > 0 && (
+              <ul className="flex flex-wrap gap-2">
+                {names.map((name) => (
+                  <li key={name} className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-full bg-slate-100 text-sm text-slate-700">
+                    {name}
+                    <button
+                      type="button"
+                      onClick={() => save(names.filter((n) => n !== name))}
+                      disabled={saving}
+                      aria-label={`Șterge ${name}`}
+                      className="p-1 rounded-full text-slate-400 hover:text-red-600 hover:bg-white"
+                    >
+                      <X size={12} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <form onSubmit={handleAdd} className="flex gap-2">
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={80} placeholder="Nume inspector" className={INPUT_CLS} />
+              <button
+                type="submit"
+                disabled={saving || !draft.trim()}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-50 shrink-0"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Adaugă
+              </button>
+            </form>
+            <MessageBox message={message} />
+          </>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 function PasswordCard() {
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -254,6 +335,7 @@ export default function AccountPage() {
             {user?.role === 'MANAGER' && (
               <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
             )}
+            {user?.role === 'MANAGER' && <InspectorsCard />}
             {user?.role === 'MANAGER' && <DigestCard />}
             <PasswordCard />
           </div>

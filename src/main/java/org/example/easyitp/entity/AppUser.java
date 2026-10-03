@@ -77,6 +77,16 @@ public class AppUser {
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 
+    // Inspectorii statiei (doar nume, fara conturi); se aleg in formularul ITP si apar in rapoarte
+    @ElementCollection
+    @CollectionTable(name = "station_inspectors", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "name", length = 80)
+    @OrderColumn(name = "position")
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private java.util.List<String> inspectors = new java.util.ArrayList<>();
+
     // Doar pentru conturile FLEET: firma pe care o administreaza
     @Column(name = "fleet_id")
     private Long fleetId;

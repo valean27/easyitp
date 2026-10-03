@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -35,6 +36,8 @@ import java.util.TreeSet;
 public class ReportService {
 
     private static final int TOP_BRANDS = 8;
+    private static final int MAX_LOST = 200;
+    static final String UNKNOWN_INSPECTOR = "Nespecificat";
     private static final DateTimeFormatter RO_DATE = DateTimeFormatter.ofPattern("dd.MM.yyyy");
 
     private final ItpRecordRepository itpRecordRepository;
@@ -93,7 +96,68 @@ public class ReportService {
                 .map(e -> new ReportDTO.BrandCount(e.getKey(), e.getValue()))
                 .toList();
 
-        return new ReportDTO(year, new ArrayList<>(years), months, topBrands);
+        // Adminul vede doar cifre agregate: fara nume de inspectori si fara lista de clienti
+        boolean admin = user.getRole() == Role.ADMIN;
+        return new ReportDTO(year, new ArrayList<>(years), months, topBrands,
+                admin ? List.of() : inspectorMonths(records, year),
+                retention(records, year, LocalDate.now(), !admin));
+    }
+
+    static List<ReportDTO.InspectorMonth> inspectorMonths(List<ItpRecord> records, int year) {
+        // cheie: inspector + luna
+        Map<String, ReportDTO.InspectorMonth> rows = new LinkedHashMap<>();
+        for (ItpRecord r : records) {
+            if (r.getTestDate().getYear() != year) continue;
+            String name = r.getInspector() == null || r.getInspector().isBlank() ? UNKNOWN_INSPECTOR : r.getInspector().trim();
+            int month = r.getTestDate().getMonthValue();
+            ReportDTO.InspectorMonth row = rows.computeIfAbsent(name + "|" + month,
+                    k -> new ReportDTO.InspectorMonth(name, month, 0, 0, 0, 0));
+            row.setCount(row.getCount() + 1);
+            if (r.getStatus() == ItpStatus.FAILED) row.setFailed(row.getFailed() + 1);
+            if (r.getStatus() == ItpStatus.RECHECK) row.setRecheck(row.getRecheck() + 1);
+            row.setRevenue(row.getRevenue() + (r.getPrice() != null ? r.getPrice() : 0.0));
+        }
+        return new ArrayList<>(rows.values());
+    }
+
+    // Vehiculele (dupa numar) cu ITP in anul dinaintea raportului: cate au revenit in anul raportului.
+    // Le numaram doar pe cele ajunse la scadenta, ca un ITP valabil 2 ani sa nu apara drept client pierdut.
+    static ReportDTO.Retention retention(List<ItpRecord> records, int year, LocalDate today, boolean withList) {
+        int previousYear = year - 1;
+        LocalDate endOfYear = LocalDate.of(year, 12, 31);
+        LocalDate cutoff = today.isBefore(endOfYear) ? today : endOfYear;
+
+        Map<String, List<ItpRecord>> byVehicle = new HashMap<>();
+        for (ItpRecord r : records) {
+            byVehicle.computeIfAbsent(PlateUtils.normalize(r.getVehicle().getLicensePlate()), k -> new ArrayList<>()).add(r);
+        }
+
+        long due = 0, returned = 0, notDueYet = 0;
+        List<ReportDTO.LostClient> lost = new ArrayList<>();
+        for (List<ItpRecord> vehicleRecords : byVehicle.values()) {
+            ItpRecord lastPrevious = vehicleRecords.stream()
+                    .filter(r -> r.getTestDate().getYear() == previousYear)
+                    .max(Comparator.comparing(ItpRecord::getTestDate))
+                    .orElse(null);
+            if (lastPrevious == null) continue;
+            if (lastPrevious.getNextItpDate().isAfter(cutoff)) {
+                notDueYet++;
+                continue;
+            }
+            due++;
+            boolean cameBack = vehicleRecords.stream().anyMatch(r -> r.getTestDate().getYear() == year);
+            if (cameBack) {
+                returned++;
+            } else if (withList) {
+                Vehicle v = lastPrevious.getVehicle();
+                lost.add(new ReportDTO.LostClient(v.getLicensePlate(), v.getClient().getName(), v.getClient().getPhone(),
+                        lastPrevious.getTestDate(), lastPrevious.getNextItpDate()));
+            }
+        }
+        // Cei pierduti de curand primii: mai pot fi recuperati cu un telefon
+        lost.sort(Comparator.comparing(ReportDTO.LostClient::getExpiredOn).reversed());
+        return new ReportDTO.Retention(previousYear, due, returned, notDueYet,
+                lost.size() > MAX_LOST ? lost.subList(0, MAX_LOST) : lost);
     }
 
     // CSV pentru contabilitate: separator ";" si zecimale cu virgula, ca sa se deschida corect in Excel romanesc

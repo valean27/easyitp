@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, Banknote, ClipboardCheck, Calculator, BadgeCheck, Download, Loader2, AlertTriangle } from 'lucide-react';
+import { BarChart3, Banknote, ClipboardCheck, Calculator, XCircle, Download, Loader2, AlertTriangle } from 'lucide-react';
 import type { ManagerSummary, Report } from '../types';
 import { getReport, exportReport } from '../api/reportApi';
 import { getManagers } from '../api/adminApi';
 import { useAuth } from '../context/auth';
 import BarChart from './BarChart';
+import { InspectorRanking, RetentionCard } from './ReportInsights';
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
 const MONTHS_LONG = [
@@ -180,15 +181,15 @@ export default function ReportsPage() {
                 color="bg-slate-100"
               />
               <Kpi
-                label="Rată promovare"
-                value={pct(totalPassed, totalCount)}
-                sub={totalCount > 0 ? `${totalFailed} respinse · ${totalRecheck} reverificări` : undefined}
-                icon={<BadgeCheck size={18} className="text-emerald-600" />}
-                color="bg-emerald-50"
+                label="Rată respingere"
+                value={pct(totalFailed, totalCount)}
+                sub={totalCount > 0 ? `${totalFailed} respinse · ${totalRecheck} reverificări · ${pct(totalPassed, totalCount)} admise` : undefined}
+                icon={<XCircle size={18} className="text-red-600" />}
+                color="bg-red-50"
               />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card title="Încasări pe lună">
                 <BarChart
                   data={months.map((m) => ({
@@ -211,7 +212,14 @@ export default function ReportsPage() {
               </Card>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            {report && (
+              <div className={`grid grid-cols-1 gap-6 items-start ${isAdmin ? '' : 'lg:grid-cols-2'}`}>
+                {!isAdmin && <InspectorRanking key={year} rows={report.inspectors} year={year} />}
+                <RetentionCard retention={report.retention} year={year} showList={!isAdmin} />
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <Card title={`Detalii pe luni · ${year}`}>
                   <div className="overflow-x-auto -m-4">

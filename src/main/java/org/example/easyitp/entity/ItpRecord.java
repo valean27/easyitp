@@ -43,6 +43,10 @@ public class ItpRecord {
     @Column(name = "price")
     private Double price;
 
+    // Cine a facut inspectia (nume din lista de inspectori a statiei); null la inregistrarile vechi
+    @Column(name = "inspector", length = 80)
+    private String inspector;
+
     @Column(name = "observations", columnDefinition = "TEXT")
     private String observations;
 

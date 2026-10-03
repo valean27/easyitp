@@ -255,6 +255,38 @@ class ApiIntegrationTest {
         assertThat(csv).contains("sep=;").contains("Respins").contains("TOTAL (2 ITP);;;;;;;250,50").doesNotContain("Dan");
     }
 
+    @Test
+    void inspectorsAreSavedOnItpsAndRankedInReports() throws Exception {
+        String saved = mvc.perform(put("/api/account/inspectors").header("Authorization", bearer(manager))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[\" Ion Pop \", \"ion pop\", \"\", \"Ana Marin\"]"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(json.readTree(saved).toString()).isEqualTo("[\"Ion Pop\",\"Ana Marin\"]");
+        assertThat(getJson("/api/account/inspectors", manager)).hasSize(2);
+
+        LocalDate day = LocalDate.now().withDayOfMonth(1);
+        long id = createItp(manager, "Client", "CJ10INS", day, Map.of("inspector", "Ana Marin"));
+        createItp(manager, "Client 2", "CJ11INS", day, Map.of("inspector", "Ana Marin", "status", "FAILED"));
+        createItp(manager, "Client 3", "CJ12INS", day);
+
+        JsonNode entry = getJson("/api/itp/dashboard", manager);
+        assertThat(entry.toString()).contains("\"inspector\":\"Ana Marin\"");
+
+        JsonNode inspectors = getJson("/api/reports?year=" + day.getYear(), manager).get("inspectors");
+        assertThat(inspectors).hasSize(2);
+        assertThat(inspectors.get(0).get("inspector").asText()).isEqualTo("Ana Marin");
+        assertThat(inspectors.get(0).get("count").asLong()).isEqualTo(2);
+        assertThat(inspectors.get(0).get("failed").asLong()).isEqualTo(1);
+        assertThat(inspectors.get(1).get("inspector").asText()).isEqualTo("Nespecificat");
+
+        // adminul vede doar cifre agregate, fara nume
+        JsonNode adminReport = getJson("/api/reports?year=" + day.getYear(), admin);
+        assertThat(adminReport.get("inspectors")).isEmpty();
+        assertThat(adminReport.get("retention").get("lost")).isEmpty();
+        assertThat(id).isPositive();
+    }
+
     // ---------- helpers ----------
 
     private AppUser createManager(String email) {

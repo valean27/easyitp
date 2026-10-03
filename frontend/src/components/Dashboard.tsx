@@ -86,6 +86,7 @@ function DetailsModal({
             <Row label="Următor ITP" value={entry.dataUrmatorItp} />
             <Row label="Zile rămase" value={entry.zileRamase < 0 ? `Expirat (${Math.abs(entry.zileRamase)} zile)` : `${entry.zileRamase} zile`} />
             <Row label="Rezultat" value={getStatusBadge(entry.status)} />
+            <Row label="Inspector" value={entry.inspector} />
             <Row label="Kilometraj" value={entry.mileage != null ? `${entry.mileage.toLocaleString()} km` : null} />
             <Row label="Preț" value={entry.price != null ? `${entry.price.toLocaleString('ro-RO', { minimumFractionDigits: 2 })} RON` : null} />
           </div>

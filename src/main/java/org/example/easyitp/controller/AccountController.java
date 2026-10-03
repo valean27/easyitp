@@ -20,6 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -28,6 +31,8 @@ import java.util.Map;
 public class AccountController {
 
     private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_INSPECTORS = 30;
+    private static final int MAX_INSPECTOR_NAME = 80;
 
     private final AppUserRepository appUserRepository;
     private final CurrentUser currentUser;
@@ -74,6 +79,32 @@ public class AccountController {
     @PutMapping("/booking")
     public BookingSettingsDTO updateBookingSettings(@RequestBody BookingSettingsDTO request) {
         return bookingService.updateSettings(currentUser.get(), request);
+    }
+
+    // Inspectorii statiei, pentru formularul ITP si rapoarte
+    @GetMapping("/inspectors")
+    public List<String> getInspectors() {
+        return List.copyOf(currentUser.get().getInspectors());
+    }
+
+    @PutMapping("/inspectors")
+    public List<String> updateInspectors(@RequestBody List<String> names) {
+        Map<String, String> unique = new LinkedHashMap<>();
+        for (String name : names == null ? List.<String>of() : names) {
+            String trimmed = trimToNull(name);
+            if (trimmed == null) continue;
+            if (trimmed.length() > MAX_INSPECTOR_NAME) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Numele inspectorului este prea lung");
+            }
+            unique.putIfAbsent(trimmed.toLowerCase(Locale.ROOT), trimmed);
+        }
+        if (unique.size() > MAX_INSPECTORS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maxim " + MAX_INSPECTORS + " inspectori");
+        }
+        AppUser user = currentUser.get();
+        user.getInspectors().clear();
+        user.getInspectors().addAll(unique.values());
+        return List.copyOf(appUserRepository.save(user).getInspectors());
     }
 
     @GetMapping("/digest")

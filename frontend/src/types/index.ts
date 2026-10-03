@@ -25,6 +25,7 @@ export interface DashboardEntry {
   observations: string | null;
   // false = vehiculul are un ITP mai nou
   ultimul: boolean;
+  inspector: string | null;
 }
 
 export interface ItpFormData {
@@ -41,6 +42,7 @@ export interface ItpFormData {
   mileage: number | null;
   price: number | null;
   observations: string;
+  inspector?: string | null;
   appointmentId?: number;
 }
 
@@ -164,6 +166,35 @@ export interface Report {
   availableYears: number[];
   months: ReportMonth[];
   topBrands: { brand: string; count: number }[];
+  // gol pentru admin (vede doar cifre agregate)
+  inspectors: InspectorMonth[];
+  retention: Retention;
+}
+
+export interface InspectorMonth {
+  inspector: string; // "Nespecificat" pentru ITP-urile fara inspector
+  month: number; // 1-12
+  count: number;
+  failed: number;
+  recheck: number;
+  revenue: number;
+}
+
+// Vehiculele cu ITP in anul anterior: cate au revenit la scadenta in anul raportului
+export interface Retention {
+  previousYear: number;
+  due: number;
+  returned: number;
+  notDueYet: number;
+  lost: LostClient[];
+}
+
+export interface LostClient {
+  plate: string;
+  name: string;
+  phone: string | null;
+  lastItpDate: string;
+  expiredOn: string;
 }
 
 export type DigestChannel = 'EMAIL' | 'WHATSAPP';

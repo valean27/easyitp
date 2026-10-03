@@ -12,6 +12,12 @@ export const updateProfile = (data: StationInfo & { reminderTemplate: string | n
 export const changePassword = (currentPassword: string, newPassword: string): Promise<void> =>
   api.put(`${BASE}/password`, { currentPassword, newPassword }).then(() => undefined);
 
+// Inspectorii statiei (doar nume), aleși în formularul ITP
+export const getInspectors = (): Promise<string[]> => api.get(`${BASE}/inspectors`).then((r) => r.data);
+
+export const updateInspectors = (names: string[]): Promise<string[]> =>
+  api.put(`${BASE}/inspectors`, names).then((r) => r.data);
+
 export const getBookingSettings = (): Promise<BookingSettings> =>
   api.get(`${BASE}/booking`).then((r) => r.data);
 

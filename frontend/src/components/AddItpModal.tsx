@@ -8,6 +8,7 @@ import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration } from 
 import { shrinkImage } from '../utils/image';
 import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
+import { getInspectors } from '../api/accountApi';
 import type { CarMake, CarModel } from '../api/carApi';
 
 interface Props {
@@ -50,6 +51,17 @@ const rsStyles = {
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
 
+// Ultimul inspector ales pe acest dispozitiv (de obicei fiecare inspector are telefonul lui)
+const INSPECTOR_KEY = 'easyitp_inspector';
+
+function rememberedInspector(): string {
+  try {
+    return localStorage.getItem(INSPECTOR_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
 const emptyForm: ItpFormData = {
   name: '',
   phone: '',
@@ -81,6 +93,7 @@ function formFromEntry(entry: DashboardEntry): ItpFormData {
     mileage: entry.mileage,
     price: entry.price,
     observations: entry.observations ?? '',
+    inspector: entry.inspector ?? '',
   };
 }
 
@@ -96,6 +109,18 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<{ text: string; warnings: string[]; type: 'success' | 'error' } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  const [inspectors, setInspectors] = useState<string[]>([]);
+
+  // Lista de inspectori a statiei; la un ITP nou preselectam inspectorul folosit ultima data pe acest dispozitiv
+  useEffect(() => {
+    getInspectors()
+      .then((list) => {
+        setInspectors(list);
+        const last = rememberedInspector();
+        if (!entry && list.includes(last)) setForm((f) => ({ ...f, inspector: f.inspector || last }));
+      })
+      .catch(() => setInspectors([]));
+  }, [entry]);
 
   const [makeOptions, setMakeOptions] = useState<SelectOption[]>([]);
   const [modelOptions, setModelOptions] = useState<SelectOption[]>([]);
@@ -262,6 +287,13 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === 'inspector') {
+      try {
+        localStorage.setItem(INSPECTOR_KEY, value);
+      } catch {
+        /* stocare indisponibila */
+      }
+    }
     setForm((prev) => ({
       ...prev,
       [name]:
@@ -569,6 +601,22 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   />
                 </div>
               </div>
+
+              {(inspectors.length > 0 || form.inspector) && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Inspector</label>
+                  <select name="inspector" value={form.inspector ?? ''} onChange={handleChange} className={INPUT_CLS + ' bg-white'}>
+                    <option value="">— nespecificat —</option>
+                    {/* un inspector scos intre timp din lista ramane vizibil la editare */}
+                    {form.inspector && !inspectors.includes(form.inspector) && <option value={form.inspector}>{form.inspector}</option>}
+                    {inspectors.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Preț (RON)</label>

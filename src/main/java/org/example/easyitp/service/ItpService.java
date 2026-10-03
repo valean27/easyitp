@@ -180,6 +180,7 @@ public class ItpService {
                 .mileage(form.getMileage())
                 .price(form.getPrice() != null ? form.getPrice() : 0.0)
                 .observations(form.getObservations())
+                .inspector(inspector(form.getInspector()))
                 .build();
 
         record = itpRecordRepository.save(record);
@@ -226,6 +227,7 @@ public class ItpService {
         record.setMileage(form.getMileage());
         record.setPrice(form.getPrice() != null ? form.getPrice() : 0.0);
         record.setObservations(form.getObservations());
+        record.setInspector(inspector(form.getInspector()));
     }
 
     @Transactional
@@ -297,7 +299,14 @@ public class ItpService {
                 record.getMileage(),
                 record.getPrice() != null ? record.getPrice() : 0.0,
                 record.getObservations(),
-                latest
+                latest,
+                record.getInspector()
         );
+    }
+
+    private static String inspector(String name) {
+        if (name == null || name.isBlank()) return null;
+        String trimmed = name.trim();
+        return trimmed.length() > 80 ? trimmed.substring(0, 80) : trimmed;
     }
 }
