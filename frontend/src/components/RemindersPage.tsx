@@ -328,7 +328,7 @@ export default function RemindersPage() {
   return (
     <div className="min-h-full bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <BellRing size={18} className="text-white" />
@@ -350,7 +350,7 @@ export default function RemindersPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {missingStationInfo && (
           <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0 mt-0.5" />

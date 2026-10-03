@@ -15,7 +15,8 @@ interface Props {
   color?: string;
 }
 
-const WIDTH = 640;
+// Pe telefon desenam mai ingust, ca textul axelor sa nu fie micsorat la scalare
+const WIDTH = typeof window !== 'undefined' && window.innerWidth < 640 ? 380 : 640;
 const PAD = { top: 12, right: 8, bottom: 24, left: 52 };
 const RADIUS = 4;
 

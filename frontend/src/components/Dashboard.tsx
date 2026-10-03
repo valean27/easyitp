@@ -293,7 +293,7 @@ export default function Dashboard() {
     <div className="min-h-full bg-slate-50">
       {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <Car size={20} className="text-white" />
@@ -305,7 +305,7 @@ export default function Dashboard() {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={fetchData}
               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -315,7 +315,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
             >
               <Upload size={15} />
               <span className="hidden sm:inline">Import CSV</span>
@@ -323,7 +323,7 @@ export default function Dashboard() {
             <button
               onClick={handleExport}
               disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
+              className="flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
             >
               {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
               <span className="hidden sm:inline">Export CSV</span>
@@ -333,13 +333,15 @@ export default function Dashboard() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Plus size={16} />
-              <span>Adaugă ITP</span>
+              <span className="whitespace-nowrap">
+                <span className="hidden sm:inline">Adaugă </span>ITP
+              </span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard
@@ -420,7 +422,63 @@ export default function Dashboard() {
                 </p>
               </div>
             ) : (
-              <table className="min-w-full text-sm">
+              <>
+              {/* Telefon: carduri in loc de tabelul lat */}
+              <ul className="md:hidden divide-y divide-slate-100">
+                {filtered.map((row) => {
+                  const border = !row.ultimul
+                    ? 'border-l-slate-200'
+                    : row.zileRamase < 0
+                    ? 'border-l-red-400'
+                    : row.zileRamase <= 30
+                    ? 'border-l-amber-400'
+                    : 'border-l-emerald-400';
+                  return (
+                    <li key={row.id} className={`px-4 py-3 border-l-4 ${border} ${row.ultimul ? '' : 'opacity-60'}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-mono font-semibold text-slate-800">{row.numarInmatriculare}</p>
+                          <p className="text-sm font-medium text-slate-700 truncate">{row.numeSofer}</p>
+                        </div>
+                        <div className="text-sm text-right shrink-0">
+                          {row.ultimul ? getDaysTag(row.zileRamase) : <span className="text-xs italic text-slate-400">Reînnoit</span>}
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {[row.marca, row.model, row.year ? `(${row.year})` : null].filter(Boolean).join(' ')}
+                        {' · '}ITP {row.dataItp} · {row.valabilitateLuni} luni · până la {row.dataUrmatorItp}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(row.status)}
+                          {row.contact && (
+                            <a href={`tel:${row.contact}`} className="text-xs text-blue-600">
+                              {row.contact}
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setViewEntry(row)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100" title="Detalii">
+                            <Eye size={16} />
+                          </button>
+                          <button onClick={() => setEditEntry(row)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100" title="Editează">
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(row.id)}
+                            disabled={deletingId === row.id}
+                            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
+                            title="Șterge"
+                          >
+                            {deletingId === row.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <table className="hidden md:table min-w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                     {[
@@ -527,6 +585,7 @@ export default function Dashboard() {
                   })}
                 </tbody>
               </table>
+              </>
             )}
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { UserCog, Building2, KeyRound, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut } from 'lucide-react';
 import { getProfile, updateProfile, changePassword } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
@@ -217,24 +218,36 @@ function PasswordCard() {
 }
 
 export default function AccountPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [bookingLink, setBookingLink] = useState<string | null>(null);
 
   return (
     <div className="min-h-full bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 h-16 flex items-center gap-3">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
           <div className="bg-blue-600 p-2 rounded-lg">
             <UserCog size={18} className="text-white" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="text-base font-bold text-slate-800 leading-tight">Contul meu</h1>
-            <p className="text-xs text-slate-400 leading-tight">{user?.email}</p>
+            <p className="text-xs text-slate-400 leading-tight truncate">{user?.email}</p>
           </div>
+          {/* Pe telefon nu exista meniul lateral cu butonul de deconectare */}
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            <LogOut size={15} />
+            Ieșire
+          </button>
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
         <div className="grid gap-6 lg:grid-cols-2 max-w-5xl items-start">
           {user?.role === 'MANAGER' && <StationCard bookingLink={bookingLink} />}
           <div className="space-y-6">

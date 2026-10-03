@@ -23,10 +23,10 @@ function lastDayOfMonth(year: number, month: number): string {
 
 function Kpi({ label, value, sub, icon, color }: { label: string; value: string; sub?: string; icon: React.ReactNode; color: string }) {
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4">
-      <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
+    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-100 flex items-center gap-3 sm:gap-4">
+      <div className={`hidden sm:block p-3 rounded-lg ${color}`}>{icon}</div>
       <div className="min-w-0">
-        <p className="text-2xl font-bold text-slate-800 truncate">{value}</p>
+        <p className="text-xl sm:text-2xl font-bold text-slate-800 break-words">{value}</p>
         <p className="text-sm text-slate-500">{label}</p>
         {sub && <p className="text-xs text-slate-400">{sub}</p>}
       </div>
@@ -107,7 +107,7 @@ export default function ReportsPage() {
   return (
     <div className="min-h-full bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <BarChart3 size={18} className="text-white" />
@@ -145,7 +145,7 @@ export default function ReportsPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0" />

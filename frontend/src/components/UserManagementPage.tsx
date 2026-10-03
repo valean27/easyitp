@@ -116,6 +116,46 @@ export default function UserManagementPage() {
     }
   };
 
+  // Butoanele de actiune, comune pentru tabel (desktop) si carduri (telefon)
+  const renderActions = (m: ManagerSummary) => (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => setEditing(m)}
+        className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+        title="Editează stația"
+      >
+        <Pencil size={15} />
+      </button>
+      <button
+        onClick={() => setResetting(m)}
+        className="p-1.5 rounded-lg text-slate-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"
+        title="Resetează parola"
+      >
+        <KeyRound size={15} />
+      </button>
+      <button
+        onClick={() => handleToggleActive(m)}
+        disabled={busyId === m.id}
+        className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+          m.active
+            ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+        }`}
+        title={m.active ? 'Dezactivează' : 'Activează'}
+      >
+        {busyId === m.id ? <Loader2 size={15} className="animate-spin" /> : <Power size={15} />}
+      </button>
+      <button
+        onClick={() => handleDelete(m)}
+        disabled={busyId === m.id}
+        className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+        title="Șterge (doar conturi fără date)"
+      >
+        <Trash2 size={15} />
+      </button>
+    </div>
+  );
+
   const q = search.toLowerCase();
   const filtered = managers.filter(
     (m) =>
@@ -132,7 +172,7 @@ export default function UserManagementPage() {
   return (
     <div className="min-h-full bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
               <ShieldCheck size={18} className="text-white" />
@@ -155,13 +195,15 @@ export default function UserManagementPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
             >
               <UserPlus size={16} />
-              <span>Adaugă Manager</span>
+              <span className="whitespace-nowrap">
+                Adaugă<span className="hidden sm:inline"> Manager</span>
+              </span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+      <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {banner && (
           <div
             className={`flex items-start gap-2 text-sm rounded-lg px-4 py-3 border ${
@@ -241,7 +283,50 @@ export default function UserManagementPage() {
                 <p className="text-sm">{search ? 'Niciun rezultat găsit.' : 'Nu există manageri. Adaugă primul manager!'}</p>
               </div>
             ) : (
-              <table className="min-w-full text-sm">
+              <>
+              {/* Telefon: carduri in loc de tabelul lat */}
+              <ul className="md:hidden divide-y divide-slate-100">
+                {filtered.map((m) => (
+                  <li key={m.id} className={`px-4 py-3 space-y-2 ${m.active ? '' : 'opacity-60'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-800 truncate">
+                          {m.stationName || <span className="italic text-slate-400">Fără nume</span>}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">{m.email}</p>
+                        {m.phone && <p className="text-xs text-slate-500">{m.phone}</p>}
+                      </div>
+                      <span
+                        className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          m.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {m.active ? 'Activ' : 'Dezactivat'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      {[
+                        { label: 'ITP-uri', value: m.itpCount, cls: 'text-slate-800' },
+                        { label: 'Luna', value: m.itpThisMonth, cls: 'text-slate-800' },
+                        { label: '≤30 zile', value: m.expiringSoonCount, cls: m.expiringSoonCount > 0 ? 'text-amber-600' : 'text-slate-400' },
+                        { label: 'Expirate', value: m.expiredCount, cls: m.expiredCount > 0 ? 'text-red-600' : 'text-slate-400' },
+                      ].map((stat) => (
+                        <div key={stat.label} className="rounded-lg bg-slate-50 py-1.5">
+                          <p className={`text-sm font-semibold ${stat.cls}`}>{stat.value}</p>
+                          <p className="text-[11px] text-slate-400">{stat.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-400">
+                        {formatRon(m.revenueThisMonth)} luna aceasta · logat: {formatLastLogin(m.lastLoginAt).toLowerCase()}
+                      </p>
+                      {renderActions(m)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <table className="hidden md:table min-w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                     {['Stație', 'Contact', 'ITP-uri', 'Luna aceasta', 'Expiră ≤30z', 'Expirate', 'Programări luna', 'Ultima logare', 'Status', ''].map(
@@ -291,48 +376,12 @@ export default function UserManagementPage() {
                           {m.active ? 'Activ' : 'Dezactivat'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => setEditing(m)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
-                            title="Editează stația"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            onClick={() => setResetting(m)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-violet-500 hover:bg-violet-50 transition-colors"
-                            title="Resetează parola"
-                          >
-                            <KeyRound size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleToggleActive(m)}
-                            disabled={busyId === m.id}
-                            className={`p-1.5 rounded-lg transition-colors disabled:opacity-50 ${
-                              m.active
-                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                            title={m.active ? 'Dezactivează' : 'Activează'}
-                          >
-                            {busyId === m.id ? <Loader2 size={15} className="animate-spin" /> : <Power size={15} />}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(m)}
-                            disabled={busyId === m.id}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                            title="Șterge (doar conturi fără date)"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
+                      <td className="px-4 py-3">{renderActions(m)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </>
             )}
           </div>
         </div>

@@ -126,10 +126,10 @@ export default function CalendarPage() {
   return (
     <div className="min-h-full bg-slate-50">
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-screen-2xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-800">Calendar Programări</h1>
-            <p className="text-xs text-slate-400 hidden sm:block">
+            <p className="text-xs text-slate-400 hidden md:block">
               Click pe un interval liber pentru o programare nouă · trage o programare ca s-o muți · 🌐 = făcută online
             </p>
           </div>
@@ -142,21 +142,22 @@ export default function CalendarPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4 space-y-3">
+      <main className="max-w-screen-2xl mx-auto px-2 sm:px-6 py-2 sm:py-4 space-y-3">
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
             <AlertTriangle size={15} className="shrink-0" />
             {error}
           </div>
         )}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" style={{ height: 'calc(100vh - 7.5rem)' }}>
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" style={{ height: 'calc(100dvh - 7.5rem)' }}>
           <ThemeProvider theme={theme}>
             <EventCalendar
               events={events}
               onEventsChange={handleEventsChange}
               localeText={roRO.components.MuiEventCalendar.defaultProps.localeText}
               dateLocale={ro}
-              defaultView="week"
+              // Pe telefon o saptamana intreaga nu incape: pornim pe ziua curenta
+              defaultView={window.innerWidth < 768 ? 'day' : 'week'}
               views={['day', 'week', 'month', 'agenda']}
               viewConfig={{
                 day: { startTime: 7, endTime: 21, initialScrollTime: 8 },
