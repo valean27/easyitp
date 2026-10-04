@@ -19,5 +19,8 @@ public record AutoSmsSettingsDTO(
         String smslinkConnectionId,
         String smslinkPassword,
         boolean hasSmslinkPassword,
-        long sentLast30Days) {
+        long sentLast30Days,
+        // SMS-uri pentru programari: confirmare la programarea online si reminder cu o zi inainte
+        boolean apptConfirmSms,
+        boolean apptReminderSms) {
 }

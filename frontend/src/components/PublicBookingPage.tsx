@@ -69,7 +69,7 @@ export default function PublicBookingPage() {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState<{ date: string; time: string; vehicle: string } | null>(null);
+  const [confirmed, setConfirmed] = useState<{ date: string; time: string; vehicle: string; token: string | null } | null>(null);
 
   useEffect(() => {
     getPublicStation(slug)
@@ -127,7 +127,7 @@ export default function PublicBookingPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await createPublicBooking(slug, {
+      const token = await createPublicBooking(slug, {
         clientName: name,
         phone,
         licensePlate: plate,
@@ -136,7 +136,7 @@ export default function PublicBookingPage() {
         reminderConsent: consent,
         website,
       });
-      setConfirmed({ date, time, vehicle: vehicle?.label ?? '' });
+      setConfirmed({ date, time, vehicle: vehicle?.label ?? '', token });
     } catch (err) {
       const status = errorStatus(err);
       if (status === 409) {
@@ -193,6 +193,11 @@ export default function PublicBookingPage() {
               Aveți la dumneavoastră talonul și cartea de identitate a vehiculului.
               {station.phone && ` Dacă nu mai puteți ajunge, sunați la ${station.phone}.`}
             </p>
+            {confirmed.token && (
+              <Link to={`/p/${confirmed.token}`} className="inline-block text-sm font-semibold text-blue-600 hover:underline">
+                Anulați sau alegeți altă oră
+              </Link>
+            )}
           </div>
           <StationHeader station={station} />
         </div>

@@ -21,6 +21,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     boolean existsByUserId(Long userId);
 
+    Optional<Appointment> findByManageToken(String manageToken);
+
+    // Pentru rapoarte: [status, numar] pentru programarile din interval (statia data, sau toate cand userId e null)
+    @Query("SELECT a.status, COUNT(a) FROM Appointment a WHERE (:userId IS NULL OR a.user.id = :userId)"
+            + " AND a.appointmentDate >= :from AND a.appointmentDate < :to GROUP BY a.status")
+    List<Object[]> countByStatus(@Param("userId") Long userId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("SELECT COUNT(a) FROM Appointment a WHERE (:userId IS NULL OR a.user.id = :userId) AND a.clientAction = 'CANCELLED'"
+            + " AND a.appointmentDate >= :from AND a.appointmentDate < :to")
+    long countCancelledByClient(@Param("userId") Long userId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     List<Appointment> findByUserIdAndSourceAndCreatedAtAfterOrderByAppointmentDateAsc(
             Long userId, AppointmentSource source, LocalDateTime createdAfter);
 

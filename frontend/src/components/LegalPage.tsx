@@ -57,7 +57,8 @@ function Privacy() {
           </li>
           <li>
             <b>Programarea online la o stație:</b> nume, telefon, număr de înmatriculare, tipul vehiculului, data și ora, ca stația să vă
-            poată primi.
+            poată primi; dacă stația le folosește, primiți un SMS de confirmare și unul cu o zi înainte, cu un link din care vă
+            puteți anula sau muta programarea.
           </li>
           <li>
             <b>Reminderele ITP (SMS / WhatsApp):</b> nume, telefon, numărul mașinii și data expirării. Mesajele automate se trimit doar

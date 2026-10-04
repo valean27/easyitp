@@ -4,12 +4,14 @@ export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
   SCHEDULED: 'Programat',
   COMPLETED: 'Finalizat',
   CANCELLED: 'Anulat',
+  NO_SHOW: 'Neprezentat',
 };
 
 export const APPOINTMENT_STATUS_COLORS: Record<AppointmentStatus, string> = {
   SCHEDULED: '#3b82f6',
   COMPLETED: '#10b981',
   CANCELLED: '#94a3b8',
+  NO_SHOW: '#f97316',
 };
 
 // Etichete scurte pentru calendar

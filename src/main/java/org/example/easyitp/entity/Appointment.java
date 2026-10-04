@@ -58,6 +58,22 @@ public class Appointment {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    // Link-ul clientului pentru anulare / mutare (/p/{manageToken}), trimis in SMS
+    @Column(name = "manage_token", length = 40, unique = true)
+    private String manageToken;
+
+    // SMS-ul de confirmare si reminderul cu o zi inainte (null = netrimise)
+    @Column(name = "confirmation_sent_at")
+    private LocalDateTime confirmationSentAt;
+    @Column(name = "reminder_sent_at")
+    private LocalDateTime reminderSentAt;
+
+    // Ce a facut clientul din link: CANCELLED sau RESCHEDULED (vazut de manager in calendar)
+    @Column(name = "client_action", length = 20)
+    private String clientAction;
+    @Column(name = "client_action_at")
+    private LocalDateTime clientActionAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
@@ -66,5 +82,6 @@ public class Appointment {
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
+        if (manageToken == null) manageToken = org.example.easyitp.service.ClientKeys.newToken().substring(0, 16);
     }
 }

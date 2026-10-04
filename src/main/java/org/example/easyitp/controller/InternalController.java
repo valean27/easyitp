@@ -2,6 +2,7 @@ package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.service.DigestService;
+import org.example.easyitp.service.AppointmentSmsService;
 import org.example.easyitp.service.AutoReminderService;
 import org.example.easyitp.service.HistoryService;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ public class InternalController {
     private final DigestService digestService;
     private final HistoryService historyService;
     private final AutoReminderService autoReminderService;
+    private final AppointmentSmsService appointmentSmsService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -45,6 +47,11 @@ public class InternalController {
             autoReminderService.runDaily(LocalDate.now());
         } catch (RuntimeException e) {
             log.error("SMS-urile automate au esuat", e);
+        }
+        try {
+            appointmentSmsService.runDayBefore(LocalDate.now());
+        } catch (RuntimeException e) {
+            log.error("Reminderele pentru programari au esuat", e);
         }
         historyService.purgeOld();
         return ResponseEntity.ok(result);

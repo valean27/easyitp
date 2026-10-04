@@ -266,6 +266,32 @@ export default function AutoSmsCard() {
           </div>
         )}
 
+        <div className="rounded-lg border border-slate-100 p-4 space-y-2">
+          <p className="text-sm font-medium text-slate-700">SMS pentru programări</p>
+          <p className="text-xs text-slate-500">
+            Pe același canal. Clientul primește un link din care își poate anula sau muta singur programarea, ca să nu rămână
+            ore goale.
+          </p>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={settings.apptConfirmSms}
+              onChange={(e) => update({ apptConfirmSms: e.target.checked })}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            Confirmare imediat după programarea online
+          </label>
+          <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={settings.apptReminderSms}
+              onChange={(e) => update({ apptReminderSms: e.target.checked })}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            Reminder în dimineața dinaintea programării (sâmbătă și pentru luni)
+          </label>
+        </div>
+
         <div>
           <p className="text-sm font-medium text-slate-600 mb-2">Cu câte zile înainte de expirare</p>
           <div className="flex flex-wrap gap-2">

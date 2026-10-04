@@ -21,4 +21,7 @@ public class AppointmentDTO {
     private VehicleCategory vehicleCategory;
     private Integer durationMinutes;
     private Boolean reminderConsent;
+    // Ce a facut clientul din link-ul din SMS: CANCELLED / RESCHEDULED (null = nimic)
+    private String clientAction;
+    private java.time.LocalDateTime clientActionAt;
 }

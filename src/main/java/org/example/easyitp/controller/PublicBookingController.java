@@ -7,6 +7,7 @@ import org.example.easyitp.dto.PublicStationDTO;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.VehicleCategory;
 import org.example.easyitp.security.ClientIp;
+import org.example.easyitp.service.AppointmentSmsService;
 import org.example.easyitp.service.BookingRateLimiter;
 import org.example.easyitp.service.BookingService;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ public class PublicBookingController {
 
     private final BookingService bookingService;
     private final BookingRateLimiter rateLimiter;
+    private final AppointmentSmsService appointmentSmsService;
 
     @GetMapping
     public PublicStationDTO station(@PathVariable String slug) {
@@ -51,6 +53,9 @@ public class PublicBookingController {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Prea multe programari. Incercati mai tarziu.");
         }
         Appointment saved = bookingService.book(slug, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("appointmentDate", saved.getAppointmentDate()));
+        appointmentSmsService.sendConfirmation(saved);
+        // manageToken: link-ul clientului pentru anulare / mutare
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("appointmentDate", saved.getAppointmentDate(),
+                "manageToken", saved.getManageToken()));
     }
 }

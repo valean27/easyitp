@@ -74,6 +74,10 @@ public class AppUser {
     @Column(length = 100)
     private String callmebotApiKey;
 
+    // SMS-uri pentru programari (AppointmentSmsService), pe canalul SMS al statiei; null = oprite
+    private Boolean apptConfirmSms;
+    private Boolean apptReminderSms;
+
     // Remindere SMS automate (vezi AutoReminderService); null = oprite
     private Boolean autoSmsEnabled;
 

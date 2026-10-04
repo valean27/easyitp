@@ -30,6 +30,7 @@ const STATUS_COLOR: Record<AppointmentStatus, SchedulerEventColor> = {
   SCHEDULED: 'blue',
   COMPLETED: 'green',
   CANCELLED: 'grey',
+  NO_SHOW: 'orange',
 };
 
 // Tema MUI aliniata cu restul aplicatiei (Tailwind): fontul paginii, albastrul principal si tema luminoasa/intunecata
@@ -64,7 +65,13 @@ function toEvent(a: Appointment): SchedulerEvent {
     id: a.id,
     title: `${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
     description:
-      [a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null, a.phone, a.status === 'CANCELLED' ? 'Anulat' : null]
+      [
+        a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null,
+        a.phone,
+        a.clientAction === 'CANCELLED' ? 'Anulat de client' : a.status === 'CANCELLED' ? 'Anulat' : null,
+        a.clientAction === 'RESCHEDULED' ? 'Mutat de client' : null,
+        a.status === 'NO_SHOW' ? 'Neprezentat' : null,
+      ]
         .filter(Boolean)
         .join(' · ') || undefined,
     start,

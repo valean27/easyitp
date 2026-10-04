@@ -49,8 +49,36 @@ export interface PublicBookingData {
   website: string; // camp-capcana pentru boti, trebuie sa ramana gol
 }
 
-export const createPublicBooking = (slug: string, data: PublicBookingData): Promise<void> =>
-  publicApi.post(`${base(slug)}/appointments`, data).then(() => undefined);
+// Intoarce token-ul link-ului de anulare / mutare (/p/{token})
+export const createPublicBooking = (slug: string, data: PublicBookingData): Promise<string | null> =>
+  publicApi.post(`${base(slug)}/appointments`, data).then((r) => r.data?.manageToken ?? null);
+
+// Link-ul clientului din SMS: programarea, anulare, mutare
+export interface ManagedAppointment {
+  stationName: string;
+  address: string | null;
+  phone: string | null;
+  slug: string | null;
+  appointmentDate: string;
+  licensePlate: string | null;
+  vehicleLabel: string;
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  canChange: boolean;
+  clientAction: string | null;
+}
+
+const mine = (token: string) => `/api/public/appointments/${encodeURIComponent(token)}`;
+
+export const getMyAppointment = (token: string): Promise<ManagedAppointment> => publicApi.get(mine(token)).then((r) => r.data);
+
+export const cancelMyAppointment = (token: string): Promise<ManagedAppointment> =>
+  publicApi.post(`${mine(token)}/cancel`).then((r) => r.data);
+
+export const getMyAppointmentSlots = (token: string, date: string): Promise<string[]> =>
+  publicApi.get(`${mine(token)}/slots`, { params: { date } }).then((r) => r.data);
+
+export const rescheduleMyAppointment = (token: string, appointmentDate: string): Promise<ManagedAppointment> =>
+  publicApi.post(`${mine(token)}/reschedule`, { appointmentDate }).then((r) => r.data);
 
 // Cererea de demonstratie din pagina de prezentare
 export interface LeadData {

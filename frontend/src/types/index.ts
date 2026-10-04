@@ -2,7 +2,7 @@ export type UserRole = 'ADMIN' | 'MANAGER' | 'FLEET';
 
 export type ItpStatus = 'PASSED' | 'FAILED' | 'RECHECK';
 
-export type AppointmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+export type AppointmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
 export type ReminderStatus = 'CONTACTED' | 'SCHEDULED' | 'NOT_INTERESTED';
 
@@ -181,6 +181,9 @@ export interface Appointment {
   durationMinutes?: number | null;
   // bifa de acord pentru remindere din programarea online
   reminderConsent?: boolean | null;
+  // ce a facut clientul din link-ul din SMS
+  clientAction?: 'CANCELLED' | 'RESCHEDULED' | null;
+  clientActionAt?: string | null;
 }
 
 export interface ReportMonth {
@@ -200,6 +203,7 @@ export interface Report {
   // gol pentru admin (vede doar cifre agregate)
   inspectors: InspectorMonth[];
   retention: Retention;
+  appointments: AppointmentStats;
 }
 
 export interface InspectorMonth {
@@ -423,6 +427,18 @@ export interface AutoSmsSettings {
   smslinkPassword?: string | null;
   hasSmslinkPassword: boolean;
   sentLast30Days: number;
+  // SMS-uri pentru programari: confirmare la programarea online si reminder cu o zi inainte
+  apptConfirmSms: boolean;
+  apptReminderSms: boolean;
+}
+
+// Programarile din anul raportului
+export interface AppointmentStats {
+  total: number;
+  completed: number;
+  noShow: number;
+  cancelled: number;
+  cancelledByClient: number;
 }
 
 export interface AutoSmsLogEntry {

@@ -169,10 +169,15 @@ public class BookingService {
         return availableSlots(station, date, onlineCategory(station, category), LocalDateTime.now());
     }
 
+    List<LocalTime> availableSlots(AppUser station, LocalDate date, VehicleCategory category, LocalDateTime now) {
+        return availableSlots(station, date, category, now, null);
+    }
+
     // Orele la care o inspectie de tipul "category" incape intreaga pe una din liniile statiei.
     // Se ofera orele din grila tipului (deschidere + k * durata) si orele la care se termina alte programari,
     // ca un vehicul sa poata intra imediat dupa altul, fara goluri pe linie.
-    List<LocalTime> availableSlots(AppUser station, LocalDate date, VehicleCategory category, LocalDateTime now) {
+    // excludeId: programarea care se muta (nu se blocheaza singura)
+    List<LocalTime> availableSlots(AppUser station, LocalDate date, VehicleCategory category, LocalDateTime now, Long excludeId) {
         LocalDate today = now.toLocalDate();
         if (date.isBefore(today) || date.isAfter(today.plusDays(MAX_DAYS_AHEAD))) return List.of();
         if (!days(station).contains(date.getDayOfWeek().getValue())) return List.of();
@@ -183,6 +188,7 @@ public class BookingService {
         List<Interval> taken = appointmentRepository
                 .findActiveBetween(station.getId(), dayOpen.minusMinutes(InspectionDurations.MAX_MINUTES), dayClose)
                 .stream()
+                .filter(a -> excludeId == null || !excludeId.equals(a.getId()))
                 .map(a -> new Interval(a.getAppointmentDate(),
                         a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a))))
                 .filter(i -> i.end().isAfter(dayOpen))

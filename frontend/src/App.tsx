@@ -21,6 +21,7 @@ const LandingPage = lazy(() => import('./components/LandingPage'));
 const LeadsPage = lazy(() => import('./components/LeadsPage'));
 const StationsPage = lazy(() => import('./components/StationsPage'));
 const LegalPage = lazy(() => import('./components/LegalPage'));
+const ManageAppointmentPage = lazy(() => import('./components/ManageAppointmentPage'));
 const FleetsPage = lazy(() => import('./components/FleetsPage'));
 const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const HistoryPage = lazy(() => import('./components/HistoryPage'));
@@ -65,6 +66,8 @@ function App() {
           <Route path="/statii" element={<Suspense fallback={null}><StationsPage /></Suspense>} />
           <Route path="/confidentialitate" element={<Suspense fallback={null}><LegalPage doc="privacy" /></Suspense>} />
           <Route path="/termeni" element={<Suspense fallback={null}><LegalPage doc="terms" /></Suspense>} />
+          {/* Link-ul din SMS-ul de programare: anulare / mutare, fara login */}
+          <Route path="/p/:token" element={<Suspense fallback={null}><ManageAppointmentPage /></Suspense>} />
           {/* Link-ul de dezabonare din mesaje: fara login */}
           <Route
             path="/stop/:token"

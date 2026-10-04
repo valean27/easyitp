@@ -5,7 +5,7 @@ import { getReport, exportReport } from '../api/reportApi';
 import { getManagers } from '../api/adminApi';
 import { useAuth } from '../context/auth';
 import BarChart from './BarChart';
-import { InspectorRanking, RetentionCard } from './ReportInsights';
+import { AppointmentStatsCard, InspectorRanking, RetentionCard } from './ReportInsights';
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
 const MONTHS_LONG = [
@@ -218,6 +218,7 @@ export default function ReportsPage() {
                 <RetentionCard retention={report.retention} year={year} showList={!isAdmin} />
               </div>
             )}
+            {report?.appointments && <AppointmentStatsCard stats={report.appointments} year={year} />}
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">

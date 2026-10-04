@@ -124,6 +124,8 @@ public class AppointmentService {
         dto.setVehicleCategory(appt.getVehicleCategory());
         dto.setDurationMinutes(InspectionDurations.minutesOf(appt));
         dto.setReminderConsent(appt.getReminderConsent());
+        dto.setClientAction(appt.getClientAction());
+        dto.setClientActionAt(appt.getClientActionAt());
         return dto;
     }
 }

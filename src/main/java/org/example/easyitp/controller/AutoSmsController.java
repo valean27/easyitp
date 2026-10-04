@@ -86,7 +86,12 @@ public class AutoSmsController {
                 throw badRequest("Introduceți Connection ID și parola conexiunii SMSLink.");
             }
         }
+        if ((request.apptConfirmSms() || request.apptReminderSms()) && !configuredFor(user, request.provider())) {
+            throw badRequest("Pentru SMS-urile de programare alegeți întâi cum se trimit SMS-urile și completați datele.");
+        }
         user.setAutoSmsEnabled(request.enabled());
+        user.setApptConfirmSms(request.apptConfirmSms());
+        user.setApptReminderSms(request.apptReminderSms());
         return toDto(appUserRepository.save(user));
     }
 
@@ -127,7 +132,14 @@ public class AutoSmsController {
         return new AutoSmsSettingsDTO(Boolean.TRUE.equals(u.getAutoSmsEnabled()), u.getAutoSmsProvider(),
                 AutoReminderService.stages(u), u.getAutoSmsTemplate() != null ? u.getAutoSmsTemplate() : SmsText.DEFAULT_TEMPLATE,
                 SmsText.DEFAULT_TEMPLATE, u.getSmsGateUrl(), u.getSmsGateUsername(), null, u.getSmsGatePassword() != null,
-                u.getSmslinkConnectionId(), null, u.getSmslinkPassword() != null, sent);
+                u.getSmslinkConnectionId(), null, u.getSmslinkPassword() != null, sent,
+                Boolean.TRUE.equals(u.getApptConfirmSms()), Boolean.TRUE.equals(u.getApptReminderSms()));
+    }
+
+    private static boolean configuredFor(AppUser u, SmsProvider provider) {
+        if (provider == SmsProvider.SMS_GATE) return u.getSmsGateUsername() != null && u.getSmsGatePassword() != null;
+        if (provider == SmsProvider.SMSLINK) return u.getSmslinkConnectionId() != null && u.getSmslinkPassword() != null;
+        return false;
     }
 
     private static String trimToNull(String s) {

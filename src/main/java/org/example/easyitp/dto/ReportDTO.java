@@ -16,6 +16,18 @@ public class ReportDTO {
     // ITP-urile fiecarui inspector, pe luni (gol pentru admin: vede doar cifre agregate)
     private List<InspectorMonth> inspectors;
     private Retention retention;
+    private AppointmentStats appointments;
+
+    // Programarile din anul raportului: cate s-au finalizat, cati nu au venit, cate au fost anulate (si cate de client)
+    @Data
+    @AllArgsConstructor
+    public static class AppointmentStats {
+        private long total;
+        private long completed;
+        private long noShow;
+        private long cancelled;
+        private long cancelledByClient;
+    }
 
     @Data
     @AllArgsConstructor

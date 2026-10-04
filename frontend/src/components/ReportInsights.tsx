@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Phone, UserX } from 'lucide-react';
-import type { InspectorMonth, Retention } from '../types';
+import type { InspectorMonth, Retention, AppointmentStats } from '../types';
 import { UNKNOWN_INSPECTOR, inspectorTotals, monthsWithData } from '../utils/reportStats';
 import { formatDateRo } from '../utils/fleet';
 
@@ -159,5 +159,39 @@ export function RetentionCard({ retention, year, showList }: { retention: Retent
         </div>
       )}
     </Card>
+  );
+}
+
+// Programarile anului: cate s-au finalizat, cati clienti nu au venit, cate au fost anulate
+export function AppointmentStatsCard({ stats, year }: { stats: AppointmentStats; year: number }) {
+  // doar programarile incheiate (au venit sau nu); cele viitoare inca nu conteaza
+  const concluded = stats.completed + stats.noShow;
+  const rate = concluded > 0 ? Math.round((stats.noShow / concluded) * 100) : 0;
+  const cell = (value: number, label: string, cls: string) => (
+    <div className={`rounded-xl px-3 py-3 text-center ${cls}`}>
+      <p className="text-2xl font-bold tabular-nums">{value}</p>
+      <p className="text-xs mt-0.5">{label}</p>
+    </div>
+  );
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100">
+      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h3 className="font-semibold text-slate-800">Programări {year}</h3>
+        <span className="text-xs text-slate-400">{stats.total} în total</span>
+      </div>
+      <div className="p-5 space-y-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {cell(stats.completed, 'au venit', 'bg-emerald-50 text-emerald-700')}
+          {cell(stats.noShow, 'neprezentați', 'bg-orange-50 text-orange-700')}
+          {cell(stats.cancelled, 'anulate', 'bg-slate-50 text-slate-600')}
+          {cell(stats.cancelledByClient, 'anulate de client', 'bg-slate-50 text-slate-600')}
+        </div>
+        <p className="text-xs text-slate-500">
+          {concluded === 0
+            ? 'Rata de neprezentare apare după primele programări încheiate.'
+            : `Rată de neprezentare: ${rate}%. Confirmarea și reminderul prin SMS (Contul meu) îi fac pe clienți să anunțe din timp.`}
+        </p>
+      </div>
+    </div>
   );
 }

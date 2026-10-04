@@ -8,6 +8,8 @@ import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.repository.AppointmentRepository;
+import org.example.easyitp.entity.AppointmentStatus;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class ReportService {
 
     private final ItpRecordRepository itpRecordRepository;
     private final AppUserRepository appUserRepository;
+    private final AppointmentRepository appointmentRepository;
 
     // Managerul vede doar statia lui; adminul vede toate statiile (null) sau una anume (stationId)
     private Long scope(AppUser user, Long stationId) {
@@ -104,7 +107,21 @@ public class ReportService {
         boolean admin = user.getRole() == Role.ADMIN;
         return new ReportDTO(year, new ArrayList<>(years), months, topBrands,
                 admin ? List.of() : inspectorMonths(records, year),
-                retention(records, year, LocalDate.now(), !admin));
+                retention(records, year, LocalDate.now(), !admin),
+                appointmentStats(station, year));
+    }
+
+    private ReportDTO.AppointmentStats appointmentStats(Long station, int year) {
+        java.time.LocalDateTime from = LocalDate.of(year, 1, 1).atStartOfDay();
+        java.time.LocalDateTime to = from.plusYears(1);
+        Map<AppointmentStatus, Long> byStatus = new HashMap<>();
+        for (Object[] row : appointmentRepository.countByStatus(station, from, to)) {
+            byStatus.put((AppointmentStatus) row[0], ((Number) row[1]).longValue());
+        }
+        long total = byStatus.values().stream().mapToLong(Long::longValue).sum();
+        return new ReportDTO.AppointmentStats(total, byStatus.getOrDefault(AppointmentStatus.COMPLETED, 0L),
+                byStatus.getOrDefault(AppointmentStatus.NO_SHOW, 0L), byStatus.getOrDefault(AppointmentStatus.CANCELLED, 0L),
+                appointmentRepository.countCancelledByClient(station, from, to));
     }
 
     static List<ReportDTO.InspectorMonth> inspectorMonths(List<ItpRecord> records, int year) {

@@ -15,6 +15,7 @@ const STATUS_CLS: Record<Appointment['status'], string> = {
   SCHEDULED: 'bg-blue-100 text-blue-700',
   COMPLETED: 'bg-emerald-100 text-emerald-700',
   CANCELLED: 'bg-slate-200 text-slate-500 line-through',
+  NO_SHOW: 'bg-orange-100 text-orange-700',
 };
 
 type Tab = 'today' | 'tomorrow' | 'week';
