@@ -6,6 +6,7 @@ import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
 import ThemeSwitcher from './ThemeSwitcher';
 import DigestCard from './DigestCard';
+import AutoSmsCard from './AutoSmsCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
@@ -340,6 +341,7 @@ export default function AccountPage() {
             )}
             {user?.role === 'MANAGER' && <InspectorsCard />}
             {user?.role === 'MANAGER' && <DigestCard />}
+            {user?.role === 'MANAGER' && <AutoSmsCard />}
             <Card icon={<Palette size={15} className="text-blue-600" />} title="Aspect">
               <ThemeSwitcher />
             </Card>

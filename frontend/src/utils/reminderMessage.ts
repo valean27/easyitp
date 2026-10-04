@@ -56,15 +56,16 @@ export function renderReminder(template: string | null | undefined, data: Remind
     '{link}': data.link?.trim() ?? '',
     '{stop}': data.stop?.trim() ?? '',
   };
-  let text = template?.trim() || DEFAULT_REMINDER_TEMPLATE;
-  // pe rand nou, ca sa nu se lipeasca de un link de la finalul sablonului
-  if (data.stop && !text.includes('{stop}')) text += '\nNu mai doriți mesaje: {stop}';
+  const text = template?.trim() || DEFAULT_REMINDER_TEMPLATE;
   const sentences = text.split(/(?<=[.!?])\s+/);
-  return sentences
+  const rendered = sentences
     .filter((sentence) => Object.entries(values).every(([key, value]) => !sentence.includes(key) || value !== ''))
     .map((sentence) => Object.entries(values).reduce((acc, [key, value]) => acc.split(key).join(value), sentence))
     .join(' ')
     .trim();
+  // Link-ul de dezabonare la final, pe rand nou; dupa randare, ca sa nu dispara cu o propozitie scoasa
+  // (ex. "Programare online: {link}" la o statie fara programare online)
+  return data.stop && !text.includes('{stop}') ? `${rendered}\nNu mai doriți mesaje: ${data.stop.trim()}` : rendered;
 }
 
 // Numar romanesc -> format international fara "+" (ex. 0722 123 456 -> 40722123456); null daca nu e valid

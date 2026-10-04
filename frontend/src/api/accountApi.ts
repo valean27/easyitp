@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { BookingSettings, DigestSettings, Profile, StationInfo } from '../types';
+import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, Profile, StationInfo } from '../types';
 
 const BASE = '/api/account';
 
@@ -34,3 +34,15 @@ export const updateDigestSettings = (data: DigestSettings): Promise<DigestSettin
 // Trimite acum emailul zilnic catre utilizatorul logat; la eroare, mesajul vine de la server
 export const sendTestDigest = (): Promise<string> =>
   api.post(`${BASE}/digest/test`).then((r) => r.data.message);
+
+// Remindere SMS automate
+export const getAutoSms = (): Promise<AutoSmsSettings> => api.get(`${BASE}/auto-sms`).then((r) => r.data);
+
+export const updateAutoSms = (data: AutoSmsSettings): Promise<AutoSmsSettings> =>
+  api.put(`${BASE}/auto-sms`, data).then((r) => r.data);
+
+// Trimite un SMS de proba; intoarce mesajul de confirmare
+export const sendTestSms = (phone: string): Promise<string> =>
+  api.post(`${BASE}/auto-sms/test`, { phone }).then((r) => r.data.message);
+
+export const getAutoSmsLog = (): Promise<AutoSmsLogEntry[]> => api.get(`${BASE}/auto-sms/log`).then((r) => r.data);

@@ -24,4 +24,6 @@ public class ReminderDTO {
     // Acordul clientului (null = necunoscut) si token-ul link-ului STOP pus in mesaj
     private ReminderConsent consent;
     private String stopToken;
+    // Cand a plecat ultimul SMS automat pentru acest ITP (null = niciunul)
+    private LocalDateTime autoSmsAt;
 }

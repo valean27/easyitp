@@ -67,11 +67,21 @@ describe('opt-out link', () => {
   const stop = 'https://easyitp.vercel.app/stop/abc123';
 
   it('is appended when the template has no {stop}', () => {
-    expect(renderReminder('Bună, {nume}!', { ...data, stop })).toBe(`Bună, ${data.nume}! Nu mai doriți mesaje: ${stop}`);
+    expect(renderReminder('Bună, {nume}!', { ...data, stop })).toBe(`Bună, ${data.nume}!
+Nu mai doriți mesaje: ${stop}`);
   });
 
   it('goes where the template puts it, and disappears without a link', () => {
     expect(renderReminder('Dezabonare: {stop}. Bună, {nume}!', { ...data, stop })).toBe(`Dezabonare: ${stop}. Bună, ${data.nume}!`);
     expect(renderReminder('Bună, {nume}! Dezabonare: {stop}', data)).toBe(`Bună, ${data.nume}!`);
+  });
+});
+
+describe('opt-out link without online booking', () => {
+  it('survives when the sentence before it is dropped', () => {
+    const stop = 'https://easyitp.vercel.app/stop/xyz';
+    const text = renderReminder(null, { ...data, link: null, stop });
+    expect(text).not.toContain('{link}');
+    expect(text.endsWith(`Nu mai doriți mesaje: ${stop}`)).toBe(true);
   });
 });

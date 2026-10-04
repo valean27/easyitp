@@ -21,6 +21,7 @@ import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
+import org.example.easyitp.repository.ReminderSendRepository;
 import org.example.easyitp.repository.VehicleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -61,6 +62,7 @@ public class ClientService {
     private final ItpRecordRepository itpRecordRepository;
     private final AppointmentRepository appointmentRepository;
     private final AuditService auditService;
+    private final ReminderSendRepository reminderSendRepository;
 
     // Rezultatul stergerii unei masini: fisa clientului (null daca a disparut) si intrarea din istoric (pentru "Anuleaza")
     public record VehicleDeletion(ClientDetailDTO client, Long eventId) {
@@ -205,6 +207,7 @@ public class ClientService {
     // ITP-urile sterse se dezleaga de programarile din care au fost facute
     public void deleteRecords(Collection<ItpRecord> records) {
         if (records.isEmpty()) return;
+        reminderSendRepository.deleteByItpRecordIdIn(records.stream().map(ItpRecord::getId).toList());
         appointmentRepository.findByItpRecordIdIn(records.stream().map(ItpRecord::getId).toList())
                 .forEach(a -> a.setItpRecordId(null));
         itpRecordRepository.deleteAll(records);

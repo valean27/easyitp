@@ -147,6 +147,8 @@ export interface Reminder {
   consent: ReminderConsent | null;
   // pentru link-ul de dezabonare din mesaj (/stop/{token})
   stopToken: string;
+  // cand a plecat ultimul SMS automat pentru acest ITP
+  autoSmsAt: string | null;
 }
 
 export interface ManagerSummary extends StationInfo {
@@ -396,4 +398,37 @@ export interface HistoryPage {
   total: number;
   page: number;
   size: number;
+}
+
+// ---------- Remindere SMS automate ----------
+
+// SMS_GATE = telefonul statiei (aplicatia SMS Gateway for Android), SMSLINK = gateway SMSLink.ro
+export type SmsProvider = 'SMS_GATE' | 'SMSLINK';
+
+export interface AutoSmsSettings {
+  enabled: boolean;
+  provider: SmsProvider | null;
+  // cu cate zile inainte de expirare (descrescator)
+  days: number[];
+  template: string;
+  defaultTemplate: string;
+  smsGateUrl: string | null;
+  smsGateUsername: string | null;
+  // parolele sunt doar de scris: gol = se pastreaza cea salvata
+  smsGatePassword?: string | null;
+  hasSmsGatePassword: boolean;
+  smslinkConnectionId: string | null;
+  smslinkPassword?: string | null;
+  hasSmslinkPassword: boolean;
+  sentLast30Days: number;
+}
+
+export interface AutoSmsLogEntry {
+  sentAt: string;
+  plate: string | null;
+  clientName: string | null;
+  stage: number;
+  status: 'SENT' | 'FAILED';
+  error: string | null;
+  attempts: number;
 }

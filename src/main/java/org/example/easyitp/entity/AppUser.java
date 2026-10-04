@@ -71,6 +71,35 @@ public class AppUser {
     @Column(length = 100)
     private String callmebotApiKey;
 
+    // Remindere SMS automate (vezi AutoReminderService); null = oprite
+    private Boolean autoSmsEnabled;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private SmsProvider autoSmsProvider;
+
+    // Cu cate zile inainte de expirare se trimite, ex. "30,7"; null = valorile implicite
+    @Column(length = 20)
+    private String autoSmsDays;
+
+    // Textul SMS-ului cu placeholdere ({numar}, {data}...); null = textul implicit
+    @Column(columnDefinition = "TEXT")
+    private String autoSmsTemplate;
+
+    // Telefonul statiei ca gateway (aplicatia SMS Gateway for Android, modul cloud); parola nu pleaca spre interfata
+    @Column(length = 200)
+    private String smsGateUrl;
+    @Column(length = 100)
+    private String smsGateUsername;
+    @Column(length = 200)
+    private String smsGatePassword;
+
+    // Gateway SMSLink.ro; parola nu pleaca spre interfata
+    @Column(length = 100)
+    private String smslinkConnectionId;
+    @Column(length = 200)
+    private String smslinkPassword;
+
     // Ziua ultimului email zilnic trimis, ca sa nu trimitem de doua ori
     private LocalDate lastDigestDate;
 

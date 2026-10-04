@@ -161,6 +161,11 @@ function ReminderCard({
           <p className="text-sm text-slate-700 mt-1">
             <span className="font-medium">{reminder.numeSofer}</span>
             <span className="text-slate-400"> · {[reminder.marca, reminder.model].filter(Boolean).join(' ')}</span>
+            {reminder.autoSmsAt && (
+              <span className="ml-2 inline-flex px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-[11px] font-medium text-blue-700 align-middle">
+                SMS automat {formatDate(reminder.autoSmsAt.slice(0, 10))}
+              </span>
+            )}
             {reminder.consent !== 'GIVEN' && (
               <span
                 className="ml-2 inline-flex px-1.5 py-0.5 rounded border border-slate-200 text-[11px] font-medium text-slate-500 align-middle"

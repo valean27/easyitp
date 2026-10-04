@@ -12,10 +12,12 @@ import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.AuditEvent.Action;
 import org.example.easyitp.entity.AuditEvent.EntityType;
+import org.example.easyitp.entity.ReminderSend;
 import org.example.easyitp.entity.ReminderStatus;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
+import org.example.easyitp.repository.ReminderSendRepository;
 import org.example.easyitp.repository.VehicleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -57,6 +59,7 @@ public class ItpService {
     private final AppointmentService appointmentService;
     private final ClientService clientService;
     private final AuditService auditService;
+    private final ReminderSendRepository reminderSendRepository;
 
     static final int MAX_PAGE_SIZE = 100;
     private static final int EXPIRING_SOON_DAYS = 30;
@@ -125,15 +128,24 @@ public class ItpService {
     public List<ReminderDTO> getReminders(Long userId) {
         LocalDate today = LocalDate.now();
         // Clientii care nu doresc mesaje nu apar deloc (nici in rezumatul zilnic)
-        return itpRecordRepository.findLatestExpiringBetween(userId,
+        List<ItpRecord> records = itpRecordRepository.findLatestExpiringBetween(userId,
                         today.minusDays(REMINDER_DAYS_EXPIRED), today.plusDays(REMINDER_DAYS_AHEAD)).stream()
                 .filter(r -> !r.getVehicle().getClient().declinesMessages())
+                .toList();
+        Map<Long, LocalDateTime> autoSms = new HashMap<>();
+        if (!records.isEmpty()) {
+            reminderSendRepository.findByItpRecordIdIn(records.stream().map(ItpRecord::getId).toList()).stream()
+                    .filter(s -> s.getStatus() == ReminderSend.Status.SENT)
+                    .forEach(s -> autoSms.merge(s.getItpRecordId(), s.getSentAt(), (a, b) -> a.isAfter(b) ? a : b));
+        }
+        return records.stream()
                 .map(r -> {
                     Vehicle v = r.getVehicle();
                     Client c = v.getClient();
                     return new ReminderDTO(r.getId(), c.getName(), c.getPhone(), v.getBrand(), v.getModel(),
                             v.getLicensePlate(), r.getNextItpDate(), ChronoUnit.DAYS.between(today, r.getNextItpDate()),
-                            r.getReminderStatus(), r.getReminderAt(), c.getReminderConsent(), c.getOptOutToken());
+                            r.getReminderStatus(), r.getReminderAt(), c.getReminderConsent(), c.getOptOutToken(),
+                            autoSms.get(r.getId()));
                 })
                 .collect(Collectors.toList());
     }
