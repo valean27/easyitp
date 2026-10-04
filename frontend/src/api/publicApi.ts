@@ -37,3 +37,17 @@ export interface PublicBookingData {
 
 export const createPublicBooking = (slug: string, data: PublicBookingData): Promise<void> =>
   publicApi.post(`${base(slug)}/appointments`, data).then(() => undefined);
+
+// Cererea de demonstratie din pagina de prezentare
+export interface LeadData {
+  name: string;
+  station: string;
+  city: string;
+  phone: string;
+  email: string;
+  message: string;
+  website: string; // camp-capcana pentru boti, trebuie sa ramana gol
+}
+
+export const submitLead = (data: LeadData): Promise<void> =>
+  publicApi.post('/api/public/leads', data).then(() => undefined);

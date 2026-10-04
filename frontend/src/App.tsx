@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/auth';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,6 +17,8 @@ const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const StopPage = lazy(() => import('./components/StopPage'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const LeadsPage = lazy(() => import('./components/LeadsPage'));
 const FleetsPage = lazy(() => import('./components/FleetsPage'));
 const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const HistoryPage = lazy(() => import('./components/HistoryPage'));
@@ -28,6 +30,24 @@ function Home() {
   if (user?.role === 'ADMIN') return <Navigate to="/users" replace />;
   if (user?.role === 'FLEET') return <FleetPortalPage />;
   return <Dashboard />;
+}
+
+// Pe "/" vizitatorii nelogati vad pagina de prezentare; restul rutelor cer login
+function RootGate() {
+  const { isAuthenticated } = useAuth();
+  const { pathname } = useLocation();
+  if (!isAuthenticated && pathname === '/') {
+    return (
+      <Suspense fallback={null}>
+        <LandingPage />
+      </Suspense>
+    );
+  }
+  return (
+    <ProtectedRoute>
+      <Layout />
+    </ProtectedRoute>
+  );
 }
 
 function App() {
@@ -56,14 +76,7 @@ function App() {
               </Suspense>
             }
           />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/" element={<RootGate />}>
             <Route index element={<Home />} />
             <Route
               path="calendar"
@@ -119,6 +132,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMIN">
                   <UserManagementPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="leads"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <LeadsPage />
                 </ProtectedRoute>
               }
             />

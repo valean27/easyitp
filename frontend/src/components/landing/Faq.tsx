@@ -1,0 +1,58 @@
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+
+const QUESTIONS: { q: string; a: string }[] = [
+  {
+    q: 'De ce am nevoie ca să încep?',
+    a: 'De un calculator, o tabletă sau un telefon cu internet. Aplicația merge în browser, nu se instalează nimic.',
+  },
+  {
+    q: 'Pot aduce clienții pe care îi am deja?',
+    a: 'Da. Importați lista din Excel (CSV): numele, telefonul, numărul și data ITP-ului. Aplicația recunoaște mărcile și unește înregistrările aceluiași vehicul.',
+  },
+  {
+    q: 'Cum pleacă SMS-urile automate?',
+    a: 'Alegeți: de pe telefonul Android al stației, cu o aplicație gratuită, sau printr-un gateway SMS. Mesajele pleacă singure dimineața, la termenele alese de dumneavoastră (de exemplu cu 30 și cu 7 zile înainte).',
+  },
+  {
+    q: 'Clienții pot refuza mesajele?',
+    a: 'Da. Trimitem doar clienților care și-au dat acordul, iar fiecare SMS are un link de dezabonare. Cine se dezabonează nu mai primește nimic.',
+  },
+  {
+    q: 'Cum se programează clienții online?',
+    a: 'Stația primește o pagină de programare proprie. Clientul alege tipul vehiculului, ziua și ora, iar aplicația oferă doar intervalele libere, după durata inspecției și numărul de linii.',
+  },
+  {
+    q: 'Merge și pe telefon?',
+    a: 'Da. Formularul ITP, calendarul și lista „De contactat” sunt gândite pentru telefon. Puteți scana talonul cu camera, iar datele mașinii se completează singure.',
+  },
+  {
+    q: 'Am clienți firme, cu flote de mașini.',
+    a: 'Fiecare firmă poate primi un cont propriu, în care își vede mașinile, scadențele ITP și centralizatorul lunar.',
+  },
+  {
+    q: 'Cine vede datele stației?',
+    a: 'Doar contul stației. Fiecare stație își vede numai clienții ei, iar orice modificare sau ștergere rămâne în istoric și poate fi anulată.',
+  },
+];
+
+export default function Faq() {
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+      {QUESTIONS.map((item, i) => (
+        <div key={item.q}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            aria-expanded={open === i}
+            className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-sm sm:text-base font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            {item.q}
+            <ChevronDown size={18} className={`shrink-0 text-slate-400 transition-transform ${open === i ? 'rotate-180' : ''}`} />
+          </button>
+          {open === i && <p className="px-5 pb-4 -mt-1 text-sm text-slate-600 leading-relaxed">{item.a}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}

@@ -432,3 +432,16 @@ export interface AutoSmsLogEntry {
   error: string | null;
   attempts: number;
 }
+
+// Cerere de demonstratie din pagina de prezentare (vazuta de admin)
+export interface Lead {
+  id: number;
+  name: string;
+  station: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  message: string | null;
+  createdAt: string;
+  handled: boolean;
+}

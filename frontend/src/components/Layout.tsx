@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -32,6 +32,7 @@ const FLEET_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { to: '/users', label: 'Manageri', short: 'Manageri', icon: Users },
+  { to: '/leads', label: 'Cereri demo', short: 'Cereri', icon: Inbox },
   { to: '/reports', label: 'Rapoarte', short: 'Rapoarte', icon: BarChart3 },
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];

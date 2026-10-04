@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { ManagerSummary, StationInfo } from '../types';
+import type { Lead, ManagerSummary, StationInfo } from '../types';
 
 const BASE = '/api/admin';
 
@@ -25,3 +25,9 @@ export const setManagerActive = (id: number, active: boolean): Promise<void> =>
 
 export const deleteManager = (id: number): Promise<void> =>
   api.delete(`${BASE}/managers/${id}`).then(() => undefined);
+
+// Cererile de demonstratie din pagina de prezentare
+export const getLeads = (): Promise<Lead[]> => api.get(`${BASE}/leads`).then((r) => r.data);
+
+export const setLeadHandled = (id: number, handled: boolean): Promise<Lead> =>
+  api.put(`${BASE}/leads/${id}/handled`, { handled }).then((r) => r.data);
