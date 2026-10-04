@@ -10,7 +10,6 @@ import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.Vehicle;
-import org.example.easyitp.repository.ClientRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.VehicleRepository;
 import org.springframework.stereotype.Service;
@@ -54,7 +53,7 @@ public class CsvImportService {
             Map.entry("iul", 7), Map.entry("jul", 7), Map.entry("aug", 8), Map.entry("sep", 9), Map.entry("oct", 10),
             Map.entry("noi", 11), Map.entry("nov", 11), Map.entry("dec", 12));
 
-    private final ClientRepository clientRepository;
+    private final ClientService clientService;
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final CarService carService;
@@ -126,22 +125,20 @@ public class CsvImportService {
                                   VehicleNameParser.ParsedVehicle parsed) {
         Vehicle vehicle = vehicleRepository.findByNormalizedPlate(PlateUtils.normalize(plate), user.getId())
                 .stream().findFirst().orElse(null);
-        if (vehicle == null) {
-            Client client = clientRepository.findByNameAndPhoneAndUserId(name, phone, user.getId())
-                    .orElseGet(() -> clientRepository.save(Client.builder().name(name).phone(phone).user(user).build()));
-            vehicle = Vehicle.builder().client(client).build();
-        } else {
-            Client client = vehicle.getClient();
-            client.setName(name);
-            if (phone != null) client.setPhone(phone);
-        }
+        if (vehicle == null) vehicle = new Vehicle();
+        // Proprietarul: acelasi om (nume + telefon) poate avea mai multe masini; vezi ClientService.resolveOwner
+        Client previousOwner = vehicle.getClient();
+        Client owner = clientService.resolveOwner(user, vehicle, name, phone);
+        vehicle.setClient(owner);
         vehicle.setLicensePlate(plate.toUpperCase(Locale.ROOT));
         vehicle.setBrand(parsed.brand());
         if (parsed.model() != null) vehicle.setModel(parsed.model());
         if (parsed.year() != null) vehicle.setYear(parsed.year());
         // VIN-ul se pastreaza doar daca e complet (17 caractere); "wvw", "tmb" sunt doar prefixe
         if (vin.length() == 17) vehicle.setVin(vin.toUpperCase(Locale.ROOT));
-        return vehicleRepository.save(vehicle);
+        Vehicle saved = vehicleRepository.saveAndFlush(vehicle);
+        if (previousOwner != null && !previousOwner.getId().equals(owner.getId())) clientService.deleteClientIfEmpty(previousOwner);
+        return saved;
     }
 
     static LocalDate parseDate(String raw) {

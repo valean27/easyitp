@@ -101,6 +101,14 @@ public interface ItpRecordRepository extends JpaRepository<ItpRecord, Long> {
             + " WHERE c.user IS NOT NULL AND (:userId IS NULL OR c.user.id = :userId)")
     List<Integer> distinctYears(@Param("userId") Long userId);
 
+    // ITP-urile unor vehicule (fisa clientului), cel mai nou primul
+    @Query("SELECT r FROM ItpRecord r WHERE r.vehicle.id IN :vehicleIds ORDER BY r.testDate DESC, r.id DESC")
+    List<ItpRecord> findByVehicleIds(@Param("vehicleIds") Collection<Long> vehicleIds);
+
+    List<ItpRecord> findByVehicleId(Long vehicleId);
+
+    long countByVehicleId(Long vehicleId);
+
     // Pentru import: acelasi vehicul si aceeasi data ITP = aceeasi inregistrare (se suprascrie)
     Optional<ItpRecord> findFirstByVehicleIdAndTestDate(Long vehicleId, LocalDate testDate);
 

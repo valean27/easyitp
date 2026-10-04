@@ -16,6 +16,7 @@ const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const FleetsPage = lazy(() => import('./components/FleetsPage'));
+const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
@@ -64,6 +65,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="MANAGER">
                   <RemindersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="clients"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <ClientsPage />
                 </ProtectedRoute>
               }
             />

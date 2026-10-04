@@ -37,4 +37,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     // [userId, numar programari in interval]
     @Query("SELECT a.user.id, COUNT(a) FROM Appointment a WHERE a.appointmentDate >= :start AND a.appointmentDate < :end GROUP BY a.user.id")
     List<Object[]> countByUserBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // Programarile din care s-au facut aceste ITP-uri
+    List<Appointment> findByItpRecordIdIn(java.util.Collection<Long> itpRecordIds);
 }

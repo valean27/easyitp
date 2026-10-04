@@ -53,6 +53,7 @@ public class ItpService {
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final AppointmentService appointmentService;
+    private final ClientService clientService;
 
     static final int MAX_PAGE_SIZE = 100;
     private static final int EXPIRING_SOON_DAYS = 30;
@@ -195,29 +196,15 @@ public class ItpService {
 
     @Transactional
     public ItpRecord createItpEntry(ItpFormDTO form, AppUser user) {
+        validate(form);
         // Acelasi numar de inmatriculare = acelasi vehicul, ca sa se pastreze istoricul ITP
         Vehicle vehicle = vehicleRepository
                 .findByNormalizedPlate(PlateUtils.normalize(form.getLicensePlate()), user.getId())
                 .stream().findFirst().orElse(null);
+        if (vehicle == null) vehicle = new Vehicle();
 
-        if (vehicle == null) {
-            Client client = clientRepository.save(Client.builder()
-                    .name(form.getName())
-                    .phone(form.getPhone())
-                    .user(user)
-                    .build());
-            vehicle = Vehicle.builder().client(client).build();
-        } else {
-            Client client = vehicle.getClient();
-            client.setName(form.getName());
-            if (!isBlank(form.getPhone())) client.setPhone(form.getPhone());
-        }
-        vehicle.setBrand(form.getBrand());
-        vehicle.setModel(nullIfBlank(form.getModel()));
-        vehicle.setYear(form.getYear());
-        if (!isBlank(form.getVin()) || vehicle.getId() == null) vehicle.setVin(nullIfBlank(form.getVin()));
-        vehicle.setLicensePlate(form.getLicensePlate());
-        vehicle = vehicleRepository.save(vehicle);
+        applyVehicle(vehicle, form);
+        vehicle = assignOwner(user, vehicle, form);
 
         LocalDate nextItp = form.getTestDate().plusMonths(form.getValidityMonths());
 
@@ -246,25 +233,30 @@ public class ItpService {
         return history(plate, userId).stream().findFirst();
     }
 
-    // Clientul si vehiculul pot fi comune mai multor inregistrari (import), deci modificarile lor se propaga
+    // Datele masinii (marca, VIN...) si ale clientului sunt comune tuturor ITP-urilor masinii. Numarul schimbat insa
+    // muta doar acest ITP: pe masina care are deja numarul nou, sau pe o masina noua daca vechea mai are alte ITP-uri.
     @Transactional
-    public void updateItpEntry(Long id, ItpFormDTO form, Long userId) {
-        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
+    public void updateItpEntry(Long id, ItpFormDTO form, AppUser user) {
+        validate(form);
+        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
-        if (form.getTestDate() == null || form.getValidityMonths() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Data ITP si valabilitatea sunt obligatorii");
+
+        Vehicle previous = record.getVehicle();
+        Vehicle vehicle = previous;
+        String plateKey = PlateUtils.normalize(form.getLicensePlate());
+        if (!plateKey.equals(previous.getNormalizedPlate())) {
+            Vehicle other = vehicleRepository.findByNormalizedPlate(plateKey, user.getId()).stream()
+                    .filter(v -> !v.getId().equals(previous.getId()))
+                    .findFirst().orElse(null);
+            if (other != null) {
+                vehicle = other;
+            } else if (itpRecordRepository.countByVehicleId(previous.getId()) > 1) {
+                vehicle = Vehicle.builder().client(previous.getClient()).build();
+            }
         }
-
-        Vehicle vehicle = record.getVehicle();
-        Client client = vehicle.getClient();
-        client.setName(form.getName());
-        client.setPhone(nullIfBlank(form.getPhone()));
-
-        vehicle.setBrand(form.getBrand());
-        vehicle.setModel(nullIfBlank(form.getModel()));
-        vehicle.setYear(form.getYear());
-        vehicle.setVin(nullIfBlank(form.getVin()));
-        vehicle.setLicensePlate(form.getLicensePlate());
+        applyVehicle(vehicle, form);
+        vehicle = assignOwner(user, vehicle, form);
+        record.setVehicle(vehicle);
 
         record.setTestDate(form.getTestDate());
         record.setValidityMonths(form.getValidityMonths());
@@ -274,13 +266,71 @@ public class ItpService {
         record.setPrice(form.getPrice() != null ? form.getPrice() : 0.0);
         record.setObservations(form.getObservations());
         record.setInspector(inspector(form.getInspector()));
+        itpRecordRepository.saveAndFlush(record);
+        if (vehicle != previous) clientService.deleteVehicleIfEmpty(previous);
     }
 
+    // Masina si clientul ramasi fara niciun ITP dispar odata cu ultimul lor ITP
     @Transactional
     public void deleteItpRecord(Long id, Long userId) {
         ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
-        itpRecordRepository.delete(record);
+        Vehicle vehicle = record.getVehicle();
+        clientService.deleteRecords(List.of(record));
+        clientService.deleteVehicleIfEmpty(vehicle);
+    }
+
+    private static void applyVehicle(Vehicle vehicle, ItpFormDTO form) {
+        vehicle.setLicensePlate(form.getLicensePlate().trim().toUpperCase(Locale.ROOT));
+        vehicle.setBrand(form.getBrand().trim());
+        vehicle.setModel(nullIfBlankStatic(form.getModel()));
+        vehicle.setYear(form.getYear());
+        // un VIN gol in formular nu sterge VIN-ul stiut al masinii
+        if (!isBlank(form.getVin()) || vehicle.getId() == null) {
+            vehicle.setVin(isBlank(form.getVin()) ? null : form.getVin().trim().toUpperCase(Locale.ROOT));
+        }
+    }
+
+    // Masina trece la proprietarul din formular (vezi ClientService.resolveOwner); clientul vechi ramas fara masini dispare
+    private Vehicle assignOwner(AppUser user, Vehicle vehicle, ItpFormDTO form) {
+        Client previousOwner = vehicle.getClient();
+        Client owner = clientService.resolveOwner(user, vehicle, form.getName(), form.getPhone());
+        vehicle.setClient(owner);
+        Vehicle saved = vehicleRepository.saveAndFlush(vehicle);
+        if (previousOwner != null && !previousOwner.getId().equals(owner.getId())) {
+            clientService.deleteClientIfEmpty(previousOwner);
+        }
+        return saved;
+    }
+
+    // Formularul ITP: campurile obligatorii si valori plauzibile, cu mesaje pentru interfata (400, nu 500)
+    static void validate(ItpFormDTO form) {
+        if (isBlank(form.getName())) throw badRequest("Introduceți numele clientului");
+        if (form.getName().trim().length() > 120) throw badRequest("Numele este prea lung");
+        if (isBlank(form.getLicensePlate()) || PlateUtils.normalize(form.getLicensePlate()).length() < 2) {
+            throw badRequest("Introduceți numărul de înmatriculare");
+        }
+        if (PlateUtils.normalize(form.getLicensePlate()).length() > 15) throw badRequest("Numărul de înmatriculare este prea lung");
+        if (isBlank(form.getBrand())) throw badRequest("Introduceți marca");
+        if (form.getTestDate() == null) throw badRequest("Introduceți data ITP");
+        if (form.getTestDate().isAfter(LocalDate.now().plusDays(1))) throw badRequest("Data ITP nu poate fi în viitor");
+        if (form.getTestDate().isBefore(LocalDate.of(1990, 1, 1))) throw badRequest("Data ITP este prea veche");
+        if (form.getValidityMonths() == null || form.getValidityMonths() < 1 || form.getValidityMonths() > 36) {
+            throw badRequest("Valabilitatea trebuie să fie între 1 și 36 de luni");
+        }
+        if (form.getPrice() != null && (form.getPrice() < 0 || form.getPrice() > 100_000)) throw badRequest("Preț invalid");
+        if (form.getMileage() != null && (form.getMileage() < 0 || form.getMileage() > 5_000_000)) throw badRequest("Kilometraj invalid");
+        if (form.getYear() != null && (form.getYear() < 1900 || form.getYear() > LocalDate.now().getYear() + 1)) {
+            throw badRequest("An de fabricație invalid");
+        }
+    }
+
+    private static ResponseStatusException badRequest(String message) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+    }
+
+    private static String nullIfBlankStatic(String s) {
+        return isBlank(s) ? null : s.trim();
     }
 
     public byte[] generateCsvExport(Long userId) throws IOException {

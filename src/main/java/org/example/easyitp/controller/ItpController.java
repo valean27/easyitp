@@ -89,7 +89,7 @@ public class ItpController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateItpEntry(@PathVariable Long id, @RequestBody ItpFormDTO form) {
-        itpService.updateItpEntry(id, form, currentUser.get().getId());
+        itpService.updateItpEntry(id, form, currentUser.get());
         return ResponseEntity.noContent().build();
     }
 

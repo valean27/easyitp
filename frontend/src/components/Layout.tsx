@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -17,6 +17,7 @@ interface NavItem {
 const MANAGER_NAV: NavItem[] = [
   { to: '/', label: 'Dashboard', short: 'Acasă', icon: LayoutDashboard, end: true },
   { to: '/reminders', label: 'De contactat', short: 'Contactați', icon: BellRing },
+  { to: '/clients', label: 'Clienți', short: 'Clienți', icon: Contact },
   { to: '/calendar', label: 'Calendar', short: 'Calendar', icon: CalendarDays },
   { to: '/fleets', label: 'Flote', short: 'Flote', icon: Truck },
   { to: '/reports', label: 'Rapoarte', short: 'Rapoarte', icon: BarChart3 },

@@ -289,3 +289,72 @@ export interface FleetStatement {
   rows: StatementRow[];
   total: number;
 }
+
+// ---------- Clienti (pagina "Clienti") ----------
+
+export interface ClientSummary {
+  id: number;
+  name: string;
+  phone: string | null;
+  vehicleCount: number;
+  plates: string[];
+  // cea mai apropiata scadenta dintre masinile clientului
+  nextItpDate: string | null;
+  daysLeft: number | null;
+}
+
+export interface ClientPage {
+  items: ClientSummary[];
+  total: number;
+  page: number;
+  size: number;
+}
+
+export interface VehicleItp {
+  id: number;
+  testDate: string;
+  validityMonths: number;
+  nextItpDate: string;
+  status: ItpStatus;
+  mileage: number | null;
+  price: number | null;
+  inspector: string | null;
+}
+
+export interface ClientVehicle {
+  id: number;
+  licensePlate: string;
+  brand: string;
+  model: string | null;
+  year: number | null;
+  vin: string | null;
+  // cel mai nou primul
+  itps: VehicleItp[];
+}
+
+export interface ClientDetail {
+  id: number;
+  name: string;
+  phone: string | null;
+  vehicles: ClientVehicle[];
+}
+
+export interface VehicleUpdate {
+  licensePlate: string;
+  brand: string;
+  model: string | null;
+  year: number | null;
+  vin: string | null;
+}
+
+export interface ClientBrief {
+  id: number;
+  name: string;
+  phone: string | null;
+  vehicleCount: number;
+}
+
+export interface DuplicateGroup {
+  reason: string;
+  clients: ClientBrief[];
+}
