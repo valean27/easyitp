@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.ClientDTOs.ClientDetailDTO;
 import org.example.easyitp.dto.ClientDTOs.ClientPageDTO;
 import org.example.easyitp.dto.ClientDTOs.ClientUpdateRequest;
+import org.example.easyitp.dto.ClientDTOs.ConsentRequest;
 import org.example.easyitp.dto.ClientDTOs.DuplicateGroupDTO;
 import org.example.easyitp.dto.ClientDTOs.TargetClientRequest;
 import org.example.easyitp.dto.ClientDTOs.VehicleUpdateRequest;
@@ -45,6 +46,12 @@ public class ClientController {
     @PutMapping("/{id}")
     public ClientDetailDTO update(@PathVariable Long id, @RequestBody ClientUpdateRequest request) {
         return clientService.update(currentUser.get(), id, request);
+    }
+
+    // Acordul pentru remindere, marcat de statie (null = necunoscut)
+    @PutMapping("/{id}/consent")
+    public ClientDetailDTO consent(@PathVariable Long id, @RequestBody ConsentRequest request) {
+        return clientService.updateConsent(currentUser.get(), id, request == null ? null : request.consent());
     }
 
     // Clientul {id} e aceeasi persoana cu clientId: masinile trec la clientId, {id} dispare

@@ -124,14 +124,16 @@ public class ItpService {
     @Transactional(readOnly = true)
     public List<ReminderDTO> getReminders(Long userId) {
         LocalDate today = LocalDate.now();
+        // Clientii care nu doresc mesaje nu apar deloc (nici in rezumatul zilnic)
         return itpRecordRepository.findLatestExpiringBetween(userId,
                         today.minusDays(REMINDER_DAYS_EXPIRED), today.plusDays(REMINDER_DAYS_AHEAD)).stream()
+                .filter(r -> !r.getVehicle().getClient().declinesMessages())
                 .map(r -> {
                     Vehicle v = r.getVehicle();
                     Client c = v.getClient();
                     return new ReminderDTO(r.getId(), c.getName(), c.getPhone(), v.getBrand(), v.getModel(),
                             v.getLicensePlate(), r.getNextItpDate(), ChronoUnit.DAYS.between(today, r.getNextItpDate()),
-                            r.getReminderStatus(), r.getReminderAt());
+                            r.getReminderStatus(), r.getReminderAt(), c.getReminderConsent(), c.getOptOutToken());
                 })
                 .collect(Collectors.toList());
     }
@@ -208,6 +210,8 @@ public class ItpService {
 
         applyVehicle(vehicle, form);
         vehicle = assignOwner(user, vehicle, form);
+        clientService.applyFormConsent(vehicle.getClient(), form.getReminderConsent(),
+                form.getAppointmentId() != null ? "Programare online" : "Formular ITP");
 
         LocalDate nextItp = form.getTestDate().plusMonths(form.getValidityMonths());
 
@@ -261,6 +265,7 @@ public class ItpService {
         }
         applyVehicle(vehicle, form);
         vehicle = assignOwner(user, vehicle, form);
+        clientService.applyFormConsent(vehicle.getClient(), form.getReminderConsent(), "Formular ITP");
         record.setVehicle(vehicle);
 
         record.setTestDate(form.getTestDate());
@@ -405,7 +410,8 @@ public class ItpService {
                 record.getPrice() != null ? record.getPrice() : 0.0,
                 record.getObservations(),
                 latest,
-                record.getInspector()
+                record.getInspector(),
+                client.getReminderConsent()
         );
     }
 

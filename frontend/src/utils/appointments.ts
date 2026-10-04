@@ -30,5 +30,11 @@ export function appointmentMinutes(a: Pick<Appointment, 'durationMinutes'>): num
 
 // Datele pentru formularul de ITP pornit dintr-o programare
 export function itpPrefillFromAppointment(a: Appointment) {
-  return { name: a.clientName, phone: a.phone ?? '', licensePlate: a.licensePlate ?? '' };
+  return {
+    name: a.clientName,
+    phone: a.phone ?? '',
+    licensePlate: a.licensePlate ?? '',
+    // bifa din programarea online trece in formularul ITP
+    ...(a.reminderConsent ? { reminderConsent: true } : {}),
+  };
 }

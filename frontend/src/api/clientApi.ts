@@ -1,6 +1,6 @@
 import api from './axiosInstance';
 import { auditEventId } from './historyApi';
-import type { ClientDetail, ClientPage, DuplicateGroup, VehicleUpdate } from '../types';
+import type { ClientDetail, ClientPage, DuplicateGroup, ReminderConsent, VehicleUpdate } from '../types';
 
 const BASE = '/api/clients';
 
@@ -17,6 +17,10 @@ export const mergeClient = (id: number, targetId: number): Promise<ClientDetail>
   api.post(`${BASE}/${id}/merge`, { clientId: targetId }).then((r) => r.data);
 
 // Intoarce intrarea din istoric (pentru "Anuleaza")
+// Acordul pentru remindere marcat de statie (null = necunoscut)
+export const setClientConsent = (id: number, consent: ReminderConsent | null): Promise<ClientDetail> =>
+  api.put(`${BASE}/${id}/consent`, { consent }).then((r) => r.data);
+
 export const deleteClient = (id: number): Promise<number | null> => api.delete(`${BASE}/${id}`).then(auditEventId);
 
 export const getDuplicates = (): Promise<DuplicateGroup[]> => api.get(`${BASE}/duplicates`).then((r) => r.data);

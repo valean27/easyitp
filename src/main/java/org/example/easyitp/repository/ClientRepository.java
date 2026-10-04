@@ -16,6 +16,8 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     boolean existsByUserId(Long userId);
 
+    Optional<Client> findByOptOutToken(String optOutToken);
+
     Optional<Client> findByIdAndUserId(Long id, Long userId);
 
     // Clientii statiei cu acelasi telefon (ultimele 9 cifre)

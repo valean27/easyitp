@@ -153,6 +153,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
                 adresa: address,
                 telefon: phone,
                 link: bookingLink,
+                stop: `${window.location.origin}/stop/…`,
               })}
             </p>
           </div>

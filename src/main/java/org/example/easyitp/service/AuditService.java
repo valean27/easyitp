@@ -10,6 +10,7 @@ import org.example.easyitp.entity.AuditEvent.EntityType;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
+import org.example.easyitp.entity.ReminderConsent;
 import org.example.easyitp.entity.ReminderStatus;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.AuditEventRepository;
@@ -46,7 +47,9 @@ public class AuditService {
     public record VehicleSnap(String licensePlate, String brand, String model, Integer year, String vin, List<ItpSnap> itps) {
     }
 
-    public record ClientSnap(String name, String phone, List<VehicleSnap> vehicles) {
+    // consent*: acordul pentru remindere (lipsesc din stergerile de dinainte de C1 -> null)
+    public record ClientSnap(String name, String phone, List<VehicleSnap> vehicles, ReminderConsent consent,
+                             LocalDateTime consentAt, String consentSource) {
     }
 
     public static ItpSnap snap(ItpRecord r, List<Long> appointmentIds) {
@@ -69,22 +72,29 @@ public class AuditService {
     // ---------- inregistrare ----------
 
     public Long record(AppUser user, Action action, EntityType type, Long entityId, String summary, String changes) {
-        return save(user, action, type, entityId, summary, changes, null);
+        return save(user, user.getEmail(), action, type, entityId, summary, changes, null);
+    }
+
+    // Modificare facuta de altcineva decat contul statiei (ex. clientul, din link-ul STOP)
+    public Long recordAs(AppUser station, String actor, Action action, EntityType type, Long entityId, String summary,
+                         String changes) {
+        return save(station, actor, action, type, entityId, summary, changes, null);
     }
 
     public Long recordDeletion(AppUser user, EntityType type, Long entityId, String summary, ClientSnap snapshot) {
         try {
-            return save(user, Action.DELETE, type, entityId, summary, null, objectMapper.writeValueAsString(snapshot));
+            return save(user, user.getEmail(), Action.DELETE, type, entityId, summary, null, objectMapper.writeValueAsString(snapshot));
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Datele sterse nu au putut fi salvate", e);
         }
     }
 
-    private Long save(AppUser user, Action action, EntityType type, Long entityId, String summary, String changes, String snapshot) {
+    private Long save(AppUser user, String actor, Action action, EntityType type, Long entityId, String summary, String changes,
+                      String snapshot) {
         String text = summary.length() > MAX_SUMMARY ? summary.substring(0, MAX_SUMMARY - 1) + "…" : summary;
         return auditEventRepository.save(AuditEvent.builder()
                 .userId(user.getId())
-                .actor(user.getEmail())
+                .actor(actor)
                 .createdAt(LocalDateTime.now())
                 .action(action)
                 .entityType(type)

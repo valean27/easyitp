@@ -14,6 +14,7 @@ export const TEMPLATE_PLACEHOLDERS: { key: string; description: string }[] = [
   { key: '{adresa}', description: 'adresa stației' },
   { key: '{telefon}', description: 'telefonul stației' },
   { key: '{link}', description: 'link-ul de programare online (dacă e activă)' },
+  { key: '{stop}', description: 'link-ul de dezabonare (se adaugă singur la final dacă lipsește)' },
 ];
 
 export interface ReminderMessageData {
@@ -27,6 +28,13 @@ export interface ReminderMessageData {
   telefon: string | null;
   // Link-ul de programare online; null daca statia nu o are activa
   link?: string | null;
+  // Link-ul de dezabonare al clientului (GDPR); daca sablonul nu are {stop}, se adauga la final
+  stop?: string | null;
+}
+
+// Link-ul personal de dezabonare (acelasi domeniu ca aplicatia)
+export function stopUrl(token: string): string {
+  return `${window.location.origin}/stop/${token}`;
 }
 
 function formatDate(iso: string): string {
@@ -46,8 +54,11 @@ export function renderReminder(template: string | null | undefined, data: Remind
     '{adresa}': data.adresa?.trim() ?? '',
     '{telefon}': data.telefon?.trim() ?? '',
     '{link}': data.link?.trim() ?? '',
+    '{stop}': data.stop?.trim() ?? '',
   };
-  const text = (template?.trim() || DEFAULT_REMINDER_TEMPLATE);
+  let text = template?.trim() || DEFAULT_REMINDER_TEMPLATE;
+  // pe rand nou, ca sa nu se lipeasca de un link de la finalul sablonului
+  if (data.stop && !text.includes('{stop}')) text += '\nNu mai doriți mesaje: {stop}';
   const sentences = text.split(/(?<=[.!?])\s+/);
   return sentences
     .filter((sentence) => Object.entries(values).every(([key, value]) => !sentence.includes(key) || value !== ''))

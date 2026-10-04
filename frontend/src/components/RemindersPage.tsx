@@ -23,7 +23,7 @@ import {
 import type { Profile, Reminder, ReminderStatus } from '../types';
 import { getReminders, updateReminderStatus } from '../api/reminderApi';
 import { getProfile } from '../api/accountApi';
-import { normalizePhone, renderReminder, smsLink, whatsappLink } from '../utils/reminderMessage';
+import { normalizePhone, renderReminder, smsLink, stopUrl, whatsappLink } from '../utils/reminderMessage';
 import AppointmentModal from './AppointmentModal';
 import { bookingUrl } from '../utils/booking';
 import { formatTime } from '../utils/dates';
@@ -125,6 +125,7 @@ function ReminderCard({
     adresa: profile?.address ?? null,
     telefon: profile?.phone ?? null,
     link: profile?.bookingEnabled && profile.bookingSlug ? bookingUrl(profile.bookingSlug) : null,
+    stop: reminder.stopToken ? stopUrl(reminder.stopToken) : null,
   });
 
   // Deschiderea WhatsApp/SMS marcheaza automat clientul ca "Contactat"
@@ -160,6 +161,14 @@ function ReminderCard({
           <p className="text-sm text-slate-700 mt-1">
             <span className="font-medium">{reminder.numeSofer}</span>
             <span className="text-slate-400"> · {[reminder.marca, reminder.model].filter(Boolean).join(' ')}</span>
+            {reminder.consent !== 'GIVEN' && (
+              <span
+                className="ml-2 inline-flex px-1.5 py-0.5 rounded border border-slate-200 text-[11px] font-medium text-slate-500 align-middle"
+                title="Nu avem acordul înregistrat al clientului pentru mesaje. Îl puteți bifa la următorul ITP sau din fișa clientului."
+              >
+                fără acord
+              </span>
+            )}
           </p>
           <p className="text-xs text-slate-400 mt-0.5">
             ITP valabil până la {formatDate(reminder.dataUrmatorItp)} · {reminder.contact || 'fără telefon'}

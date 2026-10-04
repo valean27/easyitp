@@ -4,6 +4,18 @@ import type { PublicStation, VehicleCategory } from '../types';
 // Instanta separata, fara token si fara redirect la login: pagina publica e folosita de clienti
 const publicApi = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL });
 
+// Link-ul STOP din mesaje: statia de la care vine mesajul si daca clientul s-a dezabonat deja
+export interface StopInfo {
+  stationName: string | null;
+  stopped: boolean;
+}
+
+export const getStopInfo = (token: string): Promise<StopInfo> =>
+  publicApi.get(`/api/public/stop/${encodeURIComponent(token)}`).then((r) => r.data);
+
+export const confirmStop = (token: string): Promise<StopInfo> =>
+  publicApi.post(`/api/public/stop/${encodeURIComponent(token)}`).then((r) => r.data);
+
 const base = (slug: string) => `/api/public/stations/${encodeURIComponent(slug)}`;
 
 export const getPublicStation = (slug: string): Promise<PublicStation> =>
@@ -18,6 +30,8 @@ export interface PublicBookingData {
   licensePlate: string;
   appointmentDate: string; // yyyy-MM-ddTHH:mm:ss
   vehicleCategory: VehicleCategory;
+  // clientul vrea remindere de la statie (bifa optionala)
+  reminderConsent: boolean;
   website: string; // camp-capcana pentru boti, trebuie sa ramana gol
 }
 

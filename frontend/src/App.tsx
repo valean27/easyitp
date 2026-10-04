@@ -16,6 +16,7 @@ const AccountPage = lazy(() => import('./components/AccountPage'));
 const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
+const StopPage = lazy(() => import('./components/StopPage'));
 const FleetsPage = lazy(() => import('./components/FleetsPage'));
 const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const HistoryPage = lazy(() => import('./components/HistoryPage'));
@@ -38,6 +39,15 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           {/* Pagina publica de programare: fara login si fara meniul aplicatiei */}
+          {/* Link-ul de dezabonare din mesaje: fara login */}
+          <Route
+            path="/stop/:token"
+            element={
+              <Suspense fallback={null}>
+                <StopPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/programare/:slug"
             element={

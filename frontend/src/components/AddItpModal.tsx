@@ -101,6 +101,8 @@ function formFromEntry(entry: DashboardEntry): ItpFormData {
     price: entry.price,
     observations: entry.observations ?? '',
     inspector: entry.inspector ?? '',
+    // bifa pornita doar daca acordul exista; neatinsa = acordul nu se schimba
+    ...(entry.reminderConsent === 'GIVEN' ? { reminderConsent: true } : {}),
   };
 }
 
@@ -110,6 +112,8 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     entry ? formFromEntry(entry) : { ...emptyForm, testDate: todayIso(), ...prefill }
   );
   const [lookupNote, setLookupNote] = useState<string | null>(null);
+  // Clientul a cerut sa nu mai primeasca mesaje (link STOP sau marcat de statie)
+  const [declined, setDeclined] = useState(entry?.reminderConsent === 'DECLINED');
   const [lastLookup, setLastLookup] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -199,7 +203,9 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
         year: f.year ?? prev.year,
         vin: f.vin || prev.vin || '',
         validityMonths: prev.valabilitateLuni,
+        reminderConsent: f.reminderConsent ?? (prev.reminderConsent === 'GIVEN' ? true : undefined),
       }));
+      setDeclined(prev.reminderConsent === 'DECLINED');
       if (brandEmpty && prev.marca) await selectMakeModel(makeOptions, prev.marca, prev.model);
       setLookupNote(`Client cunoscut: ultimul ITP pe ${prev.dataItp}. Datele vehiculului au fost completate.`);
     } catch {
@@ -651,6 +657,22 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   className={INPUT_CLS + ' resize-none'}
                 />
               </div>
+              <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={!!form.reminderConsent}
+                  onChange={(e) => setForm((f) => ({ ...f, reminderConsent: e.target.checked }))}
+                  className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>
+                  Clientul este de acord să primească remindere ITP (SMS / WhatsApp)
+                  {declined && !form.reminderConsent && (
+                    <span className="block text-xs text-amber-700 mt-0.5">
+                      A cerut să nu mai primească mesaje. Bifați doar dacă și-a dat din nou acordul.
+                    </span>
+                  )}
+                </span>
+              </label>
             </fieldset>
 
             {error && (

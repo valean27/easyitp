@@ -20,4 +20,5 @@ public class AppointmentDTO {
     private AppointmentSource source;
     private VehicleCategory vehicleCategory;
     private Integer durationMinutes;
+    private Boolean reminderConsent;
 }

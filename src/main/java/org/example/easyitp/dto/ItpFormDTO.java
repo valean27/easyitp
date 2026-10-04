@@ -22,6 +22,8 @@ public class ItpFormDTO {
     private Double price;
     private String observations;
     private String inspector;
+    // Bifa "clientul e de acord cu remindere"; null = nu schimba nimic (ex. clienti vechi, import)
+    private Boolean reminderConsent;
     // Optional: programarea din care s-a facut ITP-ul (devine "Finalizat")
     private Long appointmentId;
 }

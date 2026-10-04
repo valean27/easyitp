@@ -254,6 +254,7 @@ public class BookingService {
                 .source(AppointmentSource.ONLINE)
                 .vehicleCategory(category)
                 .durationMinutes(InspectionDurations.minutesFor(station, category))
+                .reminderConsent(Boolean.TRUE.equals(req.getReminderConsent()))
                 .user(station)
                 .build());
     }

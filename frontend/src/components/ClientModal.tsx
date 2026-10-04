@@ -5,11 +5,12 @@ import {
   deleteVehicle,
   getClient,
   mergeClient,
+  setClientConsent,
   moveVehicle,
   updateClient,
   updateVehicle,
 } from '../api/clientApi';
-import type { ClientDetail, ClientVehicle, VehicleUpdate } from '../types';
+import type { ClientDetail, ClientVehicle, ReminderConsent, VehicleUpdate } from '../types';
 import { STATUS_LABELS, formatDateRo } from '../utils/fleet';
 import { apiMessage } from '../utils/errors';
 import ClientPicker from './ClientPicker';
@@ -86,6 +87,40 @@ function VehicleForm({ vehicle, onSave, onCancel }: {
         </button>
       </div>
     </form>
+  );
+}
+
+const CONSENT_TEXT: Record<'GIVEN' | 'DECLINED' | 'UNKNOWN', { label: string; cls: string }> = {
+  GIVEN: { label: 'De acord cu remindere', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
+  DECLINED: { label: 'Nu dorește mesaje', cls: 'text-red-700 bg-red-50 border-red-200' },
+  UNKNOWN: { label: 'Acord necunoscut', cls: 'text-slate-600 bg-slate-50 border-slate-200' },
+};
+
+// Acordul GDPR pentru remindere: starea, de unde vine si butoanele de schimbare
+function ConsentRow({ client, busy, onChange }: {
+  client: ClientDetail;
+  busy: boolean;
+  onChange: (consent: ReminderConsent | null) => void;
+}) {
+  const state = CONSENT_TEXT[client.consent ?? 'UNKNOWN'];
+  const btn = 'px-2.5 py-1 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50';
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`inline-flex px-2 py-0.5 rounded-full border text-xs font-medium ${state.cls}`}>{state.label}</span>
+      {client.consentSource && client.consentAt && (
+        <span className="text-xs text-slate-400">
+          {client.consentSource} · {formatDateRo(client.consentAt.slice(0, 10))}
+        </span>
+      )}
+      <span className="flex gap-1.5 ml-auto">
+        {client.consent !== 'GIVEN' && (
+          <button disabled={busy} onClick={() => onChange('GIVEN')} className={btn}>Și-a dat acordul</button>
+        )}
+        {client.consent !== 'DECLINED' && (
+          <button disabled={busy} onClick={() => onChange('DECLINED')} className={btn}>Nu dorește mesaje</button>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -215,6 +250,12 @@ export default function ClientModal({
                   </button>
                 </div>
               )}
+
+              <ConsentRow
+                client={client}
+                busy={busy}
+                onChange={(consent) => run(() => setClientConsent(client.id, consent), 'Acordul nu a putut fi salvat.')}
+              />
 
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">

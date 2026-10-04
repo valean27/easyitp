@@ -2,6 +2,7 @@ package org.example.easyitp.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.example.easyitp.entity.ReminderConsent;
 import lombok.NoArgsConstructor;
 import org.example.easyitp.entity.ItpStatus;
 
@@ -31,4 +32,6 @@ public class DashboardDTO {
     // false = vehiculul are un ITP mai nou (inregistrare istorica)
     private boolean ultimul;
     private String inspector;
+    // Acordul clientului pentru remindere (null = necunoscut)
+    private ReminderConsent reminderConsent;
 }

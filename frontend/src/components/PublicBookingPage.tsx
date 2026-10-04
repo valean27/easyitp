@@ -66,6 +66,7 @@ export default function PublicBookingPage() {
   const [phone, setPhone] = useState('');
   const [plate, setPlate] = useState('');
   const [website, setWebsite] = useState('');
+  const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<{ date: string; time: string; vehicle: string } | null>(null);
@@ -132,6 +133,7 @@ export default function PublicBookingPage() {
         licensePlate: plate,
         appointmentDate: `${date}T${time}`,
         vehicleCategory: category,
+        reminderConsent: consent,
         website,
       });
       setConfirmed({ date, time, vehicle: vehicle?.label ?? '' });
@@ -321,6 +323,18 @@ export default function PublicBookingPage() {
                 className={INPUT_CLS + ' uppercase'}
               />
             </div>
+            <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none pt-1">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span>
+                Vreau să primesc de la {station?.name || 'stație'} un mesaj când se apropie următorul ITP.{' '}
+                <span className="text-slate-400">Opțional; vă puteți dezabona oricând din link-ul din mesaj.</span>
+              </span>
+            </label>
             {/* Camp-capcana pentru boti: ascuns pentru oameni */}
             <input
               type="text"
@@ -366,7 +380,7 @@ export default function PublicBookingPage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-slate-400 pt-2">Datele sunt folosite doar pentru programarea la ITP.</p>
+        <p className="text-center text-xs text-slate-400 pt-2">Datele sunt folosite doar pentru programarea la ITP și, dacă bifați, pentru reminderul următorului ITP.</p>
       </div>
     </div>
   );

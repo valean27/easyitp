@@ -25,6 +25,15 @@ public final class ClientKeys {
         return plain.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
+    private static final java.security.SecureRandom RANDOM = new java.security.SecureRandom();
+
+    // Token aleator pentru link-ul STOP (24 de caractere, sigur in URL)
+    public static String newToken() {
+        byte[] bytes = new byte[18];
+        RANDOM.nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
     public static boolean sameName(String a, String b) {
         return nameKey(a).equals(nameKey(b));
     }

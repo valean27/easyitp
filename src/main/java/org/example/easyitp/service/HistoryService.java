@@ -116,7 +116,8 @@ public class HistoryService {
             }
         }
         // Un client sters fara masini (date vechi) se reface doar ca persoana
-        if (snap.vehicles().isEmpty()) clientService.resolveOwner(user, null, snap.name(), snap.phone());
+        if (snap.vehicles().isEmpty()) owner = clientService.resolveOwner(user, null, snap.name(), snap.phone());
+        clientService.restoreConsent(owner, snap);
 
         event.setRestoredAt(LocalDateTime.now());
         auditEventRepository.save(event);

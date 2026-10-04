@@ -1,8 +1,10 @@
 package org.example.easyitp.dto;
 
 import org.example.easyitp.entity.ItpStatus;
+import org.example.easyitp.entity.ReminderConsent;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 // Pagina "Clienti": un client cu masinile lui si istoricul ITP pe fiecare masina
@@ -27,7 +29,12 @@ public final class ClientDTOs {
                              List<VehicleItpDTO> itps) {
     }
 
-    public record ClientDetailDTO(Long id, String name, String phone, List<VehicleDTO> vehicles) {
+    // consent: acordul pentru remindere (null = necunoscut), cu data si sursa ultimei schimbari
+    public record ClientDetailDTO(Long id, String name, String phone, ReminderConsent consent, LocalDateTime consentAt,
+                                  String consentSource, List<VehicleDTO> vehicles) {
+    }
+
+    public record ConsentRequest(ReminderConsent consent) {
     }
 
     public record ClientUpdateRequest(String name, String phone) {

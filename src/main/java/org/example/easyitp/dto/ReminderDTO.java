@@ -2,6 +2,7 @@ package org.example.easyitp.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.example.easyitp.entity.ReminderConsent;
 import org.example.easyitp.entity.ReminderStatus;
 
 import java.time.LocalDate;
@@ -20,4 +21,7 @@ public class ReminderDTO {
     private long zileRamase;
     private ReminderStatus reminderStatus;
     private LocalDateTime reminderAt;
+    // Acordul clientului (null = necunoscut) si token-ul link-ului STOP pus in mesaj
+    private ReminderConsent consent;
+    private String stopToken;
 }

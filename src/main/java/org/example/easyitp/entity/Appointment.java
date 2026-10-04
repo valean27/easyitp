@@ -46,6 +46,10 @@ public class Appointment {
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
 
+    // Bifa de acord pentru remindere din programarea online; trece la client cand se face ITP-ul
+    @Column(name = "reminder_consent")
+    private Boolean reminderConsent;
+
     // ITP-ul efectuat la aceasta programare (setat cand programarea e finalizata cu ITP)
     @Column(name = "itp_record_id")
     private Long itpRecordId;

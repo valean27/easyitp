@@ -6,6 +6,9 @@ export type AppointmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 
 export type ReminderStatus = 'CONTACTED' | 'SCHEDULED' | 'NOT_INTERESTED';
 
+// Acordul clientului pentru remindere (GDPR); null = necunoscut (clientii de dinainte)
+export type ReminderConsent = 'GIVEN' | 'DECLINED';
+
 export interface DashboardEntry {
   id: number;
   numeSofer: string;
@@ -26,6 +29,7 @@ export interface DashboardEntry {
   // false = vehiculul are un ITP mai nou
   ultimul: boolean;
   inspector: string | null;
+  reminderConsent: ReminderConsent | null;
 }
 
 // O pagina din tabelul dashboard-ului (filtrata pe server)
@@ -60,6 +64,8 @@ export interface ItpFormData {
   observations: string;
   inspector?: string | null;
   appointmentId?: number;
+  // bifa "clientul e de acord cu remindere"; lipsa = nu schimba acordul
+  reminderConsent?: boolean;
 }
 
 export interface ImportResult {
@@ -138,6 +144,9 @@ export interface Reminder {
   zileRamase: number;
   reminderStatus: ReminderStatus | null;
   reminderAt: string | null;
+  consent: ReminderConsent | null;
+  // pentru link-ul de dezabonare din mesaj (/stop/{token})
+  stopToken: string;
 }
 
 export interface ManagerSummary extends StationInfo {
@@ -166,6 +175,8 @@ export interface Appointment {
   vehicleCategory?: VehicleCategory | null;
   // cat ocupa linia; programarile vechi au 30 de minute
   durationMinutes?: number | null;
+  // bifa de acord pentru remindere din programarea online
+  reminderConsent?: boolean | null;
 }
 
 export interface ReportMonth {
@@ -336,6 +347,9 @@ export interface ClientDetail {
   id: number;
   name: string;
   phone: string | null;
+  consent: ReminderConsent | null;
+  consentAt: string | null;
+  consentSource: string | null;
   vehicles: ClientVehicle[];
 }
 

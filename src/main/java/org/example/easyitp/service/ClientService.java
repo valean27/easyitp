@@ -16,6 +16,7 @@ import org.example.easyitp.entity.AuditEvent.EntityType;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
+import org.example.easyitp.entity.ReminderConsent;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
@@ -29,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,6 +105,87 @@ public class ClientService {
         return counted ? count - 1 : count;
     }
 
+    // ---------- acordul pentru remindere (GDPR) ----------
+
+    // Bifa din formular: bifat = acord; debifat retrage acordul dat (devine necunoscut); un "nu doresc mesaje"
+    // ramane pana cand clientul isi da din nou acordul (bifa)
+    public void applyFormConsent(Client client, Boolean consent, String source) {
+        if (consent == null || client == null) return;
+        if (consent && client.getReminderConsent() != ReminderConsent.GIVEN) {
+            setConsent(client, ReminderConsent.GIVEN, source);
+        } else if (!consent && client.getReminderConsent() == ReminderConsent.GIVEN) {
+            setConsent(client, null, source);
+        }
+    }
+
+    private void setConsent(Client client, ReminderConsent consent, String source) {
+        client.setReminderConsent(consent);
+        client.setConsentAt(LocalDateTime.now());
+        client.setConsentSource(source);
+        clientRepository.save(client);
+    }
+
+    // Statia marcheaza acordul din fisa clientului (ex. clientul a raspuns STOP la SMS)
+    @Transactional
+    public ClientDetailDTO updateConsent(AppUser user, Long id, ReminderConsent consent) {
+        Client client = find(user, id);
+        if (client.getReminderConsent() != consent) {
+            String before = consentLabel(client.getReminderConsent());
+            setConsent(client, consent, "Stație");
+            auditService.record(user, Action.UPDATE, EntityType.CLIENT, client.getId(), AuditService.clientSummary(client),
+                    "Acord remindere: " + before + " → " + consentLabel(consent));
+        }
+        return detail(client);
+    }
+
+    // Link-ul STOP din mesaj: clientul nu mai vrea remindere de la statie
+    public record StopInfo(String stationName, boolean stopped) {
+    }
+
+    @Transactional(readOnly = true)
+    public StopInfo stopInfo(String token) {
+        Client client = byToken(token);
+        AppUser station = client.getUser();
+        return new StopInfo(station != null ? station.getStationName() : null, client.declinesMessages());
+    }
+
+    @Transactional
+    public StopInfo optOut(String token) {
+        Client client = byToken(token);
+        if (!client.declinesMessages()) {
+            String before = consentLabel(client.getReminderConsent());
+            setConsent(client, ReminderConsent.DECLINED, "Link STOP");
+            if (client.getUser() != null) {
+                auditService.recordAs(client.getUser(), "client (link STOP)", Action.UPDATE, EntityType.CLIENT, client.getId(),
+                        AuditService.clientSummary(client), "Acord remindere: " + before + " → " + consentLabel(ReminderConsent.DECLINED));
+            }
+        }
+        AppUser station = client.getUser();
+        return new StopInfo(station != null ? station.getStationName() : null, true);
+    }
+
+    private Client byToken(String token) {
+        if (token == null || token.length() < 10 || token.length() > 40) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link invalid");
+        }
+        return clientRepository.findByOptOutToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Link invalid"));
+    }
+
+    // La anularea unei stergeri: clientul refacut isi recapata acordul, daca nu are deja unul
+    public void restoreConsent(Client client, AuditService.ClientSnap snap) {
+        if (client == null || snap.consent() == null || client.getReminderConsent() != null) return;
+        client.setReminderConsent(snap.consent());
+        client.setConsentAt(snap.consentAt());
+        client.setConsentSource(snap.consentSource());
+        clientRepository.save(client);
+    }
+
+    static String consentLabel(ReminderConsent consent) {
+        if (consent == null) return "necunoscut";
+        return consent == ReminderConsent.GIVEN ? "de acord" : "nu dorește mesaje";
+    }
+
     // ---------- curatare ----------
 
     public void deleteClientIfEmpty(Client client) {
@@ -141,7 +224,8 @@ public class ClientService {
                         .map(r -> AuditService.snap(r, appointmentsByRecord.getOrDefault(r.getId(), List.of())))
                         .toList()))
                 .toList();
-        return new AuditService.ClientSnap(client.getName(), client.getPhone(), vehicleSnaps);
+        return new AuditService.ClientSnap(client.getName(), client.getPhone(), vehicleSnaps, client.getReminderConsent(),
+                client.getConsentAt(), client.getConsentSource());
     }
 
     // ---------- pagina "Clienti" ----------
@@ -206,7 +290,8 @@ public class ClientService {
                 .sorted(Comparator.comparing((VehicleDTO v) -> v.itps().isEmpty() ? null : v.itps().get(0).testDate(),
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
-        return new ClientDetailDTO(client.getId(), client.getName(), client.getPhone(), vehicleDtos);
+        return new ClientDetailDTO(client.getId(), client.getName(), client.getPhone(), client.getReminderConsent(),
+                client.getConsentAt(), client.getConsentSource(), vehicleDtos);
     }
 
     private static VehicleItpDTO itpDto(ItpRecord r) {
@@ -289,6 +374,13 @@ public class ClientService {
                 moved.isEmpty() ? null : "Mașini mutate: " + moved.stream().map(v -> v.getLicensePlate().toUpperCase(Locale.ROOT))
                         .collect(Collectors.joining(", ")));
         if (target.getPhone() == null && source.getPhone() != null) target.setPhone(source.getPhone());
+        // Acordul: "nu doreste mesaje" are prioritate, apoi "de acord"
+        if (source.declinesMessages() && !target.declinesMessages()
+                || source.getReminderConsent() == ReminderConsent.GIVEN && target.getReminderConsent() == null) {
+            target.setReminderConsent(source.getReminderConsent());
+            target.setConsentAt(source.getConsentAt());
+            target.setConsentSource(source.getConsentSource());
+        }
         clientRepository.save(target);
         vehicleRepository.flush();
         clientRepository.delete(source);

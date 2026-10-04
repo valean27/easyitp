@@ -62,3 +62,16 @@ describe('links', () => {
     expect(smsLink('40722111222', 'a b&c')).toBe('sms:+40722111222?&body=a%20b%26c');
   });
 });
+
+describe('opt-out link', () => {
+  const stop = 'https://easyitp.vercel.app/stop/abc123';
+
+  it('is appended when the template has no {stop}', () => {
+    expect(renderReminder('Bună, {nume}!', { ...data, stop })).toBe(`Bună, ${data.nume}! Nu mai doriți mesaje: ${stop}`);
+  });
+
+  it('goes where the template puts it, and disappears without a link', () => {
+    expect(renderReminder('Dezabonare: {stop}. Bună, {nume}!', { ...data, stop })).toBe(`Dezabonare: ${stop}. Bună, ${data.nume}!`);
+    expect(renderReminder('Bună, {nume}! Dezabonare: {stop}', data)).toBe(`Bună, ${data.nume}!`);
+  });
+});
