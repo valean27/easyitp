@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Car,
   MessageSquareText,
   CalendarClock,
   ScanLine,
@@ -17,10 +16,8 @@ import {
   ArrowRight,
   ClipboardCheck,
   Repeat,
-  Menu,
-  X,
 } from 'lucide-react';
-import ThemeSwitcher from './ThemeSwitcher';
+import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import PhoneMockup from './landing/PhoneMockup';
 import RoiCalculator from './landing/RoiCalculator';
 import DemoForm from './landing/DemoForm';
@@ -31,6 +28,7 @@ const NAV = [
   { href: '#cum-functioneaza', label: 'Cum funcționează' },
   { href: '#calculator', label: 'Calculator' },
   { href: '#intrebari', label: 'Întrebări' },
+  { href: '/statii', label: 'Stații ITP' },
 ];
 
 const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string; points: string[] }[] = [
@@ -88,61 +86,16 @@ function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string
   );
 }
 
-function Logo() {
-  return (
-    <Link to="/" className="flex items-center gap-2.5">
-      <span className="bg-blue-600 p-2 rounded-lg">
-        <Car size={18} className="text-white" />
-      </span>
-      <span className="text-lg font-extrabold text-slate-900">Easy ITP</span>
-    </Link>
-  );
-}
-
 // Pagina de prezentare pentru vizitatorii nelogati (statii ITP interesate)
 export default function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Venind din alta pagina (ex. /statii -> "/#demo"), browserul nu deruleaza singur la ancora
+  useEffect(() => {
+    if (window.location.hash) document.querySelector(window.location.hash)?.scrollIntoView();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Logo />
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} className="hover:text-slate-900">{n.label}</a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <div className="hidden sm:block w-28">
-              <ThemeSwitcher compact />
-            </div>
-            <Link to="/login" className="hidden sm:inline-flex px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100">
-              Intră în cont
-            </Link>
-            <a href="#demo" className="hidden sm:inline-flex px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">
-              Cere o demonstrație
-            </a>
-            <button onClick={() => setMenuOpen((o) => !o)} className="sm:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100" aria-label="Meniu">
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-        </div>
-        {menuOpen && (
-          <div className="sm:hidden border-t border-slate-100 px-4 py-3 space-y-1 bg-white">
-            {NAV.map((n) => (
-              <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="block px-2 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-                {n.label}
-              </a>
-            ))}
-            <div className="py-2"><ThemeSwitcher /></div>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <Link to="/login" className="text-center px-3 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700">Intră în cont</Link>
-              <a href="#demo" onClick={() => setMenuOpen(false)} className="text-center px-3 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold">Cere demo</a>
-            </div>
-          </div>
-        )}
-      </header>
+      <PublicHeader links={NAV} />
 
       <main>
         {/* Prima sectiune */}
@@ -167,7 +120,11 @@ export default function LandingPage() {
                   Vezi cum funcționează
                 </a>
               </div>
-              <ul className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-600">
+              <p className="mt-4 text-sm text-slate-500">
+                Ești șofer?{' '}
+                <Link to="/statii" className="font-semibold text-blue-600 hover:underline">Găsește o stație și programează-te online</Link>
+              </p>
+              <ul className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-slate-600">
                 <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-emerald-600 shrink-0" /> Fără instalare</li>
                 <li className="flex items-center gap-2"><Smartphone size={16} className="text-emerald-600 shrink-0" /> Merge și pe telefon</li>
                 <li className="flex items-center gap-2"><FileSpreadsheet size={16} className="text-emerald-600 shrink-0" /> Import din Excel</li>
@@ -289,16 +246,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-100 bg-slate-50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
-          <Logo />
-          <p>© {new Date().getFullYear()} Easy ITP · Evidență ITP, remindere și programări online</p>
-          <div className="flex gap-4">
-            <Link to="/login" className="hover:text-slate-800">Intră în cont</Link>
-            <a href="#demo" className="hover:text-slate-800">Contact</a>
-          </div>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

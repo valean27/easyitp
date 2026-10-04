@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Loader2, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
 import { submitLead } from '../../api/publicApi';
 import { apiMessage } from '../../utils/errors';
@@ -69,7 +70,10 @@ export default function DemoForm() {
         {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
         Cere o demonstrație
       </button>
-      <p className="text-xs text-slate-400 text-center">Folosim aceste date doar ca să vă contactăm despre Easy ITP.</p>
+      <p className="text-xs text-slate-400 text-center">
+        Folosim aceste date doar ca să vă contactăm despre Easy ITP. Detalii în{' '}
+        <Link to="/confidentialitate" className="underline hover:text-slate-600">politica de confidențialitate</Link>.
+      </p>
     </form>
   );
 }

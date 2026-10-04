@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
 import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
+import org.example.easyitp.dto.PublicStationSummaryDTO;
 import org.example.easyitp.dto.VehicleTypeDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
@@ -64,7 +65,20 @@ public class BookingService {
                 close(user),
                 days(user),
                 capacity(user),
-                InspectionDurations.allTypes(user));
+                InspectionDurations.allTypes(user),
+                !Boolean.FALSE.equals(user.getPublicListing()));
+    }
+
+    // Statiile active cu programarea online pornita care accepta sa apara in lista publica, dupa nume
+    @Transactional(readOnly = true)
+    public List<PublicStationSummaryDTO> directory() {
+        return appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER).stream()
+                .filter(u -> u.isEnabled() && Boolean.TRUE.equals(u.getBookingEnabled()) && u.getBookingSlug() != null
+                        && !Boolean.FALSE.equals(u.getPublicListing()))
+                .map(u -> new PublicStationSummaryDTO(u.getStationName() != null ? u.getStationName() : "Stație ITP",
+                        u.getBookingSlug(), u.getAddress(), u.getPhone(), open(u), close(u), days(u)))
+                .sorted(java.util.Comparator.comparing(s -> s.name().toLowerCase(java.util.Locale.ROOT)))
+                .toList();
     }
 
     @Transactional
@@ -96,6 +110,7 @@ public class BookingService {
         user.setBookingClose(dto.getClose());
         user.setBookingDays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
         user.setBookingCapacity(dto.getCapacity());
+        if (dto.getPublicListing() != null) user.setPublicListing(dto.getPublicListing());
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
         return getSettings(appUserRepository.save(user));

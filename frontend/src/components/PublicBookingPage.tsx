@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Car, MapPin, Phone, Clock, Loader2, CheckCircle2, AlertTriangle, CalendarDays, ArrowLeft, Truck } from 'lucide-react';
 import type { PublicStation, VehicleCategory } from '../types';
@@ -380,7 +380,10 @@ export default function PublicBookingPage() {
           </div>
         )}
 
-        <p className="text-center text-xs text-slate-400 pt-2">Datele sunt folosite doar pentru programarea la ITP și, dacă bifați, pentru reminderul următorului ITP.</p>
+        <p className="text-center text-xs text-slate-400 pt-2">
+          Datele sunt folosite doar pentru programarea la ITP și, dacă bifați, pentru reminderul următorului ITP.{' '}
+          <Link to="/confidentialitate" className="underline hover:text-slate-600">Confidențialitate</Link>
+        </p>
       </div>
     </div>
   );

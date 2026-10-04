@@ -51,6 +51,9 @@ public class AppUser {
     @Column(length = 20)
     private String bookingDays;
 
+    // Apare in lista publica de statii (/statii); null = da, cand programarea online e pornita
+    private Boolean publicListing;
+
     // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
     private Integer bookingCapacity;
 

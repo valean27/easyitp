@@ -19,4 +19,6 @@ public class BookingSettingsDTO {
     private List<Integer> days; // 1 = luni ... 7 = duminica
     private int capacity;
     private List<VehicleTypeDTO> vehicleTypes;
+    // Statia apare in lista publica de statii (/statii); null la salvare = nu se schimba
+    private Boolean publicListing;
 }

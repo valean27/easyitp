@@ -120,6 +120,8 @@ export interface BookingSettings {
   days: number[]; // 1 = luni ... 7 = duminica
   capacity: number;
   vehicleTypes: VehicleType[];
+  // statia apare in lista publica /statii
+  publicListing: boolean;
 }
 
 export interface PublicStation {

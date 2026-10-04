@@ -16,6 +16,20 @@ export const getStopInfo = (token: string): Promise<StopInfo> =>
 export const confirmStop = (token: string): Promise<StopInfo> =>
   publicApi.post(`/api/public/stop/${encodeURIComponent(token)}`).then((r) => r.data);
 
+// O statie din lista publica /statii
+export interface PublicStationSummary {
+  name: string;
+  slug: string;
+  address: string | null;
+  phone: string | null;
+  open: string; // HH:mm:ss
+  close: string;
+  days: number[];
+}
+
+export const getPublicStations = (): Promise<PublicStationSummary[]> =>
+  publicApi.get('/api/public/stations').then((r) => r.data);
+
 const base = (slug: string) => `/api/public/stations/${encodeURIComponent(slug)}`;
 
 export const getPublicStation = (slug: string): Promise<PublicStation> =>

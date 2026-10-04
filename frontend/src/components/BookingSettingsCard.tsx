@@ -164,6 +164,21 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
           <p className="text-xs text-slate-400 mt-1">Câte vehicule pot fi verificate în același timp.</p>
         </div>
 
+        <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={settings.publicListing}
+            onChange={(e) => update({ publicListing: e.target.checked })}
+            className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span>
+            Apare în lista publică de stații
+            <span className="block text-xs text-slate-400">
+              Șoferii găsesc stația pe pagina „Stații ITP” din Easy ITP și se programează de acolo.
+            </span>
+          </span>
+        </label>
+
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1">
             <Timer size={14} className="text-slate-400" />
