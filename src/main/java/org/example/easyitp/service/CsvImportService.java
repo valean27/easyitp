@@ -6,6 +6,7 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.entity.AppUser;
+import org.example.easyitp.entity.AuditEvent;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
@@ -54,6 +55,7 @@ public class CsvImportService {
             Map.entry("noi", 11), Map.entry("nov", 11), Map.entry("dec", 12));
 
     private final ClientService clientService;
+    private final AuditService auditService;
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final CarService carService;
@@ -116,6 +118,10 @@ public class CsvImportService {
                 if (existing != null) updated++;
                 else imported++;
             }
+        }
+        if (imported + updated > 0) {
+            auditService.record(user, AuditEvent.Action.IMPORT, AuditEvent.EntityType.ITP, null,
+                    "Import CSV: " + imported + " noi, " + updated + " actualizate, " + skipped + " ignorate", null);
         }
         return new ImportResultDTO(imported, updated, skipped, errors);
     }

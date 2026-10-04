@@ -53,10 +53,11 @@ public class ClientController {
         return clientService.merge(currentUser.get(), id, requireTarget(request));
     }
 
+    // Antetul X-Audit-Event = intrarea din istoric, pentru butonul "Anuleaza"
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        clientService.delete(currentUser.get(), id);
-        return ResponseEntity.noContent().build();
+        Long eventId = clientService.delete(currentUser.get(), id);
+        return ResponseEntity.noContent().header(HistoryController.EVENT_HEADER, String.valueOf(eventId)).build();
     }
 
     @PutMapping("/vehicles/{vehicleId}")
@@ -72,8 +73,11 @@ public class ClientController {
     // 204 cand clientul a ramas fara masini si a fost sters odata cu ultima masina
     @DeleteMapping("/vehicles/{vehicleId}")
     public ResponseEntity<ClientDetailDTO> deleteVehicle(@PathVariable Long vehicleId) {
-        ClientDetailDTO client = clientService.deleteVehicle(currentUser.get(), vehicleId);
-        return client == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(client);
+        ClientService.VehicleDeletion deletion = clientService.deleteVehicle(currentUser.get(), vehicleId);
+        String eventId = String.valueOf(deletion.eventId());
+        return deletion.client() == null
+                ? ResponseEntity.noContent().header(HistoryController.EVENT_HEADER, eventId).build()
+                : ResponseEntity.ok().header(HistoryController.EVENT_HEADER, eventId).body(deletion.client());
     }
 
     private static Long requireTarget(TargetClientRequest request) {

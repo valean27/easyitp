@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Plus,
   RefreshCw,
@@ -22,6 +22,8 @@ import type { DashboardEntry, DashboardSummary, ImportResult, ItpStatus } from '
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
 import TodayAgenda from './TodayAgenda';
+import { offerUndo } from '../utils/undo';
+import { apiMessage } from '../utils/errors';
 
 function getStatusBadge(status: ItpStatus) {
   const cfg: Record<ItpStatus, { label: string; cls: string }> = {
@@ -277,12 +279,15 @@ export default function Dashboard() {
     fetchData();
   }, [fetchData]);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Sigur doriți să ștergeți această înregistrare?')) return;
-    setDeletingId(id);
+  // Fara confirmare: stergerea se poate anula din bara de jos sau din Istoric
+  const handleDelete = async (row: DashboardEntry) => {
+    setDeletingId(row.id);
     try {
-      await deleteItpRecord(id);
+      const eventId = await deleteItpRecord(row.id);
+      offerUndo(`ITP ${row.numarInmatriculare.toUpperCase()} șters`, eventId, fetchData);
       await fetchData();
+    } catch (err) {
+      showToast(apiMessage(err, 'ITP-ul nu a putut fi șters.'), 'error');
     } finally {
       setDeletingId(null);
     }
@@ -317,6 +322,13 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              to="/history"
+              className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              title="Istoric modificări"
+            >
+              <History size={16} />
+            </Link>
             <button
               onClick={fetchData}
               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -490,7 +502,7 @@ export default function Dashboard() {
                             <Pencil size={16} />
                           </button>
                           <button
-                            onClick={() => handleDelete(row.id)}
+                            onClick={() => handleDelete(row)}
                             disabled={deletingId === row.id}
                             className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-50"
                             title="Șterge"
@@ -592,7 +604,7 @@ export default function Dashboard() {
                               <Pencil size={15} />
                             </button>
                             <button
-                              onClick={() => handleDelete(row.id)}
+                              onClick={() => handleDelete(row)}
                               disabled={deletingId === row.id}
                               className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                               title="Șterge"

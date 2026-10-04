@@ -11,6 +11,8 @@ import org.example.easyitp.dto.ClientDTOs.VehicleDTO;
 import org.example.easyitp.dto.ClientDTOs.VehicleItpDTO;
 import org.example.easyitp.dto.ClientDTOs.VehicleUpdateRequest;
 import org.example.easyitp.entity.AppUser;
+import org.example.easyitp.entity.AuditEvent.Action;
+import org.example.easyitp.entity.AuditEvent.EntityType;
 import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
@@ -56,6 +58,11 @@ public class ClientService {
     private final VehicleRepository vehicleRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final AppointmentRepository appointmentRepository;
+    private final AuditService auditService;
+
+    // Rezultatul stergerii unei masini: fisa clientului (null daca a disparut) si intrarea din istoric (pentru "Anuleaza")
+    public record VehicleDeletion(ClientDetailDTO client, Long eventId) {
+    }
 
     // ---------- proprietarul la salvarea unui ITP ----------
 
@@ -119,6 +126,22 @@ public class ClientService {
                 .forEach(a -> a.setItpRecordId(null));
         itpRecordRepository.deleteAll(records);
         itpRecordRepository.flush();
+    }
+
+    // Datele unui client (doar masinile si ITP-urile date), pastrate in istoric ca stergerea sa poata fi anulata
+    public AuditService.ClientSnap snapshot(Client client, List<Vehicle> vehicles, Collection<ItpRecord> records) {
+        Map<Long, List<Long>> appointmentsByRecord = new HashMap<>();
+        if (!records.isEmpty()) {
+            appointmentRepository.findByItpRecordIdIn(records.stream().map(ItpRecord::getId).toList())
+                    .forEach(a -> appointmentsByRecord.computeIfAbsent(a.getItpRecordId(), k -> new ArrayList<>()).add(a.getId()));
+        }
+        List<AuditService.VehicleSnap> vehicleSnaps = vehicles.stream()
+                .map(v -> AuditService.snap(v, records.stream()
+                        .filter(r -> r.getVehicle().getId().equals(v.getId()))
+                        .map(r -> AuditService.snap(r, appointmentsByRecord.getOrDefault(r.getId(), List.of())))
+                        .toList()))
+                .toList();
+        return new AuditService.ClientSnap(client.getName(), client.getPhone(), vehicleSnaps);
     }
 
     // ---------- pagina "Clienti" ----------
@@ -194,9 +217,15 @@ public class ClientService {
     @Transactional
     public ClientDetailDTO update(AppUser user, Long id, ClientUpdateRequest request) {
         Client client = find(user, id);
+        Map<String, String> before = AuditService.clientFields(client);
         client.setName(requireName(request.name()));
         client.setPhone(trimToNull(request.phone()));
-        return detail(clientRepository.save(client));
+        clientRepository.save(client);
+        String changes = AuditService.diff(before, AuditService.clientFields(client));
+        if (!changes.isEmpty()) {
+            auditService.record(user, Action.UPDATE, EntityType.CLIENT, client.getId(), AuditService.clientSummary(client), changes);
+        }
+        return detail(client);
     }
 
     @Transactional
@@ -216,12 +245,17 @@ public class ClientService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Numărul " + plate.toUpperCase(Locale.ROOT) + " există deja la clientul " + other.getClient().getName() + ".");
         }
+        Map<String, String> before = AuditService.vehicleFields(vehicle);
         vehicle.setLicensePlate(plate.toUpperCase(Locale.ROOT));
         vehicle.setBrand(brand);
         vehicle.setModel(trimToNull(request.model()));
         vehicle.setYear(request.year());
         vehicle.setVin(trimToNull(request.vin()) == null ? null : request.vin().trim().toUpperCase(Locale.ROOT));
         vehicleRepository.save(vehicle);
+        String changes = AuditService.diff(before, AuditService.vehicleFields(vehicle));
+        if (!changes.isEmpty()) {
+            auditService.record(user, Action.UPDATE, EntityType.VEHICLE, vehicle.getId(), AuditService.vehicleSummary(vehicle), changes);
+        }
         return detail(vehicle.getClient());
     }
 
@@ -233,6 +267,8 @@ public class ClientService {
         Client old = vehicle.getClient();
         vehicle.setClient(target);
         vehicleRepository.saveAndFlush(vehicle);
+        auditService.record(user, Action.MOVE, EntityType.VEHICLE, vehicle.getId(),
+                vehicle.getLicensePlate().toUpperCase(Locale.ROOT) + " · de la " + old.getName() + " la " + target.getName(), null);
         if (!old.getId().equals(target.getId())) deleteClientIfEmpty(old);
         return detail(target);
     }
@@ -243,10 +279,15 @@ public class ClientService {
         if (Objects.equals(sourceId, targetId)) throw badRequest("Alegeți un alt client");
         Client source = find(user, sourceId);
         Client target = find(user, targetId);
-        for (Vehicle v : vehicleRepository.findByClientIdInOrderByIdAsc(List.of(source.getId()))) {
+        List<Vehicle> moved = vehicleRepository.findByClientIdInOrderByIdAsc(List.of(source.getId()));
+        for (Vehicle v : moved) {
             v.setClient(target);
             vehicleRepository.save(v);
         }
+        auditService.record(user, Action.MERGE, EntityType.CLIENT, target.getId(),
+                AuditService.clientSummary(source) + " unit cu " + AuditService.clientSummary(target),
+                moved.isEmpty() ? null : "Mașini mutate: " + moved.stream().map(v -> v.getLicensePlate().toUpperCase(Locale.ROOT))
+                        .collect(Collectors.joining(", ")));
         if (target.getPhone() == null && source.getPhone() != null) target.setPhone(source.getPhone());
         clientRepository.save(target);
         vehicleRepository.flush();
@@ -254,32 +295,42 @@ public class ClientService {
         return detail(target);
     }
 
-    // Sterge clientul cu toate masinile si ITP-urile lor
+    // Sterge clientul cu toate masinile si ITP-urile lor; intoarce intrarea din istoric (pentru "Anuleaza")
     @Transactional
-    public void delete(AppUser user, Long id) {
+    public Long delete(AppUser user, Long id) {
         Client client = find(user, id);
         List<Vehicle> vehicles = vehicleRepository.findByClientIdInOrderByIdAsc(List.of(client.getId()));
+        List<ItpRecord> records = vehicles.isEmpty() ? List.of()
+                : itpRecordRepository.findByVehicleIds(vehicles.stream().map(Vehicle::getId).toList());
+        Long eventId = auditService.recordDeletion(user, EntityType.CLIENT, client.getId(),
+                AuditService.clientSummary(client) + " · " + vehicles.size() + " mașini, " + records.size() + " ITP-uri",
+                snapshot(client, vehicles, records));
         if (!vehicles.isEmpty()) {
-            deleteRecords(itpRecordRepository.findByVehicleIds(vehicles.stream().map(Vehicle::getId).toList()));
+            deleteRecords(records);
             vehicleRepository.deleteAll(vehicles);
             vehicleRepository.flush();
         }
         clientRepository.delete(client);
+        return eventId;
     }
 
-    // Sterge masina cu ITP-urile ei; intoarce fisa clientului (null daca a ramas fara masini si a disparut)
+    // Sterge masina cu ITP-urile ei; fisa clientului e null daca a ramas fara masini si a disparut
     @Transactional
-    public ClientDetailDTO deleteVehicle(AppUser user, Long vehicleId) {
+    public VehicleDeletion deleteVehicle(AppUser user, Long vehicleId) {
         Vehicle vehicle = findVehicle(user, vehicleId);
         Client client = vehicle.getClient();
-        deleteRecords(itpRecordRepository.findByVehicleId(vehicle.getId()));
+        List<ItpRecord> records = itpRecordRepository.findByVehicleId(vehicle.getId());
+        Long eventId = auditService.recordDeletion(user, EntityType.VEHICLE, vehicle.getId(),
+                AuditService.vehicleSummary(vehicle) + " · " + records.size() + " ITP-uri",
+                snapshot(client, List.of(vehicle), records));
+        deleteRecords(records);
         vehicleRepository.delete(vehicle);
         vehicleRepository.flush();
         if (vehicleRepository.countByClientId(client.getId()) == 0) {
             clientRepository.delete(client);
-            return null;
+            return new VehicleDeletion(null, eventId);
         }
-        return detail(client);
+        return new VehicleDeletion(detail(client), eventId);
     }
 
     // Posibile dubluri: acelasi telefon, sau acelasi nume (fara diacritice/majuscule)

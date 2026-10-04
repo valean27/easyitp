@@ -2,6 +2,7 @@ package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.service.DigestService;
+import org.example.easyitp.service.HistoryService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 public class InternalController {
 
     private final DigestService digestService;
+    private final HistoryService historyService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -33,6 +35,9 @@ public class InternalController {
         if (secret == null || !MessageDigest.isEqual(secret.getBytes(StandardCharsets.UTF_8), cronSecret.getBytes(StandardCharsets.UTF_8))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        return ResponseEntity.ok(digestService.sendDailyDigests(LocalDate.now()));
+        DigestService.Result result = digestService.sendDailyDigests(LocalDate.now());
+        // Tot o data pe zi: istoricul mai vechi de un an se sterge
+        historyService.purgeOld();
+        return ResponseEntity.ok(result);
     }
 }

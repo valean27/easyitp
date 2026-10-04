@@ -10,6 +10,8 @@ import org.example.easyitp.entity.Client;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.AppUser;
+import org.example.easyitp.entity.AuditEvent.Action;
+import org.example.easyitp.entity.AuditEvent.EntityType;
 import org.example.easyitp.entity.ReminderStatus;
 import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.ClientRepository;
@@ -54,6 +56,7 @@ public class ItpService {
     private final ItpRecordRepository itpRecordRepository;
     private final AppointmentService appointmentService;
     private final ClientService clientService;
+    private final AuditService auditService;
 
     static final int MAX_PAGE_SIZE = 100;
     private static final int EXPIRING_SOON_DAYS = 30;
@@ -221,6 +224,7 @@ public class ItpService {
                 .build();
 
         record = itpRecordRepository.save(record);
+        auditService.record(user, Action.CREATE, EntityType.ITP, record.getId(), AuditService.itpSummary(record), null);
         if (form.getAppointmentId() != null) {
             appointmentService.completeWithItp(form.getAppointmentId(), user.getId(), record.getId());
         }
@@ -241,6 +245,7 @@ public class ItpService {
         ItpRecord record = itpRecordRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
 
+        Map<String, String> before = AuditService.itpFields(record);
         Vehicle previous = record.getVehicle();
         Vehicle vehicle = previous;
         String plateKey = PlateUtils.normalize(form.getLicensePlate());
@@ -267,17 +272,25 @@ public class ItpService {
         record.setObservations(form.getObservations());
         record.setInspector(inspector(form.getInspector()));
         itpRecordRepository.saveAndFlush(record);
+        String changes = AuditService.diff(before, AuditService.itpFields(record));
+        if (!changes.isEmpty()) {
+            auditService.record(user, Action.UPDATE, EntityType.ITP, record.getId(), AuditService.itpSummary(record), changes);
+        }
         if (vehicle != previous) clientService.deleteVehicleIfEmpty(previous);
     }
 
     // Masina si clientul ramasi fara niciun ITP dispar odata cu ultimul lor ITP
+    // Intoarce intrarea din istoric (pentru "Anuleaza")
     @Transactional
-    public void deleteItpRecord(Long id, Long userId) {
-        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
+    public Long deleteItpRecord(Long id, AppUser user) {
+        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
         Vehicle vehicle = record.getVehicle();
+        Long eventId = auditService.recordDeletion(user, EntityType.ITP, record.getId(), AuditService.itpSummary(record),
+                clientService.snapshot(vehicle.getClient(), List.of(vehicle), List.of(record)));
         clientService.deleteRecords(List.of(record));
         clientService.deleteVehicleIfEmpty(vehicle);
+        return eventId;
     }
 
     private static void applyVehicle(Vehicle vehicle, ItpFormDTO form) {

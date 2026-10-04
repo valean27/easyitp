@@ -13,6 +13,7 @@ import type { ClientDetail, ClientVehicle, VehicleUpdate } from '../types';
 import { STATUS_LABELS, formatDateRo } from '../utils/fleet';
 import { apiMessage } from '../utils/errors';
 import ClientPicker from './ClientPicker';
+import { offerUndo } from '../utils/undo';
 
 const inputCls =
   'w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -147,16 +148,21 @@ export default function ClientModal({
     if (ok) setEditingClient(false);
   };
 
+  // Fara confirmare: stergerea se poate anula din bara de jos sau din Istoric
   const removeClient = () => {
     if (!client) return;
-    const itps = client.vehicles.reduce((n, v) => n + v.itps.length, 0);
-    if (!confirm(`Ștergeți clientul ${client.name} cu ${client.vehicles.length} mașini și ${itps} ITP-uri? Nu se poate anula.`)) return;
-    run(() => deleteClient(client.id), 'Clientul nu a putut fi șters.');
+    run(async () => {
+      const eventId = await deleteClient(client.id);
+      offerUndo(`Clientul ${client.name} a fost șters`, eventId, onChanged);
+    }, 'Clientul nu a putut fi șters.');
   };
 
   const removeVehicle = (v: ClientVehicle) => {
-    if (!confirm(`Ștergeți mașina ${v.licensePlate} cu ${v.itps.length} ITP-uri? Nu se poate anula.`)) return;
-    run(() => deleteVehicle(v.id), 'Mașina nu a putut fi ștearsă.');
+    run(async () => {
+      const { client: next, eventId } = await deleteVehicle(v.id);
+      offerUndo(`Mașina ${v.licensePlate.toUpperCase()} a fost ștearsă`, eventId, onChanged);
+      return next;
+    }, 'Mașina nu a putut fi ștearsă.');
   };
 
   return (

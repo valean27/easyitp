@@ -1,4 +1,5 @@
 import api from './axiosInstance';
+import { auditEventId } from './historyApi';
 import type { ClientDetail, ClientPage, DuplicateGroup, VehicleUpdate } from '../types';
 
 const BASE = '/api/clients';
@@ -15,7 +16,8 @@ export const updateClient = (id: number, data: { name: string; phone: string | n
 export const mergeClient = (id: number, targetId: number): Promise<ClientDetail> =>
   api.post(`${BASE}/${id}/merge`, { clientId: targetId }).then((r) => r.data);
 
-export const deleteClient = (id: number): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined);
+// Intoarce intrarea din istoric (pentru "Anuleaza")
+export const deleteClient = (id: number): Promise<number | null> => api.delete(`${BASE}/${id}`).then(auditEventId);
 
 export const getDuplicates = (): Promise<DuplicateGroup[]> => api.get(`${BASE}/duplicates`).then((r) => r.data);
 
@@ -25,6 +27,8 @@ export const updateVehicle = (vehicleId: number, data: VehicleUpdate): Promise<C
 export const moveVehicle = (vehicleId: number, targetClientId: number): Promise<ClientDetail> =>
   api.post(`${BASE}/vehicles/${vehicleId}/move`, { clientId: targetClientId }).then((r) => r.data);
 
-// null = clientul a ramas fara masini si a fost sters
-export const deleteVehicle = (vehicleId: number): Promise<ClientDetail | null> =>
-  api.delete(`${BASE}/vehicles/${vehicleId}`).then((r) => (r.status === 204 ? null : r.data));
+// client null = a ramas fara masini si a fost sters; eventId = intrarea din istoric (pentru "Anuleaza")
+export const deleteVehicle = (vehicleId: number): Promise<{ client: ClientDetail | null; eventId: number | null }> =>
+  api
+    .delete(`${BASE}/vehicles/${vehicleId}`)
+    .then((r) => ({ client: r.status === 204 ? null : r.data, eventId: auditEventId(r) }));

@@ -48,7 +48,7 @@ public class SecurityConfig {
                 // Conturile de flota vad doar portalul lor si isi pot schimba parola
                 .requestMatchers("/api/fleet-portal/**").hasRole("FLEET")
                 .requestMatchers("/api/account/me", "/api/account/password").authenticated()
-                .requestMatchers("/api/fleets/**", "/api/clients/**").hasRole("MANAGER")
+                .requestMatchers("/api/fleets/**", "/api/clients/**", "/api/history/**").hasRole("MANAGER")
                 .anyRequest().hasAnyRole("ADMIN", "MANAGER")
             )
             // Token lipsa/expirat -> 401, ca frontend-ul sa poata deloga utilizatorul
@@ -76,6 +76,8 @@ public class SecurityConfig {
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        // Id-ul intrarii din istoric dupa o stergere (butonul "Anuleaza")
+        config.setExposedHeaders(List.of("X-Audit-Event"));
         // Tokenul merge in antetul Authorization, nu in cookie, deci nu e nevoie de credentiale
         config.setAllowCredentials(false);
 

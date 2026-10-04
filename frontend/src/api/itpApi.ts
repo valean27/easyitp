@@ -1,4 +1,5 @@
 import api from './axiosInstance';
+import { auditEventId } from './historyApi';
 import type { DashboardEntry, DashboardPage, DashboardSummary, ImportResult, ItpFormData, RegistrationScan } from '../types';
 
 const BASE = '/api/itp';
@@ -29,8 +30,9 @@ export const lookupByPlate = (plate: string): Promise<DashboardEntry | null> =>
 export const updateItpEntry = (id: number, data: ItpFormData): Promise<void> =>
   api.put(`${BASE}/${id}`, data).then(() => undefined);
 
-export const deleteItpRecord = (id: number): Promise<void> =>
-  api.delete(`${BASE}/${id}`).then(() => undefined);
+// Intoarce intrarea din istoric (pentru "Anuleaza")
+export const deleteItpRecord = (id: number): Promise<number | null> =>
+  api.delete(`${BASE}/${id}`).then(auditEventId);
 
 export const importCsv = (file: File): Promise<ImportResult> => {
   const form = new FormData();

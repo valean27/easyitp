@@ -358,3 +358,28 @@ export interface DuplicateGroup {
   reason: string;
   clients: ClientBrief[];
 }
+
+// ---------- Istoric modificari ----------
+
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'MERGE' | 'MOVE' | 'IMPORT';
+export type AuditEntityType = 'ITP' | 'CLIENT' | 'VEHICLE';
+
+export interface HistoryEvent {
+  id: number;
+  createdAt: string;
+  actor: string | null;
+  action: AuditAction;
+  entityType: AuditEntityType;
+  summary: string;
+  // campurile schimbate, cate unul pe linie ("Preț: 150,00 → 200,00")
+  changes: string | null;
+  canUndo: boolean;
+  restoredAt: string | null;
+}
+
+export interface HistoryPage {
+  items: HistoryEvent[];
+  total: number;
+  page: number;
+  size: number;
+}

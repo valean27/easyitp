@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import LoginPage from './components/LoginPage';
 import ServerWakeBanner from './components/ServerWakeBanner';
+import UndoToast from './components/UndoToast';
 
 // Paginile se incarca la cerere, ca login-ul sa nu descarce calendarul, rapoartele etc.
 const Dashboard = lazy(() => import('./components/Dashboard'));
@@ -17,6 +18,7 @@ const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const FleetsPage = lazy(() => import('./components/FleetsPage'));
 const ClientsPage = lazy(() => import('./components/ClientsPage'));
+const HistoryPage = lazy(() => import('./components/HistoryPage'));
 const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
@@ -31,6 +33,7 @@ function App() {
   return (
     <BrowserRouter>
       <ServerWakeBanner />
+      <UndoToast />
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -65,6 +68,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="MANAGER">
                   <RemindersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="history"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <HistoryPage />
                 </ProtectedRoute>
               }
             />

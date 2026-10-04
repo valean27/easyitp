@@ -112,9 +112,10 @@ public class ItpController {
         return registrationScanService.scan(currentUser.get().getId(), image.getBytes(), type);
     }
 
+    // Antetul X-Audit-Event = intrarea din istoric, pentru butonul "Anuleaza"
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItpRecord(@PathVariable Long id) {
-        itpService.deleteItpRecord(id, currentUser.get().getId());
-        return ResponseEntity.noContent().build();
+        Long eventId = itpService.deleteItpRecord(id, currentUser.get());
+        return ResponseEntity.noContent().header(HistoryController.EVENT_HEADER, String.valueOf(eventId)).build();
     }
 }

@@ -7,6 +7,7 @@ import org.example.easyitp.dto.StationInfoDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.repository.AuditEventRepository;
 import org.example.easyitp.repository.FleetRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
@@ -37,6 +38,7 @@ public class AdminController {
     private final AppointmentRepository appointmentRepository;
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditEventRepository auditEventRepository;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -132,6 +134,7 @@ public class AdminController {
                 || fleetRepository.existsByStationId(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Managerul are date; dezactivati contul");
         }
+        auditEventRepository.deleteByUserId(id);
         appUserRepository.delete(user);
         return ResponseEntity.noContent().build();
     }

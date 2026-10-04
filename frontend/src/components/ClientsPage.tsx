@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Search, Loader2, Users, AlertTriangle, ChevronDown, ChevronUp, Merge } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Loader2, Users, AlertTriangle, ChevronDown, ChevronUp, Merge, History } from 'lucide-react';
 import { getClients, getDuplicates, mergeClient } from '../api/clientApi';
 import type { ClientSummary, DuplicateGroup } from '../types';
 import { formatDateRo } from '../utils/fleet';
@@ -152,7 +153,12 @@ export default function ClientsPage() {
             <h1 className="text-lg font-bold text-slate-800">Clienți</h1>
             <p className="text-xs text-slate-400 hidden sm:block">Un client cu toate mașinile lui și istoricul ITP al fiecăreia</p>
           </div>
-          {loading && <Loader2 size={16} className="animate-spin text-slate-400" />}
+          <div className="flex items-center gap-2">
+            {loading && <Loader2 size={16} className="animate-spin text-slate-400" />}
+            <Link to="/history" className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700" title="Istoric modificări">
+              <History size={16} />
+            </Link>
+          </div>
         </div>
       </header>
 
