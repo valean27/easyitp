@@ -13,7 +13,7 @@ public final class FleetDTOs {
 
     // Firma, asa cum o editeaza managerul; "accountEmail" = contul cu care se logheaza firma (null daca nu are)
     public record FleetDTO(Long id, String name, String cui, String contactName, String contactPhone,
-                           List<String> plates, String accountEmail) {
+                           List<String> plates, String accountEmail, String address, String city, String county) {
     }
 
     // Randul din lista de firme a managerului

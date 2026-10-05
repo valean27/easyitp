@@ -88,7 +88,9 @@ function Privacy() {
           <li>trimiterea emailurilor (Resend);</li>
           <li>recunoașterea textului din poza talonului (Anthropic);</li>
           <li>trimiterea SMS-urilor, pe canalul ales de stație (telefonul stației prin SMS Gateway for Android, sau SMSLink);</li>
-          <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește.</li>
+          <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește;</li>
+          <li>emiterea facturilor în contul de facturare al stației (Oblio) și, de acolo, în e-Factura (ANAF), dacă stația le folosește;</li>
+          <li>nota și recenziile stației de pe Google (Google Places), doar date publice ale stației, fără date despre clienți.</li>
         </ul>
         <p>
           Unii furnizori pot prelucra date în afara Uniunii Europene; în aceste cazuri transferul se face pe baza garanțiilor prevăzute de

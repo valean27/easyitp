@@ -229,8 +229,17 @@ public class FleetService {
         fleet.setCui(trimToNull(dto.cui()));
         fleet.setContactName(trimToNull(dto.contactName()));
         fleet.setContactPhone(trimToNull(dto.contactPhone()));
+        fleet.setAddress(limit(dto.address(), 200));
+        fleet.setCity(limit(dto.city(), 80));
+        fleet.setCounty(limit(dto.county(), 80));
         fleet.getPlates().clear();
         fleet.getPlates().addAll(cleanPlates(dto.plates()));
+    }
+
+    private static String limit(String s, int max) {
+        String t = trimToNull(s);
+        if (t != null && t.length() > max) throw badRequest("Adresa firmei este prea lungă");
+        return t;
     }
 
     // Numere unice (dupa forma normalizata), scrise cu majuscule, in ordinea primita
@@ -256,7 +265,7 @@ public class FleetService {
 
     private FleetDTO toDto(Fleet f) {
         return new FleetDTO(f.getId(), f.getName(), f.getCui(), f.getContactName(), f.getContactPhone(),
-                List.copyOf(f.getPlates()), accountEmail(f));
+                List.copyOf(f.getPlates()), accountEmail(f), f.getAddress(), f.getCity(), f.getCounty());
     }
 
     private String accountEmail(Fleet f) {

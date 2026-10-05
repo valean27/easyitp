@@ -28,6 +28,16 @@ public class Fleet {
     @Column(length = 20)
     private String cui;
 
+    // Adresa firmei, pe factura (e-Factura o cere)
+    @Column(length = 200)
+    private String address;
+
+    @Column(length = 80)
+    private String city;
+
+    @Column(length = 80)
+    private String county;
+
     @Column(length = 120)
     private String contactName;
 

@@ -23,6 +23,8 @@ import type { DashboardEntry, DashboardSummary, ImportResult, ItpStatus } from '
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
 import TodayAgenda from './TodayAgenda';
+import InvoiceButton from './InvoiceButton';
+import { getItpInvoice, issueItpInvoice } from '../api/invoicingApi';
 import StationDeadlineAlert from './StationDeadlineAlert';
 import { offerUndo } from '../utils/undo';
 import { apiMessage } from '../utils/errors';
@@ -56,6 +58,7 @@ const EMPTY_SUMMARY: DashboardSummary = { vehicles: 0, valid: 0, expiringSoon: 0
 function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () => void }) {
   // Istoricul vehiculului vine de la server (tabelul are doar pagina curenta)
   const [history, setHistory] = useState<DashboardEntry[]>([entry]);
+  const loadInvoice = useCallback(() => getItpInvoice(entry.id), [entry.id]);
   useEffect(() => {
     if (!entry.numarInmatriculare) return;
     getHistory(entry.numarInmatriculare)
@@ -129,7 +132,17 @@ function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () =
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+          {(entry.price ?? 0) > 0 && (
+            <div className="mr-auto">
+              <InvoiceButton
+                load={loadInvoice}
+                issue={() => issueItpInvoice(entry.id)}
+                label="Factură"
+                confirmText={`Emiteți în Oblio factura pentru ${entry.numeSofer} (${entry.numarInmatriculare})? Factura este reală și nu se poate anula din EasyITP.`}
+              />
+            </div>
+          )}
           <Link
             to={`/fisa/${entry.id}`}
             target="_blank"

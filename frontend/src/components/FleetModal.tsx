@@ -24,6 +24,9 @@ export default function FleetModal({ fleet, onClose, onSaved }: Props) {
   const [cui, setCui] = useState(fleet?.cui ?? '');
   const [contactName, setContactName] = useState(fleet?.contactName ?? '');
   const [contactPhone, setContactPhone] = useState(fleet?.contactPhone ?? '');
+  const [address, setAddress] = useState(fleet?.address ?? '');
+  const [city, setCity] = useState(fleet?.city ?? '');
+  const [county, setCounty] = useState(fleet?.county ?? '');
   const [platesText, setPlatesText] = useState(fleet?.plates.join('\n') ?? '');
   const [email, setEmail] = useState(fleet?.accountEmail ?? '');
   const [password, setPassword] = useState('');
@@ -38,7 +41,16 @@ export default function FleetModal({ fleet, onClose, onSaved }: Props) {
     setError(null);
     setSaving(true);
     try {
-      const data = { name, cui: cui || null, contactName: contactName || null, contactPhone: contactPhone || null, plates };
+      const data = {
+        name,
+        cui: cui || null,
+        contactName: contactName || null,
+        contactPhone: contactPhone || null,
+        address: address || null,
+        city: city || null,
+        county: county || null,
+        plates,
+      };
       let saved = fleet ? await updateFleet(fleet.id, data) : await createFleet(data);
       // Contul se salveaza doar daca s-a completat ceva nou
       const emailChanged = email.trim() && email.trim().toLowerCase() !== (fleet?.accountEmail ?? '');
@@ -100,6 +112,18 @@ export default function FleetModal({ fleet, onClose, onSaved }: Props) {
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-slate-600 mb-1">Telefon contact</label>
               <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="07xx xxx xxx" className={INPUT_CLS} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-600 mb-1">Adresa firmei (pentru factură)</label>
+              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Str. Fabricii 12" className={INPUT_CLS} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Localitatea</label>
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cluj-Napoca" className={INPUT_CLS} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Județul</label>
+              <input value={county} onChange={(e) => setCounty(e.target.value)} placeholder="Cluj" className={INPUT_CLS} />
             </div>
           </div>
 

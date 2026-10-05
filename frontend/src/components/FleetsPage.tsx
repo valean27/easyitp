@@ -5,6 +5,8 @@ import { deleteFleet, getFleet, getFleetOverview, getFleetStatement, getFleets }
 import FleetModal from './FleetModal';
 import FleetVehicles from './FleetVehicles';
 import FleetStatementView from './FleetStatementView';
+import InvoiceButton from './InvoiceButton';
+import { getFleetInvoice, issueFleetInvoice } from '../api/invoicingApi';
 
 type Tab = 'vehicles' | 'statement';
 
@@ -78,7 +80,16 @@ function FleetDetail({ id, onBack, onChanged }: { id: number; onBack: () => void
         </button>
       </div>
 
-      {tab === 'vehicles' ? <FleetVehicles vehicles={overview.vehicles} /> : <FleetStatementView load={loadStatement} />}
+      {tab === 'vehicles' ? <FleetVehicles vehicles={overview.vehicles} /> : <FleetStatementView
+          load={loadStatement}
+          extra={(month) => (
+            <InvoiceButton
+              load={() => getFleetInvoice(id, month)}
+              issue={() => issueFleetInvoice(id, month)}
+              confirmText={`Emiteți în Oblio factura pentru ${fleet?.name ?? 'firmă'}, luna ${month}? Factura este reală și nu se poate anula din EasyITP.`}
+            />
+          )}
+        />}
 
       {editing && (
         <FleetModal

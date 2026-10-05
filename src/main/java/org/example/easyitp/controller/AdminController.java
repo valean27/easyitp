@@ -45,6 +45,7 @@ public class AdminController {
     private final ReminderSendRepository reminderSendRepository;
     private final SmsUsageRepository smsUsageRepository;
     private final org.example.easyitp.repository.StationDeadlineRepository stationDeadlineRepository;
+    private final org.example.easyitp.repository.InvoiceRepository invoiceRepository;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -159,6 +160,7 @@ public class AdminController {
         auditEventRepository.deleteByUserId(id);
         reminderSendRepository.deleteByUserId(id);
         stationDeadlineRepository.deleteByUserId(id);
+        invoiceRepository.deleteByUserId(id);
         appUserRepository.delete(user);
         return ResponseEntity.noContent().build();
     }

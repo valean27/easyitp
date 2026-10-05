@@ -29,7 +29,14 @@ function print(st: FleetStatement) {
 }
 
 // Centralizatorul lunar al unei flote: toate ITP-urile din luna aleasa, cu total, de descarcat ca CSV sau PDF
-export default function FleetStatementView({ load }: { load: (month: string) => Promise<FleetStatement> }) {
+// extra: ce mai apare sub total pentru luna aleasa (la manager: factura Oblio)
+export default function FleetStatementView({
+  load,
+  extra,
+}: {
+  load: (month: string) => Promise<FleetStatement>;
+  extra?: (month: string) => React.ReactNode;
+}) {
   // Implicit luna trecuta: centralizatorul se cere de obicei la inceputul lunii, pentru luna incheiata
   const [month, setMonth] = useState(MONTHS[1]);
   const [statement, setStatement] = useState<FleetStatement | null>(null);
@@ -106,6 +113,7 @@ export default function FleetStatementView({ load }: { load: (month: string) => 
                 </button>
               </div>
             </div>
+            {extra && statement.rows.length > 0 && <div key={month}>{extra(month)}</div>}
 
             {statement.rows.length === 0 ? (
               <p className="text-sm text-slate-500 py-2">Niciun ITP în această lună.</p>

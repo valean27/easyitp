@@ -315,6 +315,10 @@ export interface Fleet {
   plates: string[];
   // contul cu care se logheaza firma; null daca nu are inca
   accountEmail: string | null;
+  // adresa firmei, pe factura (e-Factura o cere)
+  address: string | null;
+  city: string | null;
+  county: string | null;
 }
 
 export type FleetInput = Omit<Fleet, 'id' | 'accountEmail'>;
@@ -555,4 +559,38 @@ export interface StationDeadlineInput {
   title: string | null;
   dueDate: string;
   notes: string | null;
+}
+
+// Facturare prin Oblio (D3)
+export interface InvoicingSettings {
+  email: string | null;
+  // doar la salvare; serverul nu o trimite inapoi
+  secret?: string | null;
+  hasSecret: boolean;
+  cif: string | null;
+  series: string | null;
+  vatName: string | null;
+  vatPercent: number | null;
+  vatIncluded: boolean;
+  einvoice: boolean;
+  dueDays: number;
+  // firma, seria si cota alese: se pot emite facturi
+  ready: boolean;
+}
+
+export interface InvoicingOptions {
+  companies: { cif: string; name: string }[];
+  series: string[];
+  vatRates: { name: string; percent: number }[];
+}
+
+export interface Invoice {
+  id: number;
+  seriesName: string;
+  number: string;
+  link: string | null;
+  total: number;
+  clientName: string | null;
+  einvoiceStatus: string | null;
+  createdAt: string;
 }

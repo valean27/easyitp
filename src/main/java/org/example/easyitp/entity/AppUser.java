@@ -71,6 +71,31 @@ public class AppUser {
 
     private java.time.LocalDateTime googleRatingAt;
 
+    // Facturare prin Oblio (InvoiceService): contul (cheia API nu pleaca spre interfata), firma emitenta, seria,
+    // cota de TVA, daca preturile includ TVA, trimiterea automata in e-Factura si termenul de plata
+    @Column(length = 200)
+    private String oblioEmail;
+
+    @Column(length = 200)
+    private String oblioSecret;
+
+    @Column(length = 30)
+    private String oblioCif;
+
+    @Column(length = 30)
+    private String oblioSeries;
+
+    @Column(length = 60)
+    private String oblioVatName;
+
+    private Double oblioVatPercent;
+
+    private Boolean oblioVatIncluded;
+
+    private Boolean oblioEinvoice;
+
+    private Integer oblioDueDays;
+
     // SMS cu cererea de recenzie a doua zi dupa un ITP admis (pe canalul SMS al statiei); null = nu
     private Boolean reviewSms;
 
