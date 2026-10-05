@@ -23,4 +23,7 @@ public class ManagerSummaryDTO {
     private long itpThisMonth;
     private double revenueThisMonth;
     private long appointmentsThisMonth;
+    // Pachetul de SMS inclus in abonament si cat a folosit statia luna aceasta
+    private int smsPlan;
+    private int smsUsedThisMonth;
 }

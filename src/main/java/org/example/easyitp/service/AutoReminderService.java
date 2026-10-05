@@ -149,7 +149,7 @@ public class AutoReminderService {
         return new SmsText.Data(c.getName(), v.getLicensePlate().toUpperCase(), joinCar(v),
                 record.getNextItpDate(), record.getNextItpDate().isBefore(LocalDate.now()),
                 station.getStationName(), station.getAddress(), station.getPhone(), booking,
-                c.getOptOutToken() == null ? null : appUrl + "/stop/" + c.getOptOutToken());
+                c.getOptOutToken() == null ? null : appUrl + "/s/" + c.getOptOutToken());
     }
 
     // SMS de proba catre un numar dat (de obicei telefonul managerului), cu date de exemplu
@@ -158,7 +158,7 @@ public class AutoReminderService {
                 ? appUrl + "/programare/" + station.getBookingSlug() : null;
         String text = SmsText.render(station.getAutoSmsTemplate(), new SmsText.Data("Ion Popescu", "CJ 01 ABC",
                 "Dacia Logan", LocalDate.now().plusDays(stages(station).get(0)), false, station.getStationName(),
-                station.getAddress(), station.getPhone(), booking, appUrl + "/stop/exemplu"));
+                station.getAddress(), station.getPhone(), booking, appUrl + "/s/exemplu"));
         smsSender.send(station, phone, "[Test] " + text);
         return text;
     }

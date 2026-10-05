@@ -165,6 +165,9 @@ export interface ManagerSummary extends StationInfo {
   itpThisMonth: number;
   revenueThisMonth: number;
   appointmentsThisMonth: number;
+  // pachetul de SMS inclus in abonament si folosirea lui luna aceasta
+  smsPlan: number;
+  smsUsedThisMonth: number;
 }
 
 export interface Appointment {
@@ -409,7 +412,7 @@ export interface HistoryPage {
 // ---------- Remindere SMS automate ----------
 
 // SMS_GATE = telefonul statiei (aplicatia SMS Gateway for Android), SMSLINK = gateway SMSLink.ro
-export type SmsProvider = 'SMS_GATE' | 'SMSLINK';
+export type SmsProvider = 'SMS_GATE' | 'SMSLINK' | 'PLATFORM';
 
 export interface AutoSmsSettings {
   enabled: boolean;
@@ -430,6 +433,10 @@ export interface AutoSmsSettings {
   // SMS-uri pentru programari: confirmare la programarea online si reminder cu o zi inainte
   apptConfirmSms: boolean;
   apptReminderSms: boolean;
+  // Inclus in abonament: contul platformei exista, pachetul statiei (SMS/luna) si cat a folosit luna aceasta
+  platformAvailable: boolean;
+  smsPlan: number;
+  smsUsedThisMonth: number;
 }
 
 // Programarile din anul raportului

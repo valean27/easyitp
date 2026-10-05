@@ -12,6 +12,7 @@ import org.example.easyitp.repository.ReminderSendRepository;
 import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.AutoReminderService;
 import org.example.easyitp.service.DeliveryException;
+import org.example.easyitp.service.SmsQuotaService;
 import org.example.easyitp.service.SmsSender;
 import org.example.easyitp.service.SmsText;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +42,7 @@ public class AutoSmsController {
     private final ReminderSendRepository reminderSendRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final AutoReminderService autoReminderService;
+    private final SmsQuotaService smsQuotaService;
 
     public record LogEntryDTO(LocalDateTime sentAt, String plate, String clientName, int stage, ReminderSend.Status status,
                               String error, int attempts) {
@@ -77,6 +79,12 @@ public class AutoSmsController {
             throw badRequest(e.getMessage());
         }
 
+        if (request.provider() == SmsProvider.PLATFORM && (request.enabled() || request.apptConfirmSms() || request.apptReminderSms())) {
+            if (!smsQuotaService.platformAvailable()) throw badRequest("SMS-urile incluse în abonament nu sunt disponibile momentan.");
+            if (SmsQuotaService.plan(user) <= 0) {
+                throw badRequest("Stația nu are încă un pachet de SMS. Contactați-ne ca să alegeți unul.");
+            }
+        }
         if (request.enabled()) {
             if (request.provider() == null) throw badRequest("Alegeți cum se trimit SMS-urile.");
             if (request.provider() == SmsProvider.SMS_GATE && (user.getSmsGateUsername() == null || user.getSmsGatePassword() == null)) {
@@ -133,10 +141,12 @@ public class AutoSmsController {
                 AutoReminderService.stages(u), u.getAutoSmsTemplate() != null ? u.getAutoSmsTemplate() : SmsText.DEFAULT_TEMPLATE,
                 SmsText.DEFAULT_TEMPLATE, u.getSmsGateUrl(), u.getSmsGateUsername(), null, u.getSmsGatePassword() != null,
                 u.getSmslinkConnectionId(), null, u.getSmslinkPassword() != null, sent,
-                Boolean.TRUE.equals(u.getApptConfirmSms()), Boolean.TRUE.equals(u.getApptReminderSms()));
+                Boolean.TRUE.equals(u.getApptConfirmSms()), Boolean.TRUE.equals(u.getApptReminderSms()),
+                smsQuotaService.platformAvailable(), SmsQuotaService.plan(u), smsQuotaService.usedThisMonth(u.getId()));
     }
 
-    private static boolean configuredFor(AppUser u, SmsProvider provider) {
+    private boolean configuredFor(AppUser u, SmsProvider provider) {
+        if (provider == SmsProvider.PLATFORM) return smsQuotaService.platformAvailable() && SmsQuotaService.plan(u) > 0;
         if (provider == SmsProvider.SMS_GATE) return u.getSmsGateUsername() != null && u.getSmsGatePassword() != null;
         if (provider == SmsProvider.SMSLINK) return u.getSmslinkConnectionId() != null && u.getSmslinkPassword() != null;
         return false;

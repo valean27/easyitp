@@ -36,9 +36,12 @@ public class SmsSender {
     private final RestClient client;
     private final String smslinkUrl;
     private final String smsGateDefaultUrl;
+    private final SmsQuotaService quota;
 
     public SmsSender(@Value("${smslink.url:https://secure.smslink.ro/sms/gateway/communicate/json.php}") String smslinkUrl,
-                     @Value("${smsgate.url:" + SMS_GATE_DEFAULT_URL + "}") String smsGateDefaultUrl) {
+                     @Value("${smsgate.url:" + SMS_GATE_DEFAULT_URL + "}") String smsGateDefaultUrl,
+                     SmsQuotaService quota) {
+        this.quota = quota;
         // Corpul cu Content-Length (nu "chunked"): unele gateway-uri nu accepta cereri fragmentate
         this.client = RestClient.builder()
                 .requestFactory(new BufferingClientHttpRequestFactory(
@@ -54,7 +57,23 @@ public class SmsSender {
         if (provider == null) throw new DeliveryException("Alegeți cum se trimit SMS-urile.");
         String digits = phoneDigits(phone);
         if (digits == null) throw new DeliveryException("Numărul de telefon nu poate primi SMS.");
-        return provider == SmsProvider.SMS_GATE ? sendSmsGate(station, digits, text) : sendSmsLink(station, digits, text);
+        return switch (provider) {
+            case SMS_GATE -> sendSmsGate(station, digits, text);
+            case SMSLINK -> sendSmsLink(station, station.getSmslinkConnectionId(), station.getSmslinkPassword(), digits, text);
+            case PLATFORM -> sendPlatform(station, digits, text);
+        };
+    }
+
+    // Inclus in abonament: contul SMSLink al platformei; fiecare parte a mesajului se scade din pachetul lunii
+    private String sendPlatform(AppUser station, String digits, String text) {
+        if (quota == null || !quota.platformAvailable()) {
+            throw new DeliveryException("SMS-urile incluse în abonament nu sunt disponibile momentan.");
+        }
+        int parts = SmsText.segments(text);
+        quota.checkRoom(station, parts);
+        String id = sendSmsLink(station, quota.connectionId(), quota.password(), digits, text);
+        quota.record(station, parts);
+        return id;
     }
 
     private String sendSmsGate(AppUser station, String digits, String text) {
@@ -88,9 +107,7 @@ public class SmsSender {
         }
     }
 
-    private String sendSmsLink(AppUser station, String digits, String text) {
-        String connectionId = station.getSmslinkConnectionId();
-        String password = station.getSmslinkPassword();
+    private String sendSmsLink(AppUser station, String connectionId, String password, String digits, String text) {
         if (blank(connectionId) || blank(password)) throw new DeliveryException("Lipsesc datele conexiunii SMSLink.");
         // SMSLink vrea numerele romanesti in forma nationala (07xxxxxxxx)
         String to = digits.startsWith("40") ? "0" + digits.substring(2) : "00" + digits;

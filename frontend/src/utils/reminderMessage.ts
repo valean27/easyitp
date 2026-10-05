@@ -34,7 +34,7 @@ export interface ReminderMessageData {
 
 // Link-ul personal de dezabonare (acelasi domeniu ca aplicatia)
 export function stopUrl(token: string): string {
-  return `${window.location.origin}/stop/${token}`;
+  return `${window.location.origin}/s/${token}`;
 }
 
 function formatDate(iso: string): string {

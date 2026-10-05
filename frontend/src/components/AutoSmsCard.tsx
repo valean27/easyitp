@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessageSquareText, Loader2, Send, Smartphone, Server, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { MessageSquareText, Loader2, Send, Smartphone, Server, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Package } from 'lucide-react';
 import type { AutoSmsLogEntry, AutoSmsSettings, Profile, SmsProvider } from '../types';
 import { getAutoSms, getAutoSmsLog, getProfile, sendTestSms, updateAutoSms } from '../api/accountApi';
 import { bookingUrl } from '../utils/booking';
 import { renderSms, smsSegments } from '../utils/smsText';
 import { apiMessage } from '../utils/errors';
 import { formatDateRo } from '../utils/fleet';
+import { SMS_PLANS, planLabel } from '../utils/smsPlans';
 
 type Message = { text: string; type: 'success' | 'error' } | null;
 
@@ -14,6 +15,7 @@ const INPUT_CLS =
 const STAGE_OPTIONS = [60, 30, 14, 7, 3, 1];
 
 const PROVIDERS: { key: SmsProvider; title: string; subtitle: string; icon: typeof Smartphone }[] = [
+  { key: 'PLATFORM', title: 'Inclus în abonament', subtitle: 'Fără cont și fără telefon; din pachetul lunar', icon: Package },
   { key: 'SMS_GATE', title: 'Telefonul stației', subtitle: 'Gratuit, cu SMS-urile din abonament', icon: Smartphone },
   { key: 'SMSLINK', title: 'Gateway SMSLink', subtitle: 'Plătit la SMS (~0,045 €), fără telefon', icon: Server },
 ];
@@ -168,8 +170,8 @@ export default function AutoSmsCard() {
 
         <div>
           <p className="text-sm font-medium text-slate-600 mb-2">Cum se trimit</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {PROVIDERS.map(({ key, title, subtitle, icon: Icon }) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {PROVIDERS.filter((p) => p.key !== 'PLATFORM' || settings.platformAvailable).map(({ key, title, subtitle, icon: Icon }) => (
               <button
                 type="button"
                 key={key}
@@ -187,6 +189,36 @@ export default function AutoSmsCard() {
             ))}
           </div>
         </div>
+
+        {settings.provider === 'PLATFORM' && (
+          <div className="rounded-lg bg-slate-50 border border-slate-100 p-4 space-y-2">
+            {settings.smsPlan > 0 ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">{planLabel(settings.smsPlan)} pe lună</span>
+                  <span className="font-semibold tabular-nums text-slate-800">
+                    {settings.smsUsedThisMonth} / {settings.smsPlan} folosite luna aceasta
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                  <div
+                    className={`h-full ${settings.smsUsedThisMonth >= settings.smsPlan ? 'bg-red-500' : 'bg-blue-600'}`}
+                    style={{ width: `${Math.min(100, (settings.smsUsedThisMonth / settings.smsPlan) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500">
+                  Un mesaj mai lung de 160 de caractere se numără ca două SMS-uri. Când pachetul se termină, SMS-urile se opresc
+                  până la începutul lunii următoare.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-slate-600">
+                Stația nu are încă un pachet de SMS. Pachete: {SMS_PLANS.map((p) => `${p.sms} SMS / ${p.price} RON`).join(' · ')} pe
+                lună (fără TVA). Scrieți-ne și îl activăm.
+              </p>
+            )}
+          </div>
+        )}
 
         {settings.provider === 'SMS_GATE' && (
           <div className="space-y-3 rounded-lg bg-slate-50 border border-slate-100 p-4">

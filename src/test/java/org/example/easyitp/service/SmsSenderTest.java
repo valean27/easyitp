@@ -50,7 +50,7 @@ class SmsSenderTest {
 
     private SmsSender sender() {
         String base = "http://127.0.0.1:" + server.getAddress().getPort();
-        return new SmsSender(base + "/sms/gateway/communicate/json.php", base);
+        return new SmsSender(base + "/sms/gateway/communicate/json.php", base, null);
     }
 
     @Test

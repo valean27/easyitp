@@ -74,6 +74,9 @@ public class AppUser {
     @Column(length = 100)
     private String callmebotApiKey;
 
+    // Pachetul de SMS inclus in abonament (SMS pe luna); null / 0 = niciunul. Setat de admin
+    private Integer smsPlan;
+
     // SMS-uri pentru programari (AppointmentSmsService), pe canalul SMS al statiei; null = oprite
     private Boolean apptConfirmSms;
     private Boolean apptReminderSms;

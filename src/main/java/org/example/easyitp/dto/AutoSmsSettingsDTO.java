@@ -22,5 +22,9 @@ public record AutoSmsSettingsDTO(
         long sentLast30Days,
         // SMS-uri pentru programari: confirmare la programarea online si reminder cu o zi inainte
         boolean apptConfirmSms,
-        boolean apptReminderSms) {
+        boolean apptReminderSms,
+        // Inclus in abonament: contul platformei exista, pachetul statiei (SMS/luna) si cat a folosit luna aceasta
+        boolean platformAvailable,
+        int smsPlan,
+        int smsUsedThisMonth) {
 }

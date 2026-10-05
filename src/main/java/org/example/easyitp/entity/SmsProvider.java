@@ -4,6 +4,8 @@ package org.example.easyitp.entity;
 public enum SmsProvider {
     // Telefonul statiei, prin aplicatia "SMS Gateway for Android" (sms-gate.app), modul cloud
     SMS_GATE,
-    // Gateway-ul SMSLink.ro (platit de statie)
-    SMSLINK
+    // Gateway-ul SMSLink.ro, cu contul statiei (platit de statie)
+    SMSLINK,
+    // Inclus in abonament: contul SMSLink al platformei, in limita pachetului lunar al statiei (AppUser.smsPlan)
+    PLATFORM
 }

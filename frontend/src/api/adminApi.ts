@@ -31,3 +31,7 @@ export const getLeads = (): Promise<Lead[]> => api.get(`${BASE}/leads`).then((r)
 
 export const setLeadHandled = (id: number, handled: boolean): Promise<Lead> =>
   api.put(`${BASE}/leads/${id}/handled`, { handled }).then((r) => r.data);
+
+// Pachetul de SMS inclus in abonament al statiei (0 / 300 / 600 / 1000 pe luna)
+export const setSmsPlan = (id: number, plan: number): Promise<void> =>
+  api.put(`${BASE}/managers/${id}/sms-plan`, { plan }).then(() => undefined);

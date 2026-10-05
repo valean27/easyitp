@@ -69,6 +69,7 @@ function App() {
           {/* Link-ul din SMS-ul de programare: anulare / mutare, fara login */}
           <Route path="/p/:token" element={<Suspense fallback={null}><ManageAppointmentPage /></Suspense>} />
           {/* Link-ul de dezabonare din mesaje: fara login */}
+          <Route path="/s/:token" element={<Suspense fallback={null}><StopPage /></Suspense>} />
           <Route
             path="/stop/:token"
             element={

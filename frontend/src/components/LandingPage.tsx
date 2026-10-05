@@ -22,11 +22,13 @@ import PhoneMockup from './landing/PhoneMockup';
 import RoiCalculator from './landing/RoiCalculator';
 import DemoForm from './landing/DemoForm';
 import Faq from './landing/Faq';
+import { SMS_PLANS } from '../utils/smsPlans';
 
 const NAV = [
   { href: '#functionalitati', label: 'Funcționalități' },
   { href: '#cum-functioneaza', label: 'Cum funcționează' },
   { href: '#calculator', label: 'Calculator' },
+  { href: '#preturi', label: 'Prețuri' },
   { href: '#intrebari', label: 'Întrebări' },
   { href: '/statii', label: 'Stații ITP' },
 ];
@@ -209,11 +211,40 @@ export default function LandingPage() {
 
         {/* Preturi */}
         <section id="preturi" className="scroll-mt-20 py-16 sm:py-20">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <SectionTitle eyebrow="Prețuri" title="Un abonament lunar, fără instalare" text="Pregătim pachetele. Cereți o demonstrație și vă facem o ofertă potrivită mărimii stației." />
-            <a href="#demo" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700">
-              Cere oferta <ArrowRight size={18} />
-            </a>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <SectionTitle
+              eyebrow="Prețuri"
+              title="SMS-uri incluse, fără cont la alt furnizor"
+              text="Alegeți câte SMS-uri pe lună vă trebuie. Le trimitem noi, cu link de programare și dezabonare. Prețuri pe lună, fără TVA."
+            />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 flex flex-col">
+                <p className="font-bold text-slate-900">Telefonul stației</p>
+                <p className="mt-3 text-3xl font-extrabold text-slate-900">0 RON</p>
+                <p className="text-sm text-slate-500">SMS nelimitate</p>
+                <p className="mt-4 text-sm text-slate-600 flex-1">
+                  SMS-urile pleacă de pe un telefon Android al stației, din abonamentul lui, cu o aplicație gratuită.
+                </p>
+              </div>
+              {SMS_PLANS.map((p, i) => (
+                <div
+                  key={p.sms}
+                  className={`relative rounded-2xl border p-6 flex flex-col ${i === 1 ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-600/10' : 'border-slate-200 bg-white'}`}
+                >
+                  {i === 1 && (
+                    <span className="absolute -top-3 left-6 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white">Recomandat</span>
+                  )}
+                  <p className="font-bold text-slate-900">{p.sms} SMS / lună</p>
+                  <p className="mt-3 text-3xl font-extrabold text-slate-900">{p.price} RON</p>
+                  <p className="text-sm text-slate-500">≈ {(p.price / p.sms).toFixed(2).replace('.', ',')} RON / SMS</p>
+                  <p className="mt-4 text-sm text-slate-600 flex-1">Fără cont la furnizorul de SMS și fără telefon de ținut pornit.</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-center text-sm text-slate-500">
+              Abonamentul aplicației îl stabilim împreună, după mărimea stației.{' '}
+              <a href="#demo" className="font-semibold text-blue-600 hover:underline">Cereți oferta</a>
+            </p>
           </div>
         </section>
 

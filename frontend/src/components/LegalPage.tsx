@@ -143,7 +143,9 @@ function Terms() {
       <Section title="Mesaje către clienți">
         <p>
           Reminderele automate se trimit doar clienților care și-au dat acordul și conțin un link de dezabonare. Când stația folosește un
-          cont propriu la un furnizor de SMS, costul mesajelor și relația cu furnizorul sunt ale stației.
+          cont propriu la un furnizor de SMS, costul mesajelor și relația cu furnizorul sunt ale stației. SMS-urile incluse în
+          abonament se trimit în limita pachetului lunar ales; un mesaj mai lung de 160 de caractere se numără ca două SMS-uri,
+          iar SMS-urile nefolosite nu se reportează în luna următoare.
         </p>
       </Section>
 

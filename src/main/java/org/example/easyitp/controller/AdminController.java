@@ -9,6 +9,8 @@ import org.example.easyitp.entity.Role;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AuditEventRepository;
 import org.example.easyitp.repository.ReminderSendRepository;
+import org.example.easyitp.repository.SmsUsageRepository;
+import org.example.easyitp.service.SmsQuotaService;
 import org.example.easyitp.repository.FleetRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
@@ -41,6 +43,7 @@ public class AdminController {
     private final PasswordEncoder passwordEncoder;
     private final AuditEventRepository auditEventRepository;
     private final ReminderSendRepository reminderSendRepository;
+    private final SmsUsageRepository smsUsageRepository;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -75,6 +78,9 @@ public class AdminController {
             appointments.put((Long) row[0], (Long) row[1]);
         }
 
+        Map<Long, Integer> smsUsed = new HashMap<>();
+        smsUsageRepository.findByMonth(java.time.YearMonth.now().toString()).forEach(s -> smsUsed.put(s.getUserId(), s.getSent()));
+
         return appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER).stream()
                 .map(u -> {
                     ItpService.StationStats s = itpStats.getOrDefault(u.getId(), new ItpService.StationStats());
@@ -93,6 +99,8 @@ public class AdminController {
                             .itpThisMonth(s.thisMonth)
                             .revenueThisMonth(s.revenueThisMonth)
                             .appointmentsThisMonth(appointments.getOrDefault(u.getId(), 0L))
+                            .smsPlan(SmsQuotaService.plan(u))
+                            .smsUsedThisMonth(smsUsed.getOrDefault(u.getId(), 0))
                             .build();
                 })
                 .toList();
@@ -115,6 +123,17 @@ public class AdminController {
         AppUser user = findManager(id);
         user.setPassword(passwordEncoder.encode(password));
         user.revokeTokens();
+        appUserRepository.save(user);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Pachetul de SMS inclus in abonament (0 / 300 / 600 / 1000 pe luna)
+    @PutMapping("/managers/{id}/sms-plan")
+    public ResponseEntity<Void> setSmsPlan(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        Integer plan = body.get("plan");
+        if (!SmsQuotaService.validPlan(plan)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pachet SMS invalid");
+        AppUser user = findManager(id);
+        user.setSmsPlan(plan);
         appUserRepository.save(user);
         return ResponseEntity.noContent().build();
     }

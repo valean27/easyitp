@@ -87,7 +87,7 @@ class AutoReminderIntegrationTest {
 
         AutoReminderService.RunResult first = autoReminderService.runDaily(today);
         assertThat(first.sent()).isEqualTo(2);
-        verify(smsSender).send(any(), eq("0722 000 030"), argThat(t -> t.contains("CJ30AAA") && t.contains("/stop/")
+        verify(smsSender).send(any(), eq("0722 000 030"), argThat(t -> t.contains("CJ30AAA") && t.contains("/s/")
                 && t.startsWith("ITP Soseaua Noua:")));
         verify(smsSender).send(any(), eq("0722 000 007"), anyString());
         verify(smsSender, never()).send(any(), eq("0722 000 031"), anyString());

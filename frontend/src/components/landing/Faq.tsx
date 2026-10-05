@@ -12,7 +12,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Cum pleacă SMS-urile automate?',
-    a: 'Alegeți: de pe telefonul Android al stației, cu o aplicație gratuită, sau printr-un gateway SMS. Mesajele pleacă singure dimineața, la termenele alese de dumneavoastră (de exemplu cu 30 și cu 7 zile înainte).',
+    a: 'Alegeți: dintr-un pachet de SMS inclus în abonament (le trimitem noi), de pe telefonul Android al stației, cu o aplicație gratuită, sau prin contul propriu la un furnizor de SMS. Mesajele pleacă singure dimineața, la termenele alese de dumneavoastră (de exemplu cu 30 și cu 7 zile înainte).',
   },
   {
     q: 'Clienții pot refuza mesajele?',

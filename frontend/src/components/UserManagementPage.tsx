@@ -17,8 +17,9 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import { SMS_PLANS, planLabel } from '../utils/smsPlans';
 import type { ManagerSummary } from '../types';
-import { getManagers, setManagerActive, deleteManager } from '../api/adminApi';
+import { getManagers, setManagerActive, deleteManager, setSmsPlan } from '../api/adminApi';
 import { ManagerFormModal, ResetPasswordModal } from './ManagerModals';
 
 const formatRon = (v: number) =>
@@ -117,6 +118,36 @@ export default function UserManagementPage() {
   };
 
   // Butoanele de actiune, comune pentru tabel (desktop) si carduri (telefon)
+  const changePlan = async (m: ManagerSummary, plan: number) => {
+    try {
+      await setSmsPlan(m.id, plan);
+      handleSuccess(`Pachetul SMS pentru ${m.stationName ?? m.email}: ${planLabel(plan)}.`);
+    } catch {
+      alert('Pachetul SMS nu a putut fi salvat.');
+    }
+  };
+
+  const renderPlan = (m: ManagerSummary) => (
+    <div className="flex items-center gap-2">
+      <select
+        value={m.smsPlan}
+        onChange={(e) => changePlan(m, Number(e.target.value))}
+        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+        title="Pachet SMS inclus în abonament"
+      >
+        <option value={0}>Fără pachet</option>
+        {SMS_PLANS.map((p) => (
+          <option key={p.sms} value={p.sms}>{planLabel(p.sms)}</option>
+        ))}
+      </select>
+      {m.smsPlan > 0 && (
+        <span className={`text-xs tabular-nums ${m.smsUsedThisMonth >= m.smsPlan ? 'text-red-600' : 'text-slate-500'}`}>
+          {m.smsUsedThisMonth} / {m.smsPlan}
+        </span>
+      )}
+    </div>
+  );
+
   const renderActions = (m: ManagerSummary) => (
     <div className="flex items-center gap-1">
       <button
@@ -317,6 +348,7 @@ export default function UserManagementPage() {
                         </div>
                       ))}
                     </div>
+                    {renderPlan(m)}
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-slate-400">
                         {formatRon(m.revenueThisMonth)} luna aceasta · logat: {formatLastLogin(m.lastLoginAt).toLowerCase()}
@@ -329,7 +361,7 @@ export default function UserManagementPage() {
               <table className="hidden md:table min-w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {['Stație', 'Contact', 'ITP-uri', 'Luna aceasta', 'Expiră ≤30z', 'Expirate', 'Programări luna', 'Ultima logare', 'Status', ''].map(
+                    {['Stație', 'Contact', 'ITP-uri', 'Luna aceasta', 'Expiră ≤30z', 'Expirate', 'Programări luna', 'Pachet SMS', 'Ultima logare', 'Status', ''].map(
                       (h) => (
                         <th
                           key={h}
@@ -366,6 +398,7 @@ export default function UserManagementPage() {
                         <span className={m.expiredCount > 0 ? 'font-semibold text-red-600' : 'text-slate-400'}>{m.expiredCount}</span>
                       </td>
                       <td className="px-4 py-3 text-slate-700">{m.appointmentsThisMonth}</td>
+                      <td className="px-4 py-3">{renderPlan(m)}</td>
                       <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatLastLogin(m.lastLoginAt)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
