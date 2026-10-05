@@ -172,6 +172,16 @@ class DeadlineIntegrationTest {
         assertThat(getJson("/api/itp/deadlines?plate=CJ06UND", manager).get("RCA").asText()).isEqualTo(today.plusDays(9).toString());
     }
 
+    @Test
+    void oneItpCanBeReadForTheSheetOnlyByItsStation() throws Exception {
+        itp("Ion Fisa", "0722 000 007", "CJ07FIS", true, null);
+        long id = getJson("/api/itp/history?plate=CJ07FIS", manager).get(0).get("id").asLong();
+        JsonNode sheet = getJson("/api/itp/" + id, manager);
+        assertThat(sheet.get("numeSofer").asText()).isEqualTo("Ion Fisa");
+        assertThat(sheet.get("ultimul").asBoolean()).isTrue();
+        mvc.perform(get("/api/itp/" + id).header("Authorization", "Bearer " + other)).andExpect(status().isNotFound());
+    }
+
     // ---------- ajutatoare ----------
 
     private void enable(boolean deadlines) throws Exception {

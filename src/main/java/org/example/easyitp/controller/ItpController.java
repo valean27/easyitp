@@ -90,6 +90,12 @@ public class ItpController {
         return deadlineService.forPlate(currentUser.get().getId(), plate);
     }
 
+    // Un ITP (pentru fisa ITP tiparibila)
+    @GetMapping("/{id}")
+    public DashboardDTO get(@PathVariable Long id) {
+        return itpService.get(id, currentUser.get().getId());
+    }
+
     @PostMapping
     // Doar id-ul: entitatea serializata ar include vehicul -> client -> utilizator (cu hash-ul parolei)
     public ResponseEntity<Map<String, Long>> createItpEntry(@RequestBody ItpFormDTO form) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Pencil, Trash2, ArrowRightLeft, Merge, Phone, Car, Check, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Loader2, Pencil, Trash2, ArrowRightLeft, Merge, Phone, Car, Check, Star, Printer } from 'lucide-react';
 import { getProfile } from '../api/accountApi';
 import { normalizePhone, whatsappLink } from '../utils/reminderMessage';
 import { reviewMessage } from '../utils/review';
@@ -351,6 +352,9 @@ export default function ClientModal({
                               {i === 0 ? `valabil până la ${formatDateRo(itp.nextItpDate)}` : ''}
                               {itp.mileage != null ? `${i === 0 ? ' · ' : ''}${itp.mileage.toLocaleString('ro-RO')} km` : ''}
                             </span>
+                            <Link to={`/fisa/${itp.id}`} target="_blank" title="Fișa ITP" className="p-1 rounded text-slate-400 hover:text-blue-600">
+                              <Printer size={14} />
+                            </Link>
                           </li>
                         ))}
                       </ul>

@@ -79,3 +79,6 @@ export const scanRegistration = (image: Blob): Promise<RegistrationScan> => {
 // RCA / rovinieta / tahograf ale masinii cu acest numar (gol daca nu exista)
 export const getDeadlinesForPlate = (plate: string): Promise<DeadlineDates> =>
   api.get(`${BASE}/deadlines`, { params: { plate } }).then((r) => r.data ?? {});
+
+// Un ITP (fisa ITP tiparibila)
+export const getItp = (id: number): Promise<DashboardEntry> => api.get(`${BASE}/${id}`).then((r) => r.data);

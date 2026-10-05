@@ -27,6 +27,7 @@ const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const HistoryPage = lazy(() => import('./components/HistoryPage'));
 const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
 const PosterPage = lazy(() => import('./components/PosterPage'));
+const ItpSheetPage = lazy(() => import('./components/ItpSheetPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -94,6 +95,17 @@ function App() {
               <ProtectedRoute requiredRole="MANAGER">
                 <Suspense fallback={null}>
                   <PosterPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          {/* Fisa ITP pentru client, de tiparit */}
+          <Route
+            path="/fisa/:id"
+            element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <Suspense fallback={null}>
+                  <ItpSheetPage />
                 </Suspense>
               </ProtectedRoute>
             }

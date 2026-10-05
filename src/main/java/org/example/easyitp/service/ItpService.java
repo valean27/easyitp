@@ -111,6 +111,15 @@ public class ItpService {
         return new DashboardSummaryDTO(vehicles, vehicles - expired - soon, soon, expired);
     }
 
+    // Un ITP al statiei (fisa ITP tiparibila)
+    @Transactional(readOnly = true)
+    public DashboardDTO get(Long id, Long userId) {
+        ItpRecord record = itpRecordRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inregistrare inexistenta"));
+        List<ItpRecord> all = itpRecordRepository.findByPlate(userId, record.getVehicle().getNormalizedPlate());
+        return toDto(record, !all.isEmpty() && all.get(0).getId().equals(record.getId()));
+    }
+
     // Toate ITP-urile unui vehicul (dupa numar), cel mai nou primul
     @Transactional(readOnly = true)
     public List<DashboardDTO> history(String plate, Long userId) {

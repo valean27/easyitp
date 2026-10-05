@@ -1,22 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import QRCode from 'qrcode';
 import { ArrowLeft, Loader2, Printer } from 'lucide-react';
 import type { Profile } from '../types';
 import { getProfile } from '../api/accountApi';
 import { bookingUrl } from '../utils/booking';
-
-// Codul QR ca SVG (fara imagini externe; merge si la tiparire)
-function useQr(text: string | null): string | null {
-  const [svg, setSvg] = useState<string | null>(null);
-  useEffect(() => {
-    if (!text) return;
-    QRCode.toString(text, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0f172a', light: '#ffffff' } })
-      .then(setSvg)
-      .catch(() => setSvg(null));
-  }, [text]);
-  return text ? svg : null;
-}
+import { useQr } from '../utils/qr';
 
 // Fara "https://" pe afis: mai scurt de citit si de tastat
 const shortUrl = (url: string) => url.replace(/^https?:\/\//, '');

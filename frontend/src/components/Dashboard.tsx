@@ -15,6 +15,7 @@ import {
   X,
   Eye,
   Pencil,
+  Printer,
   History,
 } from 'lucide-react';
 import { getRecords, getSummary, getHistory, deleteItpRecord, exportCsv } from '../api/itpApi';
@@ -128,7 +129,14 @@ function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () =
             </div>
           )}
         </div>
-        <div className="flex justify-end px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+        <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50 shrink-0">
+          <Link
+            to={`/fisa/${entry.id}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+          >
+            <Printer size={15} /> Fișa ITP
+          </Link>
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -500,6 +508,9 @@ export default function Dashboard() {
                           <button onClick={() => setViewEntry(row)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100" title="Detalii">
                             <Eye size={16} />
                           </button>
+                          <Link to={`/fisa/${row.id}`} target="_blank" className="p-2 rounded-lg text-slate-400 hover:bg-slate-100" title="Fișa ITP">
+                            <Printer size={16} />
+                          </Link>
                           <button onClick={() => setEditEntry(row)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100" title="Editează">
                             <Pencil size={16} />
                           </button>
@@ -598,6 +609,14 @@ export default function Dashboard() {
                             >
                               <Eye size={15} />
                             </button>
+                            <Link
+                              to={`/fisa/${row.id}`}
+                              target="_blank"
+                              className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                              title="Fișa ITP"
+                            >
+                              <Printer size={15} />
+                            </Link>
                             <button
                               onClick={() => setEditEntry(row)}
                               className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
