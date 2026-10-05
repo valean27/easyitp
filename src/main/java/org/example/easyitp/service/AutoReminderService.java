@@ -13,10 +13,12 @@ import org.example.easyitp.entity.ReminderStatus;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.entity.SmsProvider;
 import org.example.easyitp.entity.Vehicle;
+import org.example.easyitp.entity.VehicleDeadline;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.ReminderSendRepository;
+import org.example.easyitp.repository.VehicleRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -43,11 +45,15 @@ public class AutoReminderService {
     static final int CATCH_UP_DAYS = 5;
     static final int MAX_ATTEMPTS = 3;
     static final int MAX_PER_STATION_PER_DAY = 300;
+    // RCA / rovinieta / tahograf: o singura treapta
+    static final int DEADLINE_STAGE = 7;
+    public static final String DEADLINE_TEMPLATE = "{statie}: {tip} pentru {numar} {expira} {data}. Info la {telefon}.";
 
     private final AppUserRepository appUserRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final ReminderSendRepository reminderSendRepository;
     private final AppointmentRepository appointmentRepository;
+    private final VehicleRepository vehicleRepository;
     private final SmsSender smsSender;
 
     @Value("${app.url:https://easyitp.vercel.app}")
@@ -106,6 +112,45 @@ public class AutoReminderService {
                 failed++;
             }
         }
+        if (Boolean.TRUE.equals(station.getAutoSmsDeadlines())) {
+            RunResult d = runDeadlines(station, today, sentToday);
+            sent += d.sent();
+            failed += d.failed();
+            skipped += d.skipped();
+        }
+        return new RunResult(sent, failed, skipped);
+    }
+
+    // Alte scadente (C4): un SMS cu 7 zile inainte, daca statia nu a contactat deja clientul pentru ea
+    private RunResult runDeadlines(AppUser station, LocalDate today, long sentToday) {
+        int sent = 0, failed = 0, skipped = 0;
+        List<Integer> stage = List.of(DEADLINE_STAGE);
+        for (Vehicle v : vehicleRepository.findWithDeadlinesBetween(station.getId(), today, today.plusDays(DEADLINE_STAGE))) {
+            Client client = v.getClient();
+            if (client.getReminderConsent() != ReminderConsent.GIVEN || SmsSender.phoneDigits(client.getPhone()) == null) continue;
+            for (VehicleDeadline d : v.getDeadlines()) {
+                if (stageFor(ChronoUnit.DAYS.between(today, d.getDueDate()), stage) == null || d.getContactedAt() != null) continue;
+                ReminderSend previous = reminderSendRepository.findByVehicleIdAndKindAndDueDate(v.getId(), d.getKind(), d.getDueDate())
+                        .orElse(null);
+                if (previous != null && (previous.getStatus() == ReminderSend.Status.SENT || previous.getAttempts() >= MAX_ATTEMPTS)) {
+                    continue;
+                }
+                if (sentToday >= MAX_PER_STATION_PER_DAY) {
+                    skipped++;
+                    continue;
+                }
+                ReminderSend send = previous != null ? previous : ReminderSend.builder().userId(station.getId())
+                        .vehicleId(v.getId()).kind(d.getKind()).dueDate(d.getDueDate()).stage(DEADLINE_STAGE).attempts(0).build();
+                String text = SmsText.render(DEADLINE_TEMPLATE.replace("{tip}", d.getKind().smsLabel()),
+                        messageData(station, v, d.getDueDate()));
+                if (attempt(station, client.getPhone(), text, send)) {
+                    sent++;
+                    sentToday++;
+                } else {
+                    failed++;
+                }
+            }
+        }
         return new RunResult(sent, failed, skipped);
     }
 
@@ -125,12 +170,16 @@ public class AutoReminderService {
         String text = SmsText.render(station.getAutoSmsTemplate(), messageData(station, record));
         ReminderSend send = previous != null ? previous : ReminderSend.builder()
                 .userId(station.getId()).itpRecordId(record.getId()).stage(stage).attempts(0).build();
-        send.setPhone(client.getPhone());
+        return attempt(station, client.getPhone(), text, send);
+    }
+
+    private boolean attempt(AppUser station, String phone, String text, ReminderSend send) {
+        send.setPhone(phone);
         send.setProvider(station.getAutoSmsProvider());
         send.setAttempts(send.getAttempts() + 1);
         send.setSentAt(LocalDateTime.now());
         try {
-            send.setMessageId(truncate(smsSender.send(station, client.getPhone(), text), 100));
+            send.setMessageId(truncate(smsSender.send(station, phone, text), 100));
             send.setStatus(ReminderSend.Status.SENT);
             send.setError(null);
         } catch (DeliveryException e) {
@@ -142,12 +191,15 @@ public class AutoReminderService {
     }
 
     SmsText.Data messageData(AppUser station, ItpRecord record) {
-        Vehicle v = record.getVehicle();
+        return messageData(station, record.getVehicle(), record.getNextItpDate());
+    }
+
+    private SmsText.Data messageData(AppUser station, Vehicle v, LocalDate expiry) {
         Client c = v.getClient();
         String booking = Boolean.TRUE.equals(station.getBookingEnabled()) && station.getBookingSlug() != null
                 ? appUrl + "/programare/" + station.getBookingSlug() : null;
         return new SmsText.Data(c.getName(), v.getLicensePlate().toUpperCase(), joinCar(v),
-                record.getNextItpDate(), record.getNextItpDate().isBefore(LocalDate.now()),
+                expiry, expiry.isBefore(LocalDate.now()),
                 station.getStationName(), station.getAddress(), station.getPhone(), booking,
                 c.getOptOutToken() == null ? null : appUrl + "/s/" + c.getOptOutToken());
     }

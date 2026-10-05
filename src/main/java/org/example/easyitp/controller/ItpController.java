@@ -7,9 +7,11 @@ import org.example.easyitp.dto.DashboardSummaryDTO;
 import org.example.easyitp.dto.ImportResultDTO;
 import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.dto.RegistrationScanDTO;
+import org.example.easyitp.entity.DeadlineKind;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.CsvImportService;
+import org.example.easyitp.service.DeadlineService;
 import org.example.easyitp.service.ItpService;
 import org.example.easyitp.service.RegistrationScanService;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +36,7 @@ public class ItpController {
     private final CsvImportService csvImportService;
     private final CurrentUser currentUser;
     private final RegistrationScanService registrationScanService;
+    private final DeadlineService deadlineService;
 
     private static final Set<String> SCAN_IMAGE_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     // Anthropic accepta imagini de pana la 5 MB (codate base64 cresc cu o treime)
@@ -78,6 +82,12 @@ public class ItpController {
         return itpService.lookupByPlate(plate, currentUser.get().getId())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
+    }
+
+    // Alte scadente (RCA, rovinieta, tahograf) ale masinii cu acest numar, pentru formular
+    @GetMapping("/deadlines")
+    public Map<DeadlineKind, LocalDate> deadlines(@RequestParam String plate) {
+        return deadlineService.forPlate(currentUser.get().getId(), plate);
     }
 
     @PostMapping

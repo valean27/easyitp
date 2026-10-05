@@ -8,6 +8,7 @@ import org.example.easyitp.entity.AuditEvent;
 import org.example.easyitp.entity.AuditEvent.Action;
 import org.example.easyitp.entity.AuditEvent.EntityType;
 import org.example.easyitp.entity.Client;
+import org.example.easyitp.entity.DeadlineKind;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.ReminderConsent;
@@ -44,7 +45,9 @@ public class AuditService {
                           LocalDateTime reminderAt, List<Long> appointmentIds) {
     }
 
-    public record VehicleSnap(String licensePlate, String brand, String model, Integer year, String vin, List<ItpSnap> itps) {
+    // deadlines lipseste din stergerile de dinainte de C4 -> null
+    public record VehicleSnap(String licensePlate, String brand, String model, Integer year, String vin, List<ItpSnap> itps,
+                              Map<DeadlineKind, LocalDate> deadlines) {
     }
 
     // consent*: acordul pentru remindere (lipsesc din stergerile de dinainte de C1 -> null)
@@ -58,7 +61,8 @@ public class AuditService {
     }
 
     public static VehicleSnap snap(Vehicle v, List<ItpSnap> itps) {
-        return new VehicleSnap(v.getLicensePlate(), v.getBrand(), v.getModel(), v.getYear(), v.getVin(), itps);
+        return new VehicleSnap(v.getLicensePlate(), v.getBrand(), v.getModel(), v.getYear(), v.getVin(), itps,
+                DeadlineService.asMap(v));
     }
 
     public ClientSnap readSnapshot(AuditEvent event) {
@@ -150,6 +154,18 @@ public class AuditService {
         f.put("Model", v.getModel());
         f.put("An", text(v.getYear()));
         f.put("VIN", v.getVin());
+        f.putAll(deadlineFields(v));
+        return f;
+    }
+
+    // "RCA: 12.03.2027"; fiecare tip apare mereu, gol cand nu e completat (ca diff-ul sa vada stergerile)
+    public static Map<String, String> deadlineFields(Vehicle v) {
+        Map<String, String> f = new LinkedHashMap<>();
+        Map<DeadlineKind, LocalDate> dates = DeadlineService.asMap(v);
+        for (DeadlineKind kind : DeadlineKind.values()) {
+            LocalDate d = dates.get(kind);
+            f.put(kind.label(), d == null ? null : d.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
+        }
         return f;
     }
 

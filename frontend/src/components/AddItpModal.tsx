@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import CreatableSelect from 'react-select/creatable';
 import type { SingleValue } from 'react-select';
-import { X, Loader2, History, Camera, ScanLine, AlertTriangle } from 'lucide-react';
-import type { DashboardEntry, ItpFormData, ItpStatus } from '../types';
-import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration } from '../api/itpApi';
+import { X, Loader2, History, Camera, ScanLine, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import type { DashboardEntry, DeadlineDates, ItpFormData, ItpStatus } from '../types';
+import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration, getDeadlinesForPlate } from '../api/itpApi';
+import { deadlinePayload, deadlineSummary } from '../utils/deadlines';
+import DeadlineFields from './DeadlineFields';
 import { shrinkImage } from '../utils/image';
 import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
@@ -121,6 +123,17 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   const [scanNote, setScanNote] = useState<{ text: string; warnings: string[]; type: 'success' | 'error' } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
+  // RCA / rovinieta / tahograf ale masinii; se trimit doar daca au fost atinse in formular
+  const [deadlines, setDeadlines] = useState<DeadlineDates>({});
+  const [deadlinesTouched, setDeadlinesTouched] = useState(false);
+  const [showDeadlines, setShowDeadlines] = useState(false);
+
+  useEffect(() => {
+    if (!entry?.numarInmatriculare) return;
+    getDeadlinesForPlate(entry.numarInmatriculare)
+      .then(setDeadlines)
+      .catch(() => setDeadlines({}));
+  }, [entry]);
 
   // Lista de inspectori a statiei; la un ITP nou preselectam inspectorul folosit ultima data pe acest dispozitiv
   useEffect(() => {
@@ -206,6 +219,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
         reminderConsent: f.reminderConsent ?? (prev.reminderConsent === 'GIVEN' ? true : undefined),
       }));
       setDeclined(prev.reminderConsent === 'DECLINED');
+      if (!deadlinesTouched) getDeadlinesForPlate(plate).then(setDeadlines).catch(() => undefined);
       if (brandEmpty && prev.marca) await selectMakeModel(makeOptions, prev.marca, prev.model);
       setLookupNote(`Client cunoscut: ultimul ITP pe ${prev.dataItp}. Datele vehiculului au fost completate.`);
     } catch {
@@ -325,10 +339,11 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     setError(null);
     setLoading(true);
     try {
+      const data = deadlinesTouched ? { ...form, deadlines: deadlinePayload(deadlines) } : form;
       if (entry) {
-        await updateItpEntry(entry.id, form);
+        await updateItpEntry(entry.id, data);
       } else {
-        await createItpEntry({ ...form, appointmentId });
+        await createItpEntry({ ...data, appointmentId });
       }
       onSuccess();
       onClose();
@@ -657,6 +672,35 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   className={INPUT_CLS + ' resize-none'}
                 />
               </div>
+              <div className="rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowDeadlines((v) => !v)}
+                  aria-expanded={showDeadlines}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium text-slate-600"
+                >
+                  <span>
+                    Alte scadențe{' '}
+                    <span className="font-normal text-slate-400">
+                      {!showDeadlines && deadlineSummary(deadlines) ? deadlineSummary(deadlines) : '(opțional: RCA, rovinietă, tahograf)'}
+                    </span>
+                  </span>
+                  {showDeadlines ? <ChevronUp size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
+                </button>
+                {showDeadlines && (
+                  <div className="px-3 pb-3 space-y-2">
+                    <DeadlineFields
+                      value={deadlines}
+                      onChange={(d) => {
+                        setDeadlines(d);
+                        setDeadlinesTouched(true);
+                      }}
+                      inputCls={INPUT_CLS}
+                    />
+                    <p className="text-xs text-slate-400">Apar în „De contactat” cu 30 de zile înainte de expirare.</p>
+                  </div>
+                )}
+              </div>
               <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -665,7 +709,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>
-                  Clientul este de acord să primească remindere ITP (SMS / WhatsApp)
+                  Clientul este de acord să primească remindere (ITP, RCA, rovinietă) prin SMS / WhatsApp
                   {declined && !form.reminderConsent && (
                     <span className="block text-xs text-amber-700 mt-0.5">
                       A cerut să nu mai primească mesaje. Bifați doar dacă și-a dat din nou acordul.

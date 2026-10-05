@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.easyitp.service.PlateUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "vehicles")
 @Data
@@ -36,6 +39,15 @@ public class Vehicle {
     @JoinColumn(name = "client_id", nullable = false)
     @ToString.Exclude
     private Client client;
+
+    // Alte scadente (RCA, rovinieta, tahograf), optionale
+    @ElementCollection
+    @CollectionTable(name = "vehicle_deadlines", joinColumns = @JoinColumn(name = "vehicle_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"vehicle_id", "kind"}))
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<VehicleDeadline> deadlines = new ArrayList<>();
 
     @PrePersist
     @PreUpdate

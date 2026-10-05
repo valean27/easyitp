@@ -1,11 +1,13 @@
 package org.example.easyitp.dto;
 
+import org.example.easyitp.entity.DeadlineKind;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.ReminderConsent;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 // Pagina "Clienti": un client cu masinile lui si istoricul ITP pe fiecare masina
 public final class ClientDTOs {
@@ -25,8 +27,9 @@ public final class ClientDTOs {
                                 ItpStatus status, Integer mileage, Double price, String inspector) {
     }
 
+    // deadlines: alte scadente (RCA, rovinieta, tahograf), doar cele completate
     public record VehicleDTO(Long id, String licensePlate, String brand, String model, Integer year, String vin,
-                             List<VehicleItpDTO> itps) {
+                             List<VehicleItpDTO> itps, Map<DeadlineKind, LocalDate> deadlines) {
     }
 
     // consent: acordul pentru remindere (null = necunoscut), cu data si sursa ultimei schimbari
@@ -40,7 +43,9 @@ public final class ClientDTOs {
     public record ClientUpdateRequest(String name, String phone) {
     }
 
-    public record VehicleUpdateRequest(String licensePlate, String brand, String model, Integer year, String vin) {
+    // deadlines: null = nu schimba; un tip cu valoarea null = sterge scadenta
+    public record VehicleUpdateRequest(String licensePlate, String brand, String model, Integer year, String vin,
+                                       Map<DeadlineKind, LocalDate> deadlines) {
     }
 
     public record TargetClientRequest(Long clientId) {

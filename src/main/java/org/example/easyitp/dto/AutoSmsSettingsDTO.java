@@ -26,5 +26,7 @@ public record AutoSmsSettingsDTO(
         // Inclus in abonament: contul platformei exista, pachetul statiei (SMS/luna) si cat a folosit luna aceasta
         boolean platformAvailable,
         int smsPlan,
-        int smsUsedThisMonth) {
+        int smsUsedThisMonth,
+        // SMS automat si pentru RCA / rovinieta / tahograf (cu 7 zile inainte)
+        boolean deadlinesSms) {
 }

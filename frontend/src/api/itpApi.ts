@@ -1,6 +1,14 @@
 import api from './axiosInstance';
 import { auditEventId } from './historyApi';
-import type { DashboardEntry, DashboardPage, DashboardSummary, ImportResult, ItpFormData, RegistrationScan } from '../types';
+import type {
+  DashboardEntry,
+  DashboardPage,
+  DashboardSummary,
+  DeadlineDates,
+  ImportResult,
+  ItpFormData,
+  RegistrationScan,
+} from '../types';
 
 const BASE = '/api/itp';
 
@@ -67,3 +75,7 @@ export const scanRegistration = (image: Blob): Promise<RegistrationScan> => {
     })
     .then((r) => r.data);
 };
+
+// RCA / rovinieta / tahograf ale masinii cu acest numar (gol daca nu exista)
+export const getDeadlinesForPlate = (plate: string): Promise<DeadlineDates> =>
+  api.get(`${BASE}/deadlines`, { params: { plate } }).then((r) => r.data ?? {});

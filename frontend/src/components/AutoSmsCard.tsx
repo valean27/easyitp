@@ -29,7 +29,9 @@ function LogList({ entries }: { entries: AutoSmsLogEntry[] }) {
           <span className="text-slate-500 tabular-nums">{formatDateRo(e.sentAt.slice(0, 10))} {e.sentAt.slice(11, 16)}</span>
           <span className="font-mono font-semibold text-slate-700">{e.plate ?? '—'}</span>
           <span className="text-slate-600 truncate">{e.clientName ?? ''}</span>
-          <span className="text-slate-400">cu {e.stage} zile înainte</span>
+          <span className="text-slate-400">
+            {e.kind ?? 'ITP'} · cu {e.stage} zile înainte
+          </span>
           {e.status === 'SENT' ? (
             <span className="ml-auto text-emerald-600 font-medium">trimis</span>
           ) : (
@@ -341,6 +343,21 @@ export default function AutoSmsCard() {
             ))}
           </div>
           {settings.days.length === 0 && <p className="text-xs text-slate-400 mt-1">Fără selecție se folosesc 30 și 7 zile.</p>}
+          <label className="mt-3 flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={settings.deadlinesSms}
+              onChange={(e) => update({ deadlinesSms: e.target.checked })}
+              className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>
+              Și pentru RCA, rovinietă și tahograf, cu 7 zile înainte
+              <span className="block text-xs text-slate-400">
+                Doar unde ați completat data (în formularul ITP sau în fișa clientului) și nu ați marcat deja clientul ca
+                „Contactat”.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div>

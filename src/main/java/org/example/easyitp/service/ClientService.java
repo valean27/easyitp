@@ -288,7 +288,8 @@ public class ClientService {
                         .collect(Collectors.groupingBy(r -> r.getVehicle().getId(), LinkedHashMap::new, Collectors.toList()));
         List<VehicleDTO> vehicleDtos = vehicles.stream()
                 .map(v -> new VehicleDTO(v.getId(), v.getLicensePlate(), v.getBrand(), v.getModel(), v.getYear(), v.getVin(),
-                        records.getOrDefault(v.getId(), List.of()).stream().map(ClientService::itpDto).toList()))
+                        records.getOrDefault(v.getId(), List.of()).stream().map(ClientService::itpDto).toList(),
+                        DeadlineService.asMap(v)))
                 // masina cu cel mai recent ITP prima
                 .sorted(Comparator.comparing((VehicleDTO v) -> v.itps().isEmpty() ? null : v.itps().get(0).testDate(),
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -339,6 +340,7 @@ public class ClientService {
         vehicle.setModel(trimToNull(request.model()));
         vehicle.setYear(request.year());
         vehicle.setVin(trimToNull(request.vin()) == null ? null : request.vin().trim().toUpperCase(Locale.ROOT));
+        DeadlineService.apply(vehicle, request.deadlines());
         vehicleRepository.save(vehicle);
         String changes = AuditService.diff(before, AuditService.vehicleFields(vehicle));
         if (!changes.isEmpty()) {

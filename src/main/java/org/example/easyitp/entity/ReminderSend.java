@@ -3,11 +3,15 @@ package org.example.easyitp.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Un SMS automat de reamintire: pentru ce ITP, la ce treapta (zile inainte de expirare) si cum a mers
+// Un SMS automat de reamintire: pentru ce ITP (sau ce alta scadenta a masinii), la ce treapta (zile inainte de
+// expirare) si cum a mers
 @Entity
-@Table(name = "reminder_sends", uniqueConstraints = @UniqueConstraint(columnNames = {"itp_record_id", "stage"}))
+@Table(name = "reminder_sends", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"itp_record_id", "stage"}),
+        @UniqueConstraint(columnNames = {"vehicle_id", "kind", "due_date"})})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,8 +27,19 @@ public class ReminderSend {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "itp_record_id", nullable = false)
+    // ITP-ul; gol pentru RCA / rovinieta / tahograf, care au masina, tipul si data scadentei
+    @Column(name = "itp_record_id")
     private Long itpRecordId;
+
+    @Column(name = "vehicle_id")
+    private Long vehicleId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private DeadlineKind kind;
+
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
     // Cu cate zile inainte de expirare (30, 7...)
     @Column(nullable = false)

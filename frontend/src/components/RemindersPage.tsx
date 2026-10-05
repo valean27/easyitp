@@ -20,8 +20,9 @@ import {
   ChevronUp,
   Inbox,
 } from 'lucide-react';
-import type { Profile, Reminder, ReminderStatus } from '../types';
-import { getReminders, updateReminderStatus } from '../api/reminderApi';
+import type { DeadlineReminder, Profile, Reminder, ReminderStatus } from '../types';
+import { getDeadlineReminders, getReminders, setDeadlineContacted, updateReminderStatus } from '../api/reminderApi';
+import DeadlineReminderList from './DeadlineReminderList';
 import { getProfile } from '../api/accountApi';
 import { normalizePhone, renderReminder, smsLink, stopUrl, whatsappLink } from '../utils/reminderMessage';
 import AppointmentModal from './AppointmentModal';
@@ -283,14 +284,19 @@ export default function RemindersPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [scheduling, setScheduling] = useState<Reminder | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // ITP-uri sau alte scadente (RCA, rovinieta, tahograf)
+  const [view, setView] = useState<'ITP' | 'OTHER'>('ITP');
+  const [deadlines, setDeadlines] = useState<DeadlineReminder[]>([]);
+  const [busyDeadline, setBusyDeadline] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [rows, me] = await Promise.all([getReminders(), getProfile()]);
+      const [rows, me, other] = await Promise.all([getReminders(), getProfile(), getDeadlineReminders()]);
       setReminders(rows);
       setProfile(me);
+      setDeadlines(other);
     } catch {
       setError('Nu s-a putut încărca lista.');
     } finally {
@@ -317,6 +323,31 @@ export default function RemindersPage() {
       setBusyId(null);
     }
   };
+
+  const handleDeadline = async (d: DeadlineReminder, contacted: boolean) => {
+    const key = `${d.vehicleId}-${d.kind}`;
+    const previous = deadlines;
+    setBusyDeadline(key);
+    setDeadlines((list) =>
+      list.map((x) =>
+        x.vehicleId === d.vehicleId && x.kind === d.kind ? { ...x, contactedAt: contacted ? new Date().toISOString() : null } : x
+      )
+    );
+    try {
+      await setDeadlineContacted(d.vehicleId, d.kind, contacted);
+    } catch {
+      setDeadlines(previous);
+      setError('Statusul nu a putut fi salvat.');
+    } finally {
+      setBusyDeadline(null);
+    }
+  };
+
+  const qd = search.toLowerCase();
+  const visibleDeadlines = deadlines
+    .filter((d) => d.clientName.toLowerCase().includes(qd) || d.plate.toLowerCase().includes(qd) || (d.phone ?? '').includes(qd))
+    .sort((a, b) => Number(!!a.contactedAt) - Number(!!b.contactedAt) || a.daysLeft - b.daysLeft);
+  const deadlinesTodo = deadlines.filter((d) => !d.contactedAt).length;
 
   const counts = useMemo(() => {
     const c: Record<StatusTab, number> = { TODO: 0, CONTACTED: 0, SCHEDULED: 0, NOT_INTERESTED: 0, ALL: reminders.length };
@@ -350,7 +381,7 @@ export default function RemindersPage() {
             <div>
               <h1 className="text-base font-bold text-slate-800 leading-tight">De contactat</h1>
               <p className="text-xs text-slate-400 leading-tight hidden sm:block">
-                ITP-uri care expiră în 30 de zile sau au expirat în ultimele 60
+                ITP-uri, RCA, roviniete și tahografe care expiră curând
               </p>
             </div>
           </div>
@@ -393,74 +424,118 @@ export default function RemindersPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {STATUS_TABS.map((t) => (
+        <div className="inline-flex rounded-xl bg-slate-100 p-1">
+          {([
+            ['ITP', 'ITP', counts.TODO],
+            ['OTHER', 'RCA, rovinietă, tahograf', deadlinesTodo],
+          ] as const).map(([key, label, n]) => (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tab === t.key ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              key={key}
+              onClick={() => setView(key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                view === key ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              {t.label}
-              <span className={`ml-1.5 text-xs ${tab === t.key ? 'text-blue-100' : 'text-slate-400'}`}>{counts[t.key]}</span>
+              {label}
+              {n > 0 && <span className="ml-1.5 text-xs text-blue-600">{n}</span>}
             </button>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {URGENCY_CHIPS.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => setUrgency(c.key)}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  urgency === c.key ? 'bg-slate-800 text-white dark:text-slate-50' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <div className="relative w-full sm:w-72">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Caută după nume, număr, telefon..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {loading && reminders.length === 0 ? (
-          <div className="flex items-center justify-center py-20 text-slate-400">
-            <Loader2 size={24} className="animate-spin mr-2" />
-            Se încarcă...
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-            <Inbox size={40} className="opacity-30" />
-            <p className="text-sm">
-              {tab === 'TODO' && reminders.length > 0 && !search && urgency === 'ALL'
-                ? 'Ai contactat pe toată lumea. Bravo!'
-                : 'Niciun client în această listă.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {visible.map((r) => (
-              <ReminderCard
-                key={r.id}
-                reminder={r}
-                profile={profile}
-                onStatus={handleStatus}
-                onSchedule={setScheduling}
-                busy={busyId === r.id}
+        {view === 'OTHER' ? (
+          <>
+            <div className="relative w-full sm:w-72">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Caută după nume, număr, telefon..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            ))}
-          </div>
+            </div>
+            {loading && deadlines.length === 0 ? (
+              <div className="flex items-center justify-center py-20 text-slate-400">
+                <Loader2 size={24} className="animate-spin mr-2" />
+                Se încarcă...
+              </div>
+            ) : (
+              <DeadlineReminderList items={visibleDeadlines} profile={profile} busyKey={busyDeadline} onContacted={handleDeadline} />
+            )}
+          </>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    tab === t.key ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {t.label}
+                  <span className={`ml-1.5 text-xs ${tab === t.key ? 'text-blue-100' : 'text-slate-400'}`}>{counts[t.key]}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-1.5">
+                {URGENCY_CHIPS.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => setUrgency(c.key)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                      urgency === c.key ? 'bg-slate-800 text-white dark:text-slate-50' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Caută după nume, număr, telefon..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {loading && reminders.length === 0 ? (
+              <div className="flex items-center justify-center py-20 text-slate-400">
+                <Loader2 size={24} className="animate-spin mr-2" />
+                Se încarcă...
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                <Inbox size={40} className="opacity-30" />
+                <p className="text-sm">
+                  {tab === 'TODO' && reminders.length > 0 && !search && urgency === 'ALL'
+                    ? 'Ai contactat pe toată lumea. Bravo!'
+                    : 'Niciun client în această listă.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {visible.map((r) => (
+                  <ReminderCard
+                    key={r.id}
+                    reminder={r}
+                    profile={profile}
+                    onStatus={handleStatus}
+                    onSchedule={setScheduling}
+                    busy={busyId === r.id}
+                  />
+                ))}
+              </div>
+            )}
+
+          </>
         )}
 
         {scheduling && (

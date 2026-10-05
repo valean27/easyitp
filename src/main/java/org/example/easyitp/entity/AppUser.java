@@ -88,6 +88,9 @@ public class AppUser {
     @Column(length = 20)
     private SmsProvider autoSmsProvider;
 
+    // SMS automat si pentru RCA / rovinieta / tahograf, cu 7 zile inainte; null = nu
+    private Boolean autoSmsDeadlines;
+
     // Cu cate zile inainte de expirare se trimite, ex. "30,7"; null = valorile implicite
     @Column(length = 20)
     private String autoSmsDays;

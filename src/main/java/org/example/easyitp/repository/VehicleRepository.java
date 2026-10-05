@@ -30,4 +30,14 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             ORDER BY v.id DESC
             """)
     List<Vehicle> findByNormalizedPlate(@Param("plate") String normalizedPlate, @Param("userId") Long userId);
+
+    // Masinile statiei cu o alta scadenta (RCA, rovinieta, tahograf) intre doua date, cu clientul si toate scadentele
+    @Query("""
+            SELECT DISTINCT v FROM Vehicle v JOIN FETCH v.client c LEFT JOIN FETCH v.deadlines
+            WHERE c.user.id = :userId AND EXISTS (
+                SELECT 1 FROM Vehicle v2 JOIN v2.deadlines d
+                WHERE v2.id = v.id AND d.dueDate BETWEEN :from AND :to)
+            """)
+    List<Vehicle> findWithDeadlinesBetween(@Param("userId") Long userId, @Param("from") java.time.LocalDate from,
+                                           @Param("to") java.time.LocalDate to);
 }

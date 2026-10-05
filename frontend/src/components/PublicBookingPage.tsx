@@ -336,7 +336,7 @@ export default function PublicBookingPage() {
                 className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <span>
-                Vreau să primesc de la {station?.name || 'stație'} un mesaj când se apropie următorul ITP.{' '}
+                Vreau să primesc de la {station?.name || 'stație'} un mesaj când se apropie următorul ITP sau alte scadențe ale mașinii (RCA, rovinietă).{' '}
                 <span className="text-slate-400">Opțional; vă puteți dezabona oricând din link-ul din mesaj.</span>
               </span>
             </label>

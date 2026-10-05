@@ -10,7 +10,9 @@ import {
   updateClient,
   updateVehicle,
 } from '../api/clientApi';
-import type { ClientDetail, ClientVehicle, ReminderConsent, VehicleUpdate } from '../types';
+import type { ClientDetail, ClientVehicle, DeadlineDates, ReminderConsent, VehicleUpdate } from '../types';
+import { deadlinePayload, deadlineSummary } from '../utils/deadlines';
+import DeadlineFields from './DeadlineFields';
 import { STATUS_LABELS, formatDateRo } from '../utils/fleet';
 import { apiMessage } from '../utils/errors';
 import ClientPicker from './ClientPicker';
@@ -31,6 +33,7 @@ function VehicleForm({ vehicle, onSave, onCancel }: {
     year: vehicle.year?.toString() ?? '',
     vin: vehicle.vin ?? '',
   });
+  const [deadlines, setDeadlines] = useState<DeadlineDates>(vehicle.deadlines ?? {});
   const [saving, setSaving] = useState(false);
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -45,6 +48,7 @@ function VehicleForm({ vehicle, onSave, onCancel }: {
         model: form.model.trim() || null,
         year: form.year.trim() ? Number(form.year) : null,
         vin: form.vin.trim() || null,
+        deadlines: deadlinePayload(deadlines),
       });
     } finally {
       setSaving(false);
@@ -73,6 +77,10 @@ function VehicleForm({ vehicle, onSave, onCancel }: {
         VIN
         <input value={form.vin} onChange={set('vin')} className={`${inputCls} font-mono uppercase mt-1`} />
       </label>
+      <div className="col-span-2">
+        <p className="text-xs font-medium text-slate-500 mb-1">Alte scadențe (opțional)</p>
+        <DeadlineFields value={deadlines} onChange={setDeadlines} inputCls={inputCls} />
+      </div>
       <div className="col-span-2 flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="px-3 py-1.5 rounded-lg text-sm text-slate-600 hover:bg-slate-100">
           Renunță
@@ -270,6 +278,9 @@ export default function ClientModal({
                           {[v.brand, v.model, v.year ? `(${v.year})` : null].filter(Boolean).join(' ')}
                           {v.vin && <span className="font-mono text-xs"> · {v.vin}</span>}
                         </p>
+                        {deadlineSummary(v.deadlines) && (
+                          <p className="text-xs text-slate-500 mt-0.5">{deadlineSummary(v.deadlines)}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <button onClick={() => { setEditingVehicle(v.id); setMovingVehicle(null); }} title="Editează mașina" className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50">

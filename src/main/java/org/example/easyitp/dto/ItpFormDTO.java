@@ -1,9 +1,11 @@
 package org.example.easyitp.dto;
 
 import lombok.Data;
+import org.example.easyitp.entity.DeadlineKind;
 import org.example.easyitp.entity.ItpStatus;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @Data
 public class ItpFormDTO {
@@ -24,6 +26,8 @@ public class ItpFormDTO {
     private String inspector;
     // Bifa "clientul e de acord cu remindere"; null = nu schimba nimic (ex. clienti vechi, import)
     private Boolean reminderConsent;
+    // Alte scadente ale masinii (RCA, rovinieta, tahograf); null = nu schimba, un tip cu null = sterge
+    private Map<DeadlineKind, LocalDate> deadlines;
     // Optional: programarea din care s-a facut ITP-ul (devine "Finalizat")
     private Long appointmentId;
 }

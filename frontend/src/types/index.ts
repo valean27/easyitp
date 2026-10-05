@@ -9,6 +9,29 @@ export type ReminderStatus = 'CONTACTED' | 'SCHEDULED' | 'NOT_INTERESTED';
 // Acordul clientului pentru remindere (GDPR); null = necunoscut (clientii de dinainte)
 export type ReminderConsent = 'GIVEN' | 'DECLINED';
 
+// Alte scadente ale masinii (C4)
+export type DeadlineKind = 'RCA' | 'ROVINIETA' | 'TAHOGRAF';
+// data (yyyy-mm-dd) pe tip; lipsa = necompletat
+export type DeadlineDates = Partial<Record<DeadlineKind, string>>;
+
+// "De contactat" -> Alte scadente
+export interface DeadlineReminder {
+  vehicleId: number;
+  kind: DeadlineKind;
+  label: string;
+  dueDate: string;
+  daysLeft: number;
+  clientName: string;
+  phone: string | null;
+  brand: string;
+  model: string | null;
+  plate: string;
+  consent: ReminderConsent | null;
+  stopToken: string | null;
+  contactedAt: string | null;
+  autoSmsAt: string | null;
+}
+
 export interface DashboardEntry {
   id: number;
   numeSofer: string;
@@ -66,6 +89,8 @@ export interface ItpFormData {
   appointmentId?: number;
   // bifa "clientul e de acord cu remindere"; lipsa = nu schimba acordul
   reminderConsent?: boolean;
+  // RCA / rovinieta / tahograf; lipsa = nu schimba, un tip cu null = sterge
+  deadlines?: Partial<Record<DeadlineKind, string | null>>;
 }
 
 export interface ImportResult {
@@ -352,6 +377,7 @@ export interface ClientVehicle {
   vin: string | null;
   // cel mai nou primul
   itps: VehicleItp[];
+  deadlines: DeadlineDates;
 }
 
 export interface ClientDetail {
@@ -370,6 +396,7 @@ export interface VehicleUpdate {
   model: string | null;
   year: number | null;
   vin: string | null;
+  deadlines?: Partial<Record<DeadlineKind, string | null>>;
 }
 
 export interface ClientBrief {
@@ -437,6 +464,8 @@ export interface AutoSmsSettings {
   platformAvailable: boolean;
   smsPlan: number;
   smsUsedThisMonth: number;
+  // SMS automat si pentru RCA / rovinieta / tahograf (cu 7 zile inainte)
+  deadlinesSms: boolean;
 }
 
 // Programarile din anul raportului
@@ -456,6 +485,8 @@ export interface AutoSmsLogEntry {
   status: 'SENT' | 'FAILED';
   error: string | null;
   attempts: number;
+  // null = ITP, altfel RCA / Rovinietă / Tahograf
+  kind: string | null;
 }
 
 // Cerere de demonstratie din pagina de prezentare (vazuta de admin)

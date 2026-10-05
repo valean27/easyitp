@@ -171,6 +171,8 @@ body {
 :root[data-theme='dark'] .hover\:text-violet-800:hover { color: #ddd6fe; }
 :root[data-theme='dark'] .text-violet-900 { color: #ede9fe; }
 :root[data-theme='dark'] .hover\:text-violet-900:hover { color: #ede9fe; }
+:root[data-theme='dark'] .bg-teal-100 { background-color: color-mix(in srgb, #14b8a6 22%, var(--surface)); }
+:root[data-theme='dark'] .text-teal-700 { color: #5eead4; }
 :root[data-theme='dark'] .bg-orange-50 { background-color: color-mix(in srgb, #f97316 14%, var(--surface)); }
 :root[data-theme='dark'] .hover\:bg-orange-50:hover { background-color: color-mix(in srgb, #f97316 14%, var(--surface)); }
 :root[data-theme='dark'] .bg-orange-100 { background-color: color-mix(in srgb, #f97316 22%, var(--surface)); }

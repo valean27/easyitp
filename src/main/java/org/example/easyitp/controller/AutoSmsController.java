@@ -3,12 +3,13 @@ package org.example.easyitp.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.AutoSmsSettingsDTO;
 import org.example.easyitp.entity.AppUser;
-import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ReminderSend;
 import org.example.easyitp.entity.SmsProvider;
+import org.example.easyitp.entity.Vehicle;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.ItpRecordRepository;
 import org.example.easyitp.repository.ReminderSendRepository;
+import org.example.easyitp.repository.VehicleRepository;
 import org.example.easyitp.security.CurrentUser;
 import org.example.easyitp.service.AutoReminderService;
 import org.example.easyitp.service.DeliveryException;
@@ -27,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 // Setarile remindere-lor SMS automate ale statiei, SMS-ul de test si jurnalul trimiterilor
@@ -41,11 +43,13 @@ public class AutoSmsController {
     private final AppUserRepository appUserRepository;
     private final ReminderSendRepository reminderSendRepository;
     private final ItpRecordRepository itpRecordRepository;
+    private final VehicleRepository vehicleRepository;
     private final AutoReminderService autoReminderService;
     private final SmsQuotaService smsQuotaService;
 
+    // kind: null = ITP, altfel RCA / Rovinietă / Tahograf
     public record LogEntryDTO(LocalDateTime sentAt, String plate, String clientName, int stage, ReminderSend.Status status,
-                              String error, int attempts) {
+                              String error, int attempts, String kind) {
     }
 
     public record TestRequest(String phone) {
@@ -100,6 +104,7 @@ public class AutoSmsController {
         user.setAutoSmsEnabled(request.enabled());
         user.setApptConfirmSms(request.apptConfirmSms());
         user.setApptReminderSms(request.apptReminderSms());
+        user.setAutoSmsDeadlines(request.deadlinesSms());
         return toDto(appUserRepository.save(user));
     }
 
@@ -123,14 +128,17 @@ public class AutoSmsController {
     public List<LogEntryDTO> log() {
         AppUser user = currentUser.get();
         List<ReminderSend> sends = reminderSendRepository.findByUserIdOrderBySentAtDesc(user.getId(), PageRequest.of(0, 100));
-        Map<Long, ItpRecord> records = new HashMap<>();
-        itpRecordRepository.findAllById(sends.stream().map(ReminderSend::getItpRecordId).toList())
-                .forEach(r -> records.put(r.getId(), r));
+        Map<Long, Vehicle> byRecord = new HashMap<>();
+        itpRecordRepository.findAllById(sends.stream().map(ReminderSend::getItpRecordId).filter(Objects::nonNull).toList())
+                .forEach(r -> byRecord.put(r.getId(), r.getVehicle()));
+        Map<Long, Vehicle> byId = new HashMap<>();
+        vehicleRepository.findAllById(sends.stream().map(ReminderSend::getVehicleId).filter(Objects::nonNull).toList())
+                .forEach(v -> byId.put(v.getId(), v));
         return sends.stream().map(s -> {
-            ItpRecord r = records.get(s.getItpRecordId());
-            return new LogEntryDTO(s.getSentAt(), r == null ? null : r.getVehicle().getLicensePlate().toUpperCase(),
-                    r == null ? null : r.getVehicle().getClient().getName(), s.getStage(), s.getStatus(), s.getError(),
-                    s.getAttempts());
+            Vehicle v = s.getItpRecordId() != null ? byRecord.get(s.getItpRecordId()) : byId.get(s.getVehicleId());
+            return new LogEntryDTO(s.getSentAt(), v == null ? null : v.getLicensePlate().toUpperCase(),
+                    v == null ? null : v.getClient().getName(), s.getStage(), s.getStatus(), s.getError(),
+                    s.getAttempts(), s.getKind() == null ? null : s.getKind().label());
         }).toList();
     }
 
@@ -142,7 +150,8 @@ public class AutoSmsController {
                 SmsText.DEFAULT_TEMPLATE, u.getSmsGateUrl(), u.getSmsGateUsername(), null, u.getSmsGatePassword() != null,
                 u.getSmslinkConnectionId(), null, u.getSmslinkPassword() != null, sent,
                 Boolean.TRUE.equals(u.getApptConfirmSms()), Boolean.TRUE.equals(u.getApptReminderSms()),
-                smsQuotaService.platformAvailable(), SmsQuotaService.plan(u), smsQuotaService.usedThisMonth(u.getId()));
+                smsQuotaService.platformAvailable(), SmsQuotaService.plan(u), smsQuotaService.usedThisMonth(u.getId()),
+                Boolean.TRUE.equals(u.getAutoSmsDeadlines()));
     }
 
     private boolean configuredFor(AppUser u, SmsProvider provider) {

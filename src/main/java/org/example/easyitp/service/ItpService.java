@@ -60,6 +60,7 @@ public class ItpService {
     private final ClientService clientService;
     private final AuditService auditService;
     private final ReminderSendRepository reminderSendRepository;
+    private final DeadlineService deadlineService;
 
     static final int MAX_PAGE_SIZE = 100;
     private static final int EXPIRING_SOON_DAYS = 30;
@@ -224,6 +225,7 @@ public class ItpService {
         vehicle = assignOwner(user, vehicle, form);
         clientService.applyFormConsent(vehicle.getClient(), form.getReminderConsent(),
                 form.getAppointmentId() != null ? "Programare online" : "Formular ITP");
+        deadlineService.applyFromForm(user, vehicle, form.getDeadlines());
 
         LocalDate nextItp = form.getTestDate().plusMonths(form.getValidityMonths());
 
@@ -278,6 +280,7 @@ public class ItpService {
         applyVehicle(vehicle, form);
         vehicle = assignOwner(user, vehicle, form);
         clientService.applyFormConsent(vehicle.getClient(), form.getReminderConsent(), "Formular ITP");
+        deadlineService.applyFromForm(user, vehicle, form.getDeadlines());
         record.setVehicle(vehicle);
 
         record.setTestDate(form.getTestDate());

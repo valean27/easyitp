@@ -6,6 +6,7 @@ import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.AuditEvent;
 import org.example.easyitp.entity.AuditEvent.Action;
 import org.example.easyitp.entity.Client;
+import org.example.easyitp.entity.DeadlineKind;
 import org.example.easyitp.entity.ItpRecord;
 import org.example.easyitp.entity.ItpStatus;
 import org.example.easyitp.entity.Vehicle;
@@ -20,9 +21,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -102,6 +106,18 @@ public class HistoryService {
                 if (owner == null) owner = clientService.resolveOwner(user, null, snap.name(), snap.phone());
                 vehicle = vehicleRepository.save(Vehicle.builder().client(owner).licensePlate(vs.licensePlate())
                         .brand(vs.brand()).model(vs.model()).year(vs.year()).vin(vs.vin()).build());
+            }
+            // scadentele sterse revin doar unde masina nu are intre timp alta data pentru acelasi tip
+            if (vs.deadlines() != null) {
+                Map<DeadlineKind, LocalDate> missing = new EnumMap<>(DeadlineKind.class);
+                Map<DeadlineKind, LocalDate> current = DeadlineService.asMap(vehicle);
+                vs.deadlines().forEach((kind, date) -> {
+                    if (!current.containsKey(kind)) missing.put(kind, date);
+                });
+                if (!missing.isEmpty()) {
+                    DeadlineService.apply(vehicle, missing);
+                    vehicle = vehicleRepository.save(vehicle);
+                }
             }
             for (AuditService.ItpSnap is : vs.itps()) {
                 if (itpRecordRepository.findFirstByVehicleIdAndTestDate(vehicle.getId(), is.testDate()).isPresent()) continue;
