@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Mail, Loader2, Send, CheckCircle2, AlertTriangle, MessageCircle, ExternalLink } from 'lucide-react';
+import SettingsCard from './SettingsCard';
 import type { DigestChannel, DigestSettings } from '../types';
 import { getDigestSettings, sendTestDigest, updateDigestSettings } from '../api/accountApi';
 import { useAuth } from '../context/auth';
@@ -35,9 +36,11 @@ export default function DigestCard() {
 
   if (!settings) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center text-sm text-slate-400">
-        {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
-      </div>
+      <SettingsCard icon={<Mail size={15} />} title="Rezumat zilnic">
+        <div className="px-6 py-5 flex items-center text-sm text-slate-400">
+          {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
+        </div>
+      </SettingsCard>
     );
   }
 
@@ -99,11 +102,11 @@ export default function DigestCard() {
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        <Mail size={15} className="text-blue-600" />
-        <h2 className="text-sm font-semibold text-slate-700">Rezumat zilnic</h2>
-      </div>
+    <SettingsCard
+      icon={<Mail size={15} />}
+      title="Rezumat zilnic"
+      summary={settings.enabled ? `Pornit · pe ${settings.channel === 'WHATSAPP' ? 'WhatsApp' : 'email'}` : 'Oprit'}
+    >
       <form onSubmit={handleSave} className="px-6 py-5 space-y-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
@@ -207,6 +210,6 @@ export default function DigestCard() {
           </button>
         </div>
       </form>
-    </div>
+    </SettingsCard>
   );
 }

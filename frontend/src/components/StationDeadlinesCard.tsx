@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, Loader2, Pencil, Trash2, Plus, Check } from 'lucide-react';
+import SettingsCard from './SettingsCard';
 import type { StationDeadline, StationDeadlineInput, StationDeadlineKind } from '../types';
 import {
   createStationDeadline,
@@ -116,8 +116,6 @@ export default function StationDeadlinesCard() {
   const [inspectors, setInspectors] = useState<string[]>([]);
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-  const location = useLocation();
 
   const load = () =>
     getStationDeadlines()
@@ -128,11 +126,6 @@ export default function StationDeadlinesCard() {
     load();
     getInspectors().then(setInspectors).catch(() => setInspectors([]));
   }, []);
-
-  // linkul din dashboard / din rezumatul zilnic: /account#termene
-  useEffect(() => {
-    if (list && location.hash === '#termene') ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, [list, location.hash]);
 
   const save = async (id: number | 'new', data: StationDeadlineInput) => {
     setError(null);
@@ -157,11 +150,19 @@ export default function StationDeadlinesCard() {
   };
 
   return (
-    <div id="termene" ref={ref} className="scroll-mt-20 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        <ShieldCheck size={15} className="text-blue-600" />
-        <h2 className="text-sm font-semibold text-slate-700">Termenele stației</h2>
-      </div>
+    <SettingsCard
+      id="termene"
+      icon={<ShieldCheck size={15} />}
+      title="Termenele stației"
+      summary={
+        list &&
+        (list.some((d) => d.due)
+          ? `${list.filter((d) => d.due).length} de reînnoit curând`
+          : list.length > 0
+            ? `${list.length} ${list.length === 1 ? 'termen' : 'termene'}, niciunul aproape`
+            : 'Niciun termen adăugat')
+      }
+    >
       <div className="px-6 py-5 space-y-3">
         <p className="text-xs text-slate-500">
           Autorizația RAR, verificările metrologice ale echipamentelor, atestatele inspectorilor. Cele care se apropie apar
@@ -224,6 +225,6 @@ export default function StationDeadlinesCard() {
           </button>
         )}
       </div>
-    </div>
+    </SettingsCard>
   );
 }

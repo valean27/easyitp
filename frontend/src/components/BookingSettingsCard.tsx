@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Globe, Loader2, CheckCircle2, AlertTriangle, Copy, Check, ExternalLink, Timer } from 'lucide-react';
+import SettingsCard from './SettingsCard';
 import type { BookingSettings, VehicleCategory, VehicleType } from '../types';
 import { getBookingSettings, updateBookingSettings } from '../api/accountApi';
 import { WEEKDAYS_SHORT, bookingUrl } from '../utils/booking';
@@ -28,9 +29,11 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
 
   if (!settings) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center text-sm text-slate-400">
-        {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
-      </div>
+      <SettingsCard icon={<Globe size={15} />} title="Programare online">
+        <div className="px-6 py-5 flex items-center text-sm text-slate-400">
+          {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
+        </div>
+      </SettingsCard>
     );
   }
 
@@ -83,11 +86,11 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        <Globe size={15} className="text-blue-600" />
-        <h2 className="text-sm font-semibold text-slate-700">Programare online</h2>
-      </div>
+    <SettingsCard
+      icon={<Globe size={15} />}
+      title="Programare online"
+      summary={settings.enabled && settings.slug ? `Pornită · /programare/${settings.slug}` : 'Oprită'}
+    >
       <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
@@ -268,6 +271,6 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
           Salvează
         </button>
       </form>
-    </div>
+    </SettingsCard>
   );
 }

@@ -5,6 +5,7 @@ import { getProfile, updateProfile, changePassword, getInspectors, updateInspect
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
 import ThemeSwitcher from './ThemeSwitcher';
+import SettingsCard from './SettingsCard';
 import DigestCard from './DigestCard';
 import AutoSmsCard from './AutoSmsCard';
 import VisibilityCard from './VisibilityCard';
@@ -45,15 +46,20 @@ function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
   );
 }
 
-function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Card({ icon, title, summary, children }: { icon: React.ReactNode; title: string; summary?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        {icon}
-        <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
-      </div>
+    <SettingsCard icon={icon} title={title} summary={summary}>
       <div className="px-6 py-5">{children}</div>
-    </div>
+    </SettingsCard>
+  );
+}
+
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h2 className="px-1 text-xs font-semibold uppercase tracking-widest text-slate-400">{title}</h2>
+      {children}
+    </section>
   );
 }
 
@@ -97,7 +103,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
   };
 
   return (
-    <Card icon={<Building2 size={15} className="text-blue-600" />} title="Date Stație ITP">
+    <Card icon={<Building2 size={15} />} title="Date stație ITP" summary={loaded ? stationName || 'Necompletat' : undefined}>
       {!loaded ? (
         <div className="flex items-center text-sm text-slate-400">
           <Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...
@@ -202,7 +208,11 @@ function InspectorsCard() {
   };
 
   return (
-    <Card icon={<HardHat size={15} className="text-blue-600" />} title="Inspectori">
+    <Card
+      icon={<HardHat size={15} />}
+      title="Inspectori"
+      summary={names && (names.length === 0 ? 'Niciun inspector' : names.length === 1 ? names[0] : `${names.length} inspectori`)}
+    >
       <div className="space-y-3">
         <p className="text-xs text-slate-500">
           La fiecare ITP alegi cine a făcut verificarea, iar în Rapoarte vezi câte verificări și câte respingeri are fiecare.
@@ -283,7 +293,7 @@ function PasswordCard() {
   };
 
   return (
-    <Card icon={<KeyRound size={15} className="text-blue-600" />} title="Schimbă Parola">
+    <Card icon={<KeyRound size={15} />} title="Schimbă parola">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">Parola curentă</label>
@@ -336,20 +346,28 @@ export default function AccountPage() {
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 max-w-5xl items-start">
-          {user?.role === 'MANAGER' && <StationCard bookingLink={bookingLink} />}
+          {user?.role === 'MANAGER' && (
+            <Group title="Stația">
+              <StationCard bookingLink={bookingLink} />
+              <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
+              <InspectorsCard />
+              <StationDeadlinesCard />
+            </Group>
+          )}
           <div className="space-y-6">
             {user?.role === 'MANAGER' && (
-              <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
+              <Group title="Mesaje către clienți">
+                <AutoSmsCard />
+                <VisibilityCard />
+              </Group>
             )}
-            {user?.role === 'MANAGER' && <InspectorsCard />}
-            {user?.role === 'MANAGER' && <StationDeadlinesCard />}
-            {user?.role === 'MANAGER' && <DigestCard />}
-            {user?.role === 'MANAGER' && <AutoSmsCard />}
-            {user?.role === 'MANAGER' && <VisibilityCard />}
-            <Card icon={<Palette size={15} className="text-blue-600" />} title="Aspect">
-              <ThemeSwitcher />
-            </Card>
-            <PasswordCard />
+            <Group title="Contul tău">
+              {user?.role === 'MANAGER' && <DigestCard />}
+              <Card icon={<Palette size={15} />} title="Aspect">
+                <ThemeSwitcher />
+              </Card>
+              <PasswordCard />
+            </Group>
           </div>
         </div>
       </main>

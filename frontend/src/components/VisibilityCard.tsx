@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Star, Loader2, CheckCircle2, AlertTriangle, Printer, Search } from 'lucide-react';
+import SettingsCard from './SettingsCard';
 import type { GooglePlace, Visibility } from '../types';
 import { getProfile, getVisibility, linkGooglePlace, searchGooglePlace, unlinkGooglePlace, updateVisibility } from '../api/accountApi';
 import StarRating from './StarRating';
@@ -164,11 +165,21 @@ export default function VisibilityCard() {
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-        <Star size={15} className="text-blue-600" />
-        <h2 className="text-sm font-semibold text-slate-700">Recenzii și vizibilitate</h2>
-      </div>
+    <SettingsCard
+      icon={<Star size={15} />}
+      title="Recenzii și vizibilitate"
+      summary={
+        settings &&
+        ([
+          settings.googleRating != null ? `${settings.googleRating.toFixed(1).replace('.', ',')} ★ pe Google` : null,
+          settings.reviewUrl ? 'link de recenzie' : null,
+          settings.reviewSms ? 'SMS după ITP' : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') ||
+          'Necompletat')
+      }
+    >
       {!settings ? (
         <div className="px-6 py-5 flex items-center text-sm text-slate-400">
           {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
@@ -235,6 +246,6 @@ export default function VisibilityCard() {
           </div>
         </form>
       )}
-    </div>
+    </SettingsCard>
   );
 }

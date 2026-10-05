@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { MessageSquareText, Loader2, Send, Smartphone, Server, ExternalLink, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Package } from 'lucide-react';
+import SettingsCard from './SettingsCard';
 import type { AutoSmsLogEntry, AutoSmsSettings, Profile, SmsProvider } from '../types';
 import { getAutoSms, getAutoSmsLog, getProfile, sendTestSms, updateAutoSms } from '../api/accountApi';
 import { bookingUrl } from '../utils/booking';
@@ -90,9 +91,11 @@ export default function AutoSmsCard() {
 
   if (!settings) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex items-center text-sm text-slate-400">
-        {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
-      </div>
+      <SettingsCard icon={<MessageSquareText size={15} />} title="Remindere SMS automate">
+        <div className="px-6 py-5 flex items-center text-sm text-slate-400">
+          {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
+        </div>
+      </SettingsCard>
     );
   }
 
@@ -144,14 +147,16 @@ export default function AutoSmsCard() {
   const segments = smsSegments(preview);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-100">
-        <MessageSquareText size={15} className="text-blue-600" />
-        <h2 className="font-semibold text-slate-800">Remindere SMS automate</h2>
-        {settings.sentLast30Days > 0 && (
-          <span className="ml-auto text-xs text-slate-400">{settings.sentLast30Days} trimise în ultimele 30 de zile</span>
-        )}
-      </div>
+    <SettingsCard
+      icon={<MessageSquareText size={15} />}
+      title="Remindere SMS automate"
+      summary={[
+        settings.enabled ? `Pornite · ${PROVIDERS.find((p) => p.key === settings.provider)?.title ?? ''}` : 'Oprite',
+        settings.sentLast30Days > 0 ? `${settings.sentLast30Days} trimise în 30 de zile` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+    >
 
       <form onSubmit={save} className="p-5 space-y-5">
         <label className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
@@ -429,6 +434,6 @@ export default function AutoSmsCard() {
           {showLog && <div className="mt-2">{log ? <LogList entries={log} /> : <Loader2 size={15} className="animate-spin text-slate-400" />}</div>}
         </div>
       </form>
-    </div>
+    </SettingsCard>
   );
 }
