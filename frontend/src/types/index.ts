@@ -138,6 +138,21 @@ export interface Visibility {
   facebookUrl: string | null;
   // SMS cu cererea de recenzie in dimineata de dupa ITP
   reviewSms: boolean;
+  // nota de pe Google: functia e pornita pe server, locul ales si ultima nota citita
+  googleAvailable: boolean;
+  googlePlaceId: string | null;
+  googleRating: number | null;
+  googleRatingCount: number | null;
+}
+
+// Un loc gasit pe Google (alegerea locului statiei)
+export interface GooglePlace {
+  id: string;
+  name: string | null;
+  address: string | null;
+  rating: number | null;
+  ratingCount: number | null;
+  mapsUrl: string | null;
 }
 
 export type VehicleCategory = 'CAR' | 'FOUR_BY_FOUR' | 'VAN' | 'MOTORCYCLE' | 'TRAILER';
@@ -174,6 +189,8 @@ export interface PublicStation {
   mapsUrl: string | null;
   facebookUrl: string | null;
   reviewUrl: string | null;
+  googleRating: number | null;
+  googleRatingCount: number | null;
 }
 
 export interface Reminder {

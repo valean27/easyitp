@@ -23,4 +23,7 @@ public class PublicStationDTO {
     private String mapsUrl;
     private String facebookUrl;
     private String reviewUrl;
+    // Nota de pe Google (null = necunoscuta)
+    private Double googleRating;
+    private Integer googleRatingCount;
 }

@@ -19,6 +19,7 @@ import {
 import type { PublicStation, VehicleCategory } from '../types';
 import { createPublicBooking, getPublicSlots, getPublicStation } from '../api/publicApi';
 import { toLocalIso } from '../utils/dates';
+import StarRating from './StarRating';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
 
 const INPUT_CLS =
@@ -62,6 +63,9 @@ function StationHeader({ station }: { station: PublicStation }) {
           <Clock size={15} className="shrink-0 text-slate-400" />
           {station.days.map((d) => WEEKDAYS_SHORT[d - 1]).join(', ')} · {station.open.slice(0, 5)} – {station.close.slice(0, 5)}
         </p>
+        {station.googleRating != null && (
+          <StarRating rating={station.googleRating} count={station.googleRatingCount} href={station.mapsUrl} />
+        )}
         {(station.mapsUrl || station.facebookUrl || station.reviewUrl) && (
           <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
             {station.mapsUrl && (

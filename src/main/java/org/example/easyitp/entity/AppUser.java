@@ -61,6 +61,16 @@ public class AppUser {
     @Column(length = 300)
     private String facebookUrl;
 
+    // Nota de pe Google (GooglePlacesService): locul ales de statie, stelele, numarul de recenzii, cand a fost citita
+    @Column(length = 300)
+    private String googlePlaceId;
+
+    private Double googleRating;
+
+    private Integer googleRatingCount;
+
+    private java.time.LocalDateTime googleRatingAt;
+
     // SMS cu cererea de recenzie a doua zi dupa un ITP admis (pe canalul SMS al statiei); null = nu
     private Boolean reviewSms;
 

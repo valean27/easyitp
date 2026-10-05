@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, Profile, StationInfo, Visibility } from '../types';
+import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, GooglePlace, Profile, StationInfo, Visibility } from '../types';
 
 const BASE = '/api/account';
 
@@ -52,3 +52,12 @@ export const getVisibility = (): Promise<Visibility> => api.get(`${BASE}/visibil
 
 export const updateVisibility = (data: Visibility): Promise<Visibility> =>
   api.put(`${BASE}/visibility`, data).then((r) => r.data);
+
+// Nota de pe Google: cautarea locului statiei, alegerea si eliminarea lui
+export const searchGooglePlace = (q: string): Promise<GooglePlace[]> =>
+  api.get(`${BASE}/google-place/search`, { params: { q } }).then((r) => r.data);
+
+export const linkGooglePlace = (placeId: string): Promise<Visibility> =>
+  api.put(`${BASE}/google-place`, { placeId }).then((r) => r.data);
+
+export const unlinkGooglePlace = (): Promise<Visibility> => api.delete(`${BASE}/google-place`).then((r) => r.data);

@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, Phone, Clock, CalendarCheck, Loader2, AlertTriangle, Building2 } from 'lucide-react';
+import { Search, MapPin, Phone, Clock, CalendarCheck, Loader2, AlertTriangle, Building2, Navigation } from 'lucide-react';
 import { getPublicStations, type PublicStationSummary } from '../api/publicApi';
 import { WEEKDAYS_SHORT } from '../utils/booking';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
+import StarRating from './StarRating';
+
+// Linkul stației pe Google Maps, altfel o căutare după nume + adresă
+const mapLink = (s: PublicStationSummary) =>
+  s.mapsUrl ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name} ${s.address ?? ''}`.trim())}`;
 
 const LINKS = [
   { href: '/', label: 'Pentru stații ITP' },
@@ -88,9 +93,10 @@ export default function StationsPage() {
                   <li key={s.slug} className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <p className="text-lg font-bold text-slate-900">{s.name}</p>
+                      {s.googleRating != null && <StarRating rating={s.googleRating} count={s.googleRatingCount} href={s.mapsUrl} />}
                       {s.address && (
                         <a
-                          href={s.mapsUrl ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name} ${s.address}`)}`}
+                          href={mapLink(s)}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-start gap-1.5 text-sm text-slate-600 hover:text-blue-600"
@@ -109,12 +115,22 @@ export default function StationsPage() {
                         )}
                       </p>
                     </div>
-                    <Link
-                      to={`/programare/${s.slug}`}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 shrink-0"
-                    >
-                      <CalendarCheck size={17} /> Programează-te
-                    </Link>
+                    <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 shrink-0 sm:w-44">
+                      <Link
+                        to={`/programare/${s.slug}`}
+                        className="inline-flex items-center justify-center gap-1.5 px-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold whitespace-nowrap hover:bg-blue-700"
+                      >
+                        <CalendarCheck size={16} className="shrink-0" /> Programează-te
+                      </Link>
+                      <a
+                        href={mapLink(s)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2 py-3 rounded-xl border border-slate-200 text-slate-700 text-sm font-semibold whitespace-nowrap hover:bg-slate-50"
+                      >
+                        <Navigation size={16} /> Vezi pe hartă
+                      </a>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -26,6 +26,9 @@ export interface PublicStationSummary {
   close: string;
   days: number[];
   mapsUrl: string | null;
+  // nota de pe Google (null = necunoscuta)
+  googleRating: number | null;
+  googleRatingCount: number | null;
 }
 
 export const getPublicStations = (): Promise<PublicStationSummary[]> =>

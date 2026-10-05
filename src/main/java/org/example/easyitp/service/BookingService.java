@@ -76,7 +76,8 @@ public class BookingService {
                 .filter(u -> u.isEnabled() && Boolean.TRUE.equals(u.getBookingEnabled()) && u.getBookingSlug() != null
                         && !Boolean.FALSE.equals(u.getPublicListing()))
                 .map(u -> new PublicStationSummaryDTO(u.getStationName() != null ? u.getStationName() : "Stație ITP",
-                        u.getBookingSlug(), u.getAddress(), u.getPhone(), open(u), close(u), days(u), u.getMapsUrl()))
+                        u.getBookingSlug(), u.getAddress(), u.getPhone(), open(u), close(u), days(u), u.getMapsUrl(),
+                        u.getGoogleRating(), u.getGoogleRatingCount()))
                 .sorted(java.util.Comparator.comparing(s -> s.name().toLowerCase(java.util.Locale.ROOT)))
                 .toList();
     }
@@ -162,7 +163,8 @@ public class BookingService {
                 days(station),
                 MAX_DAYS_AHEAD,
                 InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled).toList(),
-                station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl());
+                station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl(), station.getGoogleRating(),
+                station.getGoogleRatingCount());
     }
 
     public List<LocalTime> availableSlots(String slug, LocalDate date, VehicleCategory category) {

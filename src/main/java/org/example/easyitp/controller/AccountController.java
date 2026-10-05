@@ -15,6 +15,7 @@ import org.example.easyitp.security.JwtUtil;
 import org.example.easyitp.service.DeliveryException;
 import org.example.easyitp.service.BookingService;
 import org.example.easyitp.service.DigestService;
+import org.example.easyitp.service.GooglePlacesService;
 import org.example.easyitp.service.EmailService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,10 @@ public class AccountController {
     private final DigestService digestService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final GooglePlacesService googlePlacesService;
+    // cautari Google pe statie si zi ("id:data" -> numar); se golesc la repornire, ajunge ca frana
+    private final java.util.Map<String, Integer> googleSearches = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final int MAX_GOOGLE_SEARCHES_PER_DAY = 20;
 
     @GetMapping("/me")
     public ProfileDTO getProfile() {
@@ -61,7 +66,7 @@ public class AccountController {
     // Recenzii si vizibilitate (C5)
     @GetMapping("/visibility")
     public VisibilityDTO getVisibility() {
-        return visibilityDto(currentUser.get());
+        return visibility(currentUser.get());
     }
 
     @PutMapping("/visibility")
@@ -81,11 +86,57 @@ public class AccountController {
         user.setMapsUrl(maps);
         user.setFacebookUrl(facebook);
         user.setReviewSms(request.reviewSms());
-        return visibilityDto(appUserRepository.save(user));
+        return visibility(appUserRepository.save(user));
     }
 
     private static VisibilityDTO visibilityDto(AppUser u) {
-        return new VisibilityDTO(u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl(), Boolean.TRUE.equals(u.getReviewSms()));
+        return new VisibilityDTO(u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl(), Boolean.TRUE.equals(u.getReviewSms()),
+                false, u.getGooglePlaceId(), u.getGoogleRating(), u.getGoogleRatingCount());
+    }
+
+    private VisibilityDTO visibility(AppUser u) {
+        VisibilityDTO d = visibilityDto(u);
+        return new VisibilityDTO(d.reviewUrl(), d.mapsUrl(), d.facebookUrl(), d.reviewSms(), googlePlacesService.available(),
+                d.googlePlaceId(), d.googleRating(), d.googleRatingCount());
+    }
+
+    // Nota de pe Google: cautarea locului statiei (cel mult cateva cautari pe zi), alegerea si eliminarea lui
+    @GetMapping("/google-place/search")
+    public List<GooglePlacesService.Place> searchGooglePlace(@RequestParam String q) {
+        AppUser user = currentUser.get();
+        String query = trimToNull(q);
+        if (query == null || query.length() > 200) throw badRequest("Scrieți numele și orașul stației.");
+        String key = user.getId() + ":" + java.time.LocalDate.now();
+        if (googleSearches.merge(key, 1, Integer::sum) > MAX_GOOGLE_SEARCHES_PER_DAY) {
+            throw badRequest("Prea multe căutări azi. Încercați mâine.");
+        }
+        try {
+            return googlePlacesService.search(query);
+        } catch (DeliveryException e) {
+            throw badRequest(e.getMessage());
+        }
+    }
+
+    public record GooglePlaceRequest(String placeId) {
+    }
+
+    @PutMapping("/google-place")
+    public VisibilityDTO linkGooglePlace(@RequestBody GooglePlaceRequest request) {
+        AppUser user = currentUser.get();
+        if (trimToNull(request.placeId()) == null) throw badRequest("Alegeți locul stației.");
+        try {
+            googlePlacesService.link(user, request.placeId().trim());
+        } catch (DeliveryException e) {
+            throw badRequest(e.getMessage());
+        }
+        return visibility(appUserRepository.save(user));
+    }
+
+    @DeleteMapping("/google-place")
+    public VisibilityDTO unlinkGooglePlace() {
+        AppUser user = currentUser.get();
+        GooglePlacesService.unlink(user);
+        return visibility(appUserRepository.save(user));
     }
 
     // Link public: gol = sters; altfel https://, fara spatii, cel mult 300 de caractere

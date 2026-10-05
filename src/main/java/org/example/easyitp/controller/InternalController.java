@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.service.DigestService;
 import org.example.easyitp.service.AppointmentSmsService;
 import org.example.easyitp.service.AutoReminderService;
+import org.example.easyitp.service.GooglePlacesService;
 import org.example.easyitp.service.HistoryService;
 import org.example.easyitp.service.ReviewRequestService;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class InternalController {
     private final AutoReminderService autoReminderService;
     private final AppointmentSmsService appointmentSmsService;
     private final ReviewRequestService reviewRequestService;
+    private final GooglePlacesService googlePlacesService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -59,6 +61,11 @@ public class InternalController {
             reviewRequestService.runDaily(LocalDate.now());
         } catch (RuntimeException e) {
             log.error("Cererile de recenzie au esuat", e);
+        }
+        try {
+            googlePlacesService.refreshAll(java.time.LocalDateTime.now());
+        } catch (RuntimeException e) {
+            log.error("Notele Google nu au putut fi reimprospatate", e);
         }
         historyService.purgeOld();
         return ResponseEntity.ok(result);
