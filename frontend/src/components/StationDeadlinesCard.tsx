@@ -12,6 +12,7 @@ import { getInspectors } from '../api/accountApi';
 import { STATION_DEADLINE_KINDS, daysText } from '../utils/stationDeadlines';
 import { formatDateRo } from '../utils/fleet';
 import { apiMessage } from '../utils/errors';
+import DateField from './DateField';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -61,13 +62,9 @@ function DeadlineForm({
       </label>
       <label className="text-xs text-slate-500">
         Expiră la
-        <input
-          type="date"
-          required
-          value={form.dueDate}
-          onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
-          className={`${INPUT_CLS} mt-1`}
-        />
+        <div className="mt-1">
+          <DateField required value={form.dueDate} onChange={(iso) => setForm((f) => ({ ...f, dueDate: iso }))} className={INPUT_CLS} />
+        </div>
       </label>
       <label className="sm:col-span-2 text-xs text-slate-500">
         {meta.titleLabel}

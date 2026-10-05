@@ -7,6 +7,7 @@ import type { DashboardEntry, DeadlineDates, ItpFormData, ItpStatus } from '../t
 import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration, getDeadlinesForPlate } from '../api/itpApi';
 import { deadlinePayload, deadlineSummary } from '../utils/deadlines';
 import DeadlineFields from './DeadlineFields';
+import DateField from './DateField';
 import { shrinkImage } from '../utils/image';
 import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
@@ -568,12 +569,12 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Data Efectuare ITP <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
+                  <DateField
                     name="testDate"
                     required
+                    max={todayIso()}
                     value={form.testDate}
-                    onChange={handleChange}
+                    onChange={(iso) => setForm((f) => ({ ...f, testDate: iso }))}
                     className={INPUT_CLS}
                   />
                 </div>
