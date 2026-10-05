@@ -81,7 +81,9 @@ export function PublicFooter() {
           <p className="font-semibold text-slate-700">Contact</p>
           <p>{COMPANY.name}</p>
           <p>CUI {COMPANY.cui}</p>
+          <p>{COMPANY.address}</p>
           <a href={COMPANY.phoneHref} className="block hover:text-slate-800">Tel. {COMPANY.phone}</a>
+          <a href={`mailto:${COMPANY.email}`} className="block hover:text-slate-800 break-all">{COMPANY.email}</a>
         </div>
       </div>
       <p className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">

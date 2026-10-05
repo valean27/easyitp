@@ -4,4 +4,6 @@ export const COMPANY = {
   cui: 'RO48267925',
   phone: '0785 835 557',
   phoneHref: 'tel:+40785835557',
+  address: 'Str. Lupului 34/47, Baia Mare',
+  email: 'stefan.valean27@gmail.com',
 };

@@ -22,8 +22,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Contact() {
   return (
     <>
-      {COMPANY.name}, CUI {COMPANY.cui}, telefon <a href={COMPANY.phoneHref} className="text-blue-600 hover:underline">{COMPANY.phone}</a>,
-      sau prin formularul de pe <Link to="/#demo" className="text-blue-600 hover:underline">pagina principală</Link>
+      {COMPANY.name}, CUI {COMPANY.cui}, cu sediul în {COMPANY.address}, telefon{' '}
+      <a href={COMPANY.phoneHref} className="text-blue-600 hover:underline">{COMPANY.phone}</a>, email{' '}
+      <a href={`mailto:${COMPANY.email}`} className="text-blue-600 hover:underline">{COMPANY.email}</a>, sau prin formularul de pe <Link to="/#demo" className="text-blue-600 hover:underline">pagina principală</Link>
     </>
   );
 }
