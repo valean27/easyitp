@@ -128,12 +128,26 @@ class ClientIntegrationTest {
 
     @Test
     void invalidItpFormsAreRejectedWithAMessage() throws Exception {
-        send(post("/api/itp"), itpBody("Fara data", "0722", "CJ99AAA", null))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Introduceți data ITP"));
-        send(post("/api/itp"), itpBody("Viitor", "0722", "CJ99AAA", today.plusMonths(2)))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").isNotEmpty());
-        send(post("/api/itp"), itpBody(" ", "0722", "CJ99AAA", today))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Introduceți numele clientului"));
+        send(post("/api/itp"), itpBody("Fara data", "0722 123 456", "CJ99AAA", null))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Introduceți data ITP"))
+                .andExpect(jsonPath("$.field").value("testDate"));
+        send(post("/api/itp"), itpBody("Viitor", "0722 123 456", "CJ99AAA", today.plusMonths(2)))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.field").value("testDate"));
+        send(post("/api/itp"), itpBody(" ", "0722 123 456", "CJ99AAA", today))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value("Introduceți numele clientului"))
+                .andExpect(jsonPath("$.field").value("name"));
+        send(post("/api/itp"), itpBody("Telefon scurt", "0722", "CJ99AAA", today))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.field").value("phone"));
+        Map<String, Object> badVin = new java.util.LinkedHashMap<>(itpBody("Vin gresit", "0722 123 456", "CJ99AAA", today));
+        badVin.put("vin", "WVWZZZ1KZ0W");
+        send(post("/api/itp"), badVin).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("vin"))
+                .andExpect(jsonPath("$.message").value("VIN-ul are 17 caractere (acum are 11)"));
+        badVin.put("vin", "WVWZZZ1KZOW123456");
+        send(post("/api/itp"), badVin).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("VIN-ul nu conține literele I, O sau Q (sunt cifrele 1 și 0)"));
+        badVin.put("vin", "wvwzzz1kz0w123456");
+        send(post("/api/itp"), badVin).andExpect(status().isCreated());
     }
 
     @Test

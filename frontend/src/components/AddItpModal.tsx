@@ -8,6 +8,7 @@ import { createItpEntry, updateItpEntry, lookupByPlate, scanRegistration, getDea
 import { deadlinePayload, deadlineSummary } from '../utils/deadlines';
 import DeadlineFields from './DeadlineFields';
 import DateField from './DateField';
+import { type ItpErrors, type ItpField, firstError, validateItp } from '../utils/itpValidation';
 import { shrinkImage } from '../utils/image';
 import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
@@ -60,6 +61,8 @@ const rsStyles = {
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+// campul gresit: chenar rosu (inlocuieste chenarul gri, nu se bate cap in cap cu el)
+const ERROR_CLS = INPUT_CLS.replace('border-slate-200', 'border-red-400 ring-1 ring-red-400').replace('focus:ring-blue-500', 'focus:ring-red-500');
 
 // Ultimul inspector ales pe acest dispozitiv (de obicei fiecare inspector are telefonul lui)
 const INSPECTOR_KEY = 'easyitp_inspector';
@@ -120,6 +123,8 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   const [lastLookup, setLastLookup] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // greselile pe campuri (din verificarea de aici sau de pe server)
+  const [errors, setErrors] = useState<ItpErrors>({});
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<{ text: string; warnings: string[]; type: 'success' | 'error' } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
@@ -276,6 +281,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   const handleMakeChange = async (option: SingleValue<SelectOption>) => {
     setSelectedMake(option);
     setSelectedModel(null);
+    clearError('brand');
     setForm((prev) => ({ ...prev, brand: option?.label ?? '', model: '' }));
     if (option) loadModels(option.value);
     else setModelOptions([]);
@@ -287,6 +293,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     setMakeOptions((prev) => [...prev, opt].sort((a, b) => a.label.localeCompare(b.label)));
     setSelectedMake(opt);
     setSelectedModel(null);
+    clearError('brand');
     setForm((prev) => ({ ...prev, brand: created.name, model: '' }));
     loadModels(created.id);
   };
@@ -315,6 +322,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    clearError(name);
     if (name === 'inspector') {
       try {
         localStorage.setItem(INSPECTOR_KEY, value);
@@ -335,9 +343,39 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
     }));
   };
 
+  const inputCls = (f: ItpField, extra = '') => `${errors[f] ? ERROR_CLS : INPUT_CLS} ${extra}`.trim();
+  const errorText = (f: ItpField) =>
+    errors[f] ? (
+      <p id={`err-${f}`} className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
+        <AlertTriangle size={12} className="shrink-0" /> {errors[f]}
+      </p>
+    ) : null;
+  const clearError = (f: string) =>
+    setErrors((prev) => {
+      if (!(f in prev)) return prev;
+      const next = { ...prev };
+      delete next[f as ItpField];
+      return next;
+    });
+  // derulam la camp si il selectam, ca sa se poata corecta direct
+  const showField = (f: ItpField | null) => {
+    if (!f) return;
+    const box = document.querySelector<HTMLElement>(`[data-field="${f}"]`);
+    box?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    box?.querySelector<HTMLElement>('input, select, textarea')?.focus({ preventScroll: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    const found = validateItp(form, todayIso(), CURRENT_YEAR);
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      setError(Object.keys(found).length === 1 ? Object.values(found)[0]! : 'Verificați câmpurile marcate cu roșu.');
+      showField(firstError(found));
+      return;
+    }
+    setErrors({});
     setLoading(true);
     try {
       const data = deadlinesTouched ? { ...form, deadlines: deadlinePayload(deadlines) } : form;
@@ -348,8 +386,14 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
       }
       onSuccess();
       onClose();
-    } catch {
-      setError('A apărut o eroare. Verificați datele și încercați din nou.');
+    } catch (err) {
+      // serverul spune ce camp e gresit: {"message", "field"}
+      const data = axios.isAxiosError(err) ? (err.response?.data as { message?: string; field?: string } | undefined) : undefined;
+      if (data?.field && data.message) {
+        setErrors({ [data.field]: data.message });
+        showField(data.field as ItpField);
+      }
+      setError(data?.message ?? 'A apărut o eroare. Verificați datele și încercați din nou.');
     } finally {
       setLoading(false);
     }
@@ -374,7 +418,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1">
-          <form id="add-itp-form" onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
+          <form id="add-itp-form" noValidate onSubmit={handleSubmit} className="px-4 sm:px-6 py-4 sm:py-5 space-y-4">
             {!isEdit && (
               <div>
                 <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden onChange={handlePhoto} />
@@ -408,7 +452,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
             )}
 
             {/* Numarul primul: pentru clientii care revin completeaza restul datelor */}
-            <div>
+            <div data-field="licensePlate">
               <label className="block text-sm font-medium text-slate-600 mb-1">
                 Nr. Înmatriculare <span className="text-red-500">*</span>
               </label>
@@ -424,8 +468,11 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 autoCorrect="off"
                 autoComplete="off"
                 placeholder="B 123 ABC"
-                className={INPUT_CLS + ' uppercase font-mono font-semibold'}
+                aria-invalid={!!errors.licensePlate}
+                aria-describedby={errors.licensePlate ? 'err-licensePlate' : undefined}
+                className={inputCls('licensePlate', 'uppercase font-mono font-semibold')}
               />
+              {errorText('licensePlate')}
               {lookupNote && (
                 <p className="flex items-center gap-1.5 text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5 mt-2">
                   <History size={12} className="shrink-0" />
@@ -440,7 +487,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 Date Șofer
               </legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div data-field="name">
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Nume Șofer <span className="text-red-500">*</span>
                   </label>
@@ -451,10 +498,12 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     value={form.name}
                     onChange={handleChange}
                     placeholder="Ion Popescu"
-                    className={INPUT_CLS}
+                    aria-invalid={!!errors.name}
+                    className={inputCls('name')}
                   />
+                  {errorText('name')}
                 </div>
-                <div>
+                <div data-field="phone">
                   <label className="block text-sm font-medium text-slate-600 mb-1">Telefon</label>
                   <input
                     type="tel"
@@ -462,8 +511,10 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     value={form.phone}
                     onChange={handleChange}
                     placeholder="07xx xxx xxx"
-                    className={INPUT_CLS}
+                    aria-invalid={!!errors.phone}
+                    className={inputCls('phone')}
                   />
+                  {errorText('phone')}
                 </div>
               </div>
             </fieldset>
@@ -477,10 +528,11 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
               {/* Make + Model row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Creatable Make */}
-                <div>
+                <div data-field="brand">
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Marcă <span className="text-red-500">*</span>
                   </label>
+                  <div className={errors.brand ? 'rounded-lg ring-2 ring-red-400' : ''}>
                   <CreatableSelect<SelectOption>
                     options={makeOptions}
                     value={selectedMake}
@@ -495,14 +547,8 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     menuPlacement="auto"
                     styles={rsStyles}
                   />
-                  {/* hidden required sentinel */}
-                  <input
-                    tabIndex={-1}
-                    required
-                    value={form.brand}
-                    onChange={() => {}}
-                    style={{ opacity: 0, height: 0, position: 'absolute' }}
-                  />
+                  </div>
+                  {errorText('brand')}
                 </div>
 
                 {/* Creatable Model */}
@@ -528,7 +574,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
 
               {/* Year + VIN row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div data-field="year">
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     An fabricație
                   </label>
@@ -541,10 +587,12 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     placeholder={String(CURRENT_YEAR)}
                     min={1900}
                     max={CURRENT_YEAR + 1}
-                    className={INPUT_CLS}
+                    aria-invalid={!!errors.year}
+                    className={inputCls('year')}
                   />
+                  {errorText('year')}
                 </div>
-                <div>
+                <div data-field="vin">
                   <label className="block text-sm font-medium text-slate-600 mb-1">VIN</label>
                   <input
                     type="text"
@@ -553,8 +601,11 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     onChange={handleChange}
                     placeholder="17 caractere (opțional)"
                     maxLength={17}
-                    className={INPUT_CLS + ' font-mono uppercase'}
+                    aria-invalid={!!errors.vin}
+                    aria-describedby={errors.vin ? 'err-vin' : undefined}
+                    className={inputCls('vin', 'font-mono uppercase')}
                   />
+                  {errorText('vin')}
                 </div>
               </div>
             </fieldset>
@@ -565,7 +616,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 Date ITP
               </legend>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
+                <div data-field="testDate">
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Data Efectuare ITP <span className="text-red-500">*</span>
                   </label>
@@ -574,15 +625,20 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     required
                     max={todayIso()}
                     value={form.testDate}
-                    onChange={(iso) => setForm((f) => ({ ...f, testDate: iso }))}
-                    className={INPUT_CLS}
+                    onChange={(iso) => {
+                      clearError('testDate');
+                      setForm((f) => ({ ...f, testDate: iso }));
+                    }}
+                    className={inputCls('testDate')}
                   />
+                  {errorText('testDate')}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">
                     Valabilitate <span className="text-red-500">*</span>
                   </label>
                   <select
+                    data-field="validityMonths"
                     name="validityMonths"
                     required
                     value={form.validityMonths}
@@ -616,7 +672,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     ))}
                   </select>
                 </div>
-                <div>
+                <div data-field="mileage">
                   <label className="block text-sm font-medium text-slate-600 mb-1">Kilometraj</label>
                   <input
                     type="number"
@@ -626,8 +682,10 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                     onChange={handleChange}
                     placeholder="ex: 120000"
                     min={0}
-                    className={INPUT_CLS}
+                    aria-invalid={!!errors.mileage}
+                    className={inputCls('mileage')}
                   />
+                  {errorText('mileage')}
                 </div>
               </div>
 
@@ -647,7 +705,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 </div>
               )}
 
-              <div>
+              <div data-field="price">
                 <label className="block text-sm font-medium text-slate-600 mb-1">Preț (RON)</label>
                 <input
                   type="number"
@@ -658,8 +716,10 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   placeholder="ex: 150"
                   min={0}
                   step="0.01"
-                  className={INPUT_CLS}
+                  aria-invalid={!!errors.price}
+                  className={inputCls('price')}
                 />
+                {errorText('price')}
               </div>
 
               <div>

@@ -1,6 +1,7 @@
 package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.easyitp.config.FieldException;
 import org.example.easyitp.dto.DashboardDTO;
 import org.example.easyitp.dto.DashboardPageDTO;
 import org.example.easyitp.dto.DashboardSummaryDTO;
@@ -347,24 +348,44 @@ public class ItpService {
 
     // Formularul ITP: campurile obligatorii si valori plauzibile, cu mesaje pentru interfata (400, nu 500)
     static void validate(ItpFormDTO form) {
-        if (isBlank(form.getName())) throw badRequest("Introduceți numele clientului");
-        if (form.getName().trim().length() > 120) throw badRequest("Numele este prea lung");
+        if (isBlank(form.getName())) throw invalid("name", "Introduceți numele clientului");
+        if (form.getName().trim().length() > 120) throw invalid("name", "Numele este prea lung");
+        if (!isBlank(form.getPhone())) {
+            int digits = form.getPhone().replaceAll("\\D", "").length();
+            if (digits < 9 || digits > 15) throw invalid("phone", "Numărul de telefon nu pare complet");
+        }
         if (isBlank(form.getLicensePlate()) || PlateUtils.normalize(form.getLicensePlate()).length() < 2) {
-            throw badRequest("Introduceți numărul de înmatriculare");
+            throw invalid("licensePlate", "Introduceți numărul de înmatriculare");
         }
-        if (PlateUtils.normalize(form.getLicensePlate()).length() > 15) throw badRequest("Numărul de înmatriculare este prea lung");
-        if (isBlank(form.getBrand())) throw badRequest("Introduceți marca");
-        if (form.getTestDate() == null) throw badRequest("Introduceți data ITP");
-        if (form.getTestDate().isAfter(LocalDate.now().plusDays(1))) throw badRequest("Data ITP nu poate fi în viitor");
-        if (form.getTestDate().isBefore(LocalDate.of(1990, 1, 1))) throw badRequest("Data ITP este prea veche");
-        if (form.getValidityMonths() == null || form.getValidityMonths() < 1 || form.getValidityMonths() > 36) {
-            throw badRequest("Valabilitatea trebuie să fie între 1 și 36 de luni");
-        }
-        if (form.getPrice() != null && (form.getPrice() < 0 || form.getPrice() > 100_000)) throw badRequest("Preț invalid");
-        if (form.getMileage() != null && (form.getMileage() < 0 || form.getMileage() > 5_000_000)) throw badRequest("Kilometraj invalid");
+        if (PlateUtils.normalize(form.getLicensePlate()).length() > 15) throw invalid("licensePlate", "Numărul de înmatriculare este prea lung");
+        if (isBlank(form.getBrand())) throw invalid("brand", "Introduceți marca");
         if (form.getYear() != null && (form.getYear() < 1900 || form.getYear() > LocalDate.now().getYear() + 1)) {
-            throw badRequest("An de fabricație invalid");
+            throw invalid("year", "An de fabricație invalid");
         }
+        String vinProblem = vinProblem(form.getVin());
+        if (vinProblem != null) throw invalid("vin", vinProblem);
+        if (form.getTestDate() == null) throw invalid("testDate", "Introduceți data ITP");
+        if (form.getTestDate().isAfter(LocalDate.now().plusDays(1))) throw invalid("testDate", "Data ITP nu poate fi în viitor");
+        if (form.getTestDate().isBefore(LocalDate.of(1990, 1, 1))) throw invalid("testDate", "Data ITP este prea veche");
+        if (form.getValidityMonths() == null || form.getValidityMonths() < 1 || form.getValidityMonths() > 36) {
+            throw invalid("validityMonths", "Valabilitatea trebuie să fie între 1 și 36 de luni");
+        }
+        if (form.getMileage() != null && (form.getMileage() < 0 || form.getMileage() > 5_000_000)) throw invalid("mileage", "Kilometraj invalid");
+        if (form.getPrice() != null && (form.getPrice() < 0 || form.getPrice() > 100_000)) throw invalid("price", "Preț invalid");
+    }
+
+    // VIN: 17 caractere, litere si cifre, fara I, O, Q (se confunda cu 1 si 0); gol = nu se stie
+    static String vinProblem(String raw) {
+        if (isBlank(raw)) return null;
+        String vin = raw.trim().toUpperCase(Locale.ROOT);
+        if (!vin.matches("[A-Z0-9]+")) return "VIN-ul are doar litere și cifre, fără spații sau semne";
+        if (vin.matches(".*[IOQ].*")) return "VIN-ul nu conține literele I, O sau Q (sunt cifrele 1 și 0)";
+        if (vin.length() != 17) return "VIN-ul are 17 caractere (acum are " + vin.length() + ")";
+        return null;
+    }
+
+    private static FieldException invalid(String field, String message) {
+        return new FieldException(field, message);
     }
 
     private static ResponseStatusException badRequest(String message) {

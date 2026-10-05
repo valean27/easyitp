@@ -18,6 +18,11 @@ import java.util.Map;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+    @ExceptionHandler(FieldException.class)
+    public ResponseEntity<Map<String, String>> handleField(FieldException e) {
+        return ResponseEntity.badRequest().body(Map.of("message", e.getReason(), "field", e.getField()));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleStatus(ResponseStatusException e) {
         return ResponseEntity.status(e.getStatusCode())
