@@ -22,6 +22,7 @@ import type { DashboardEntry, DashboardSummary, ImportResult, ItpStatus } from '
 import AddItpModal from './AddItpModal';
 import ImportCsvModal from './ImportCsvModal';
 import TodayAgenda from './TodayAgenda';
+import StationDeadlineAlert from './StationDeadlineAlert';
 import { offerUndo } from '../utils/undo';
 import { apiMessage } from '../utils/errors';
 
@@ -365,6 +366,7 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <StationDeadlineAlert />
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard

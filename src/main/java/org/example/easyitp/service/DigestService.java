@@ -3,6 +3,7 @@ package org.example.easyitp.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.easyitp.dto.ReminderDTO;
+import org.example.easyitp.dto.StationDeadlineDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.AppointmentSource;
@@ -29,6 +30,7 @@ import java.util.Objects;
 public class DigestService {
 
     private static final int EXPIRING_DAYS = 7;
+    private static final java.time.format.DateTimeFormatter DATE_RO = java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy");
     private static final int MAX_ROWS = 15;
     // Mesajele WhatsApp trebuie sa ramana scurte
     private static final int WHATSAPP_ROWS = 8;
@@ -39,6 +41,7 @@ public class DigestService {
     private final AppUserRepository appUserRepository;
     private final AppointmentRepository appointmentRepository;
     private final ItpService itpService;
+    private final StationDeadlineService stationDeadlineService;
     private final EmailService emailService;
     private final WhatsAppService whatsAppService;
 
@@ -118,10 +121,24 @@ public class DigestService {
                 .sorted((a, b) -> Long.compare(b.getZileRamase(), a.getZileRamase()))
                 .toList();
 
-        boolean empty = todayAppointments.isEmpty() && newOnline.isEmpty() && expiringSoon.isEmpty() && expired.isEmpty();
+        List<StationDeadlineDTO> stationDue = stationDeadlineService.due(user.getId(), today);
+
+        boolean empty = todayAppointments.isEmpty() && newOnline.isEmpty() && expiringSoon.isEmpty() && expired.isEmpty()
+                && stationDue.isEmpty();
         String subject = subject(today, todayAppointments.size(), newOnline.size(), expiringSoon.size() + expired.size());
 
         List<Section> sections = new ArrayList<>();
+        // primele: autorizatia sau un echipament expirat opreste statia
+        if (!stationDue.isEmpty()) {
+            sections.add(new Section("Termenele stației (" + stationDue.size() + ")",
+                    stationDue.stream().map(d -> List.of(
+                            d.daysLeft() < 0 ? "expirat de " + Math.abs(d.daysLeft()) + (d.daysLeft() == -1 ? " zi" : " zile")
+                                    : d.daysLeft() == 0 ? "azi" : "în " + d.daysLeft() + (d.daysLeft() == 1 ? " zi" : " zile"),
+                            d.label(),
+                            Objects.toString(d.title(), ""),
+                            d.dueDate().format(DATE_RO))).toList(),
+                    "/account#termene", "Vezi termenele"));
+        }
         if (!todayAppointments.isEmpty()) {
             sections.add(new Section("Programări azi (" + todayAppointments.size() + ")",
                     todayAppointments.stream().map(a -> List.of(

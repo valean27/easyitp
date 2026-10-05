@@ -8,6 +8,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 import DigestCard from './DigestCard';
 import AutoSmsCard from './AutoSmsCard';
 import VisibilityCard from './VisibilityCard';
+import StationDeadlinesCard from './StationDeadlinesCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
@@ -341,6 +342,7 @@ export default function AccountPage() {
               <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
             )}
             {user?.role === 'MANAGER' && <InspectorsCard />}
+            {user?.role === 'MANAGER' && <StationDeadlinesCard />}
             {user?.role === 'MANAGER' && <DigestCard />}
             {user?.role === 'MANAGER' && <AutoSmsCard />}
             {user?.role === 'MANAGER' && <VisibilityCard />}

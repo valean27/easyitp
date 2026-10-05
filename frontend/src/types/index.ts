@@ -534,3 +534,25 @@ export interface Lead {
   createdAt: string;
   handled: boolean;
 }
+
+// Termenele statiei (D1)
+export type StationDeadlineKind = 'AUTORIZATIE_RAR' | 'METROLOGIE' | 'ATESTAT_INSPECTOR' | 'ALTUL';
+
+export interface StationDeadline {
+  id: number;
+  kind: StationDeadlineKind;
+  label: string;
+  title: string | null;
+  dueDate: string;
+  daysLeft: number;
+  notes: string | null;
+  // expirat sau in fereastra de alerta a tipului
+  due: boolean;
+}
+
+export interface StationDeadlineInput {
+  kind: StationDeadlineKind;
+  title: string | null;
+  dueDate: string;
+  notes: string | null;
+}
