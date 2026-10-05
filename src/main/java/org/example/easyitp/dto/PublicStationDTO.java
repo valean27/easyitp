@@ -19,4 +19,8 @@ public class PublicStationDTO {
     private int maxDaysAhead;
     // Doar tipurile pe care statia le primeste online
     private List<VehicleTypeDTO> vehicleTypes;
+    // Linkurile publice ale statiei (pot lipsi)
+    private String mapsUrl;
+    private String facebookUrl;
+    private String reviewUrl;
 }

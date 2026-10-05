@@ -5,6 +5,7 @@ import org.example.easyitp.service.DigestService;
 import org.example.easyitp.service.AppointmentSmsService;
 import org.example.easyitp.service.AutoReminderService;
 import org.example.easyitp.service.HistoryService;
+import org.example.easyitp.service.ReviewRequestService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ public class InternalController {
     private final HistoryService historyService;
     private final AutoReminderService autoReminderService;
     private final AppointmentSmsService appointmentSmsService;
+    private final ReviewRequestService reviewRequestService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -52,6 +54,11 @@ public class InternalController {
             appointmentSmsService.runDayBefore(LocalDate.now());
         } catch (RuntimeException e) {
             log.error("Reminderele pentru programari au esuat", e);
+        }
+        try {
+            reviewRequestService.runDaily(LocalDate.now());
+        } catch (RuntimeException e) {
+            log.error("Cererile de recenzie au esuat", e);
         }
         historyService.purgeOld();
         return ResponseEntity.ok(result);

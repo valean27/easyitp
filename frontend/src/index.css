@@ -192,3 +192,10 @@ body {
 :root[data-theme='dark'] .hover\:text-orange-800:hover { color: #fed7aa; }
 :root[data-theme='dark'] .text-orange-900 { color: #ffedd5; }
 :root[data-theme='dark'] .hover\:text-orange-900:hover { color: #ffedd5; }
+
+/* Afisul cu QR (/afis): codul umple cutia; la tiparire o pagina A4 fara margini si fara restul aplicatiei */
+.poster svg { width: 100%; height: 100%; display: block; }
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+}

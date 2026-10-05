@@ -16,4 +16,8 @@ public class ProfileDTO {
     private String bookingSlug;
     private boolean bookingEnabled;
     private boolean digestEnabled;
+    // Linkurile publice ale statiei (recenzie Google, harta, Facebook)
+    private String reviewUrl;
+    private String mapsUrl;
+    private String facebookUrl;
 }

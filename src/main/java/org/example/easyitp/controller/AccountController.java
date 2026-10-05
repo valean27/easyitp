@@ -6,6 +6,7 @@ import org.example.easyitp.dto.ChangePasswordRequest;
 import org.example.easyitp.dto.DigestSettingsDTO;
 import org.example.easyitp.dto.ProfileDTO;
 import org.example.easyitp.dto.StationInfoDTO;
+import org.example.easyitp.dto.VisibilityDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.DigestChannel;
 import org.example.easyitp.repository.AppUserRepository;
@@ -55,6 +56,47 @@ public class AccountController {
         user.setPhone(trimToNull(request.getPhone()));
         user.setReminderTemplate(trimToNull(request.getReminderTemplate()));
         return toDto(appUserRepository.save(user));
+    }
+
+    // Recenzii si vizibilitate (C5)
+    @GetMapping("/visibility")
+    public VisibilityDTO getVisibility() {
+        return visibilityDto(currentUser.get());
+    }
+
+    @PutMapping("/visibility")
+    public VisibilityDTO updateVisibility(@RequestBody VisibilityDTO request) {
+        AppUser user = currentUser.get();
+        // totul se verifica inainte de a schimba ceva
+        String review = publicUrl(request.reviewUrl(), "recenzie");
+        String maps = publicUrl(request.mapsUrl(), "hartă");
+        String facebook = publicUrl(request.facebookUrl(), "Facebook");
+        if (request.reviewSms()) {
+            if (review == null) throw badRequest("Pentru SMS-ul de recenzie completați linkul de recenzie Google.");
+            if (user.getAutoSmsProvider() == null) {
+                throw badRequest("Pentru SMS-ul de recenzie alegeți întâi cum se trimit SMS-urile (cardul SMS automate).");
+            }
+        }
+        user.setReviewUrl(review);
+        user.setMapsUrl(maps);
+        user.setFacebookUrl(facebook);
+        user.setReviewSms(request.reviewSms());
+        return visibilityDto(appUserRepository.save(user));
+    }
+
+    private static VisibilityDTO visibilityDto(AppUser u) {
+        return new VisibilityDTO(u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl(), Boolean.TRUE.equals(u.getReviewSms()));
+    }
+
+    // Link public: gol = sters; altfel https://, fara spatii, cel mult 300 de caractere
+    static String publicUrl(String raw, String what) {
+        String url = trimToNull(raw);
+        if (url == null) return null;
+        if (!url.startsWith("https://")) url = url.startsWith("http://") ? "https://" + url.substring(7) : "https://" + url;
+        if (url.length() > 300 || url.chars().anyMatch(Character::isWhitespace) || !url.matches("https://[^/?#]+\\.[^/?#]+.*")) {
+            throw badRequest("Linkul pentru " + what + " nu este valid.");
+        }
+        return url;
     }
 
     @PutMapping("/password")
@@ -162,7 +204,11 @@ public class AccountController {
     private ProfileDTO toDto(AppUser u) {
         return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
                 u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()),
-                !Boolean.FALSE.equals(u.getDigestEnabled()));
+                !Boolean.FALSE.equals(u.getDigestEnabled()), u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl());
+    }
+
+    private static ResponseStatusException badRequest(String message) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
     }
 
     private static String trimToNull(String s) {

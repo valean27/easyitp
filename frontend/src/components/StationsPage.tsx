@@ -90,7 +90,7 @@ export default function StationsPage() {
                       <p className="text-lg font-bold text-slate-900">{s.name}</p>
                       {s.address && (
                         <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name} ${s.address}`)}`}
+                          href={s.mapsUrl ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.name} ${s.address}`)}`}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-start gap-1.5 text-sm text-slate-600 hover:text-blue-600"

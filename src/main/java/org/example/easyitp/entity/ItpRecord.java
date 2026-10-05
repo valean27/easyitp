@@ -57,4 +57,8 @@ public class ItpRecord {
 
     @Column(name = "reminder_at")
     private LocalDateTime reminderAt;
+
+    // Cand a plecat SMS-ul cu cererea de recenzie dupa acest ITP (null = niciunul)
+    @Column(name = "review_requested_at")
+    private LocalDateTime reviewRequestedAt;
 }

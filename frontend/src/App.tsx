@@ -26,6 +26,7 @@ const FleetsPage = lazy(() => import('./components/FleetsPage'));
 const ClientsPage = lazy(() => import('./components/ClientsPage'));
 const HistoryPage = lazy(() => import('./components/HistoryPage'));
 const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
+const PosterPage = lazy(() => import('./components/PosterPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -84,6 +85,17 @@ function App() {
               <Suspense fallback={null}>
                 <PublicBookingPage />
               </Suspense>
+            }
+          />
+          {/* Afisul A4 cu QR: fara meniul aplicatiei, ca sa se tipareasca curat */}
+          <Route
+            path="/afis"
+            element={
+              <ProtectedRoute requiredRole="MANAGER">
+                <Suspense fallback={null}>
+                  <PosterPage />
+                </Suspense>
+              </ProtectedRoute>
             }
           />
           <Route path="/" element={<RootGate />}>

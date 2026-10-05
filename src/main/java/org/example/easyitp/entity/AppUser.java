@@ -51,6 +51,19 @@ public class AppUser {
     @Column(length = 20)
     private String bookingDays;
 
+    // Recenzii si vizibilitate (C5): link de recenzie Google, harta, Facebook (publice, https)
+    @Column(length = 300)
+    private String reviewUrl;
+
+    @Column(length = 300)
+    private String mapsUrl;
+
+    @Column(length = 300)
+    private String facebookUrl;
+
+    // SMS cu cererea de recenzie a doua zi dupa un ITP admis (pe canalul SMS al statiei); null = nu
+    private Boolean reviewSms;
+
     // Apare in lista publica de statii (/statii); null = da, cand programarea online e pornita
     private Boolean publicListing;
 

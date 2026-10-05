@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Pencil, Trash2, ArrowRightLeft, Merge, Phone, Car, Check } from 'lucide-react';
+import { X, Loader2, Pencil, Trash2, ArrowRightLeft, Merge, Phone, Car, Check, Star } from 'lucide-react';
+import { getProfile } from '../api/accountApi';
+import { normalizePhone, whatsappLink } from '../utils/reminderMessage';
+import { reviewMessage } from '../utils/review';
 import {
   deleteClient,
   deleteVehicle,
@@ -10,7 +13,7 @@ import {
   updateClient,
   updateVehicle,
 } from '../api/clientApi';
-import type { ClientDetail, ClientVehicle, DeadlineDates, ReminderConsent, VehicleUpdate } from '../types';
+import type { ClientDetail, ClientVehicle, DeadlineDates, Profile, ReminderConsent, VehicleUpdate } from '../types';
 import { deadlinePayload, deadlineSummary } from '../utils/deadlines';
 import DeadlineFields from './DeadlineFields';
 import { STATUS_LABELS, formatDateRo } from '../utils/fleet';
@@ -152,6 +155,12 @@ export default function ClientModal({
   const [editingVehicle, setEditingVehicle] = useState<number | null>(null);
   const [movingVehicle, setMovingVehicle] = useState<number | null>(null);
   const [merging, setMerging] = useState(false);
+  // pentru butonul "Cere o recenzie" (linkul de recenzie Google al statiei)
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    getProfile().then(setProfile).catch(() => setProfile(null));
+  }, []);
 
   useEffect(() => {
     getClient(clientId)
@@ -251,6 +260,17 @@ export default function ClientModal({
                       </a>
                     ) : (
                       <p className="text-sm text-slate-400 mt-0.5">Fără telefon</p>
+                    )}
+                    {profile?.reviewUrl && normalizePhone(client.phone) && client.consent !== 'DECLINED' && (
+                      <a
+                        href={whatsappLink(normalizePhone(client.phone)!, reviewMessage(client.name, profile.stationName, profile.reviewUrl))}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-3 inline-flex items-center gap-1 text-sm text-emerald-700 hover:underline"
+                        title="Deschide WhatsApp cu mesajul de recenzie"
+                      >
+                        <Star size={13} /> Cere o recenzie
+                      </a>
                     )}
                   </div>
                   <button onClick={startEdit} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 shrink-0">

@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Car, MapPin, Phone, Clock, Loader2, CheckCircle2, AlertTriangle, CalendarDays, ArrowLeft, Truck } from 'lucide-react';
+import {
+  Car,
+  MapPin,
+  Phone,
+  Clock,
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
+  CalendarDays,
+  ArrowLeft,
+  Truck,
+  Navigation,
+  Star,
+  ExternalLink,
+} from 'lucide-react';
 import type { PublicStation, VehicleCategory } from '../types';
 import { createPublicBooking, getPublicSlots, getPublicStation } from '../api/publicApi';
 import { toLocalIso } from '../utils/dates';
@@ -48,6 +62,25 @@ function StationHeader({ station }: { station: PublicStation }) {
           <Clock size={15} className="shrink-0 text-slate-400" />
           {station.days.map((d) => WEEKDAYS_SHORT[d - 1]).join(', ')} · {station.open.slice(0, 5)} – {station.close.slice(0, 5)}
         </p>
+        {(station.mapsUrl || station.facebookUrl || station.reviewUrl) && (
+          <p className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+            {station.mapsUrl && (
+              <a href={station.mapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-600 hover:underline">
+                <Navigation size={14} /> Vezi pe hartă
+              </a>
+            )}
+            {station.reviewUrl && (
+              <a href={station.reviewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-600 hover:underline">
+                <Star size={14} /> Recenzii
+              </a>
+            )}
+            {station.facebookUrl && (
+              <a href={station.facebookUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-600 hover:underline">
+                <ExternalLink size={14} /> Facebook
+              </a>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -336,7 +369,7 @@ export default function PublicBookingPage() {
                 className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
               <span>
-                Vreau să primesc de la {station?.name || 'stație'} un mesaj când se apropie următorul ITP sau alte scadențe ale mașinii (RCA, rovinietă).{' '}
+                Vreau să primesc de la {station?.name || 'stație'} un mesaj când se apropie următorul ITP sau alte scadențe ale mașinii (RCA, rovinietă), plus o cerere de recenzie după ITP.{' '}
                 <span className="text-slate-400">Opțional; vă puteți dezabona oricând din link-ul din mesaj.</span>
               </span>
             </label>
@@ -386,7 +419,7 @@ export default function PublicBookingPage() {
         )}
 
         <p className="text-center text-xs text-slate-400 pt-2">
-          Datele sunt folosite doar pentru programarea la ITP și, dacă bifați, pentru reminderul următorului ITP.{' '}
+          Datele sunt folosite doar pentru programarea la ITP și, dacă bifați, pentru mesajele stației (reminderul următorului ITP, cererea de recenzie).{' '}
           <Link to="/confidentialitate" className="underline hover:text-slate-600">Confidențialitate</Link>
         </p>
       </div>

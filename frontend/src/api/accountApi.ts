@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, Profile, StationInfo } from '../types';
+import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, Profile, StationInfo, Visibility } from '../types';
 
 const BASE = '/api/account';
 
@@ -46,3 +46,9 @@ export const sendTestSms = (phone: string): Promise<string> =>
   api.post(`${BASE}/auto-sms/test`, { phone }).then((r) => r.data.message);
 
 export const getAutoSmsLog = (): Promise<AutoSmsLogEntry[]> => api.get(`${BASE}/auto-sms/log`).then((r) => r.data);
+
+// Recenzii si vizibilitate: linkurile publice ale statiei si SMS-ul de recenzie
+export const getVisibility = (): Promise<Visibility> => api.get(`${BASE}/visibility`).then((r) => r.data);
+
+export const updateVisibility = (data: Visibility): Promise<Visibility> =>
+  api.put(`${BASE}/visibility`, data).then((r) => r.data);

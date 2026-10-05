@@ -709,7 +709,7 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                   className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                 />
                 <span>
-                  Clientul este de acord să primească remindere (ITP, RCA, rovinietă) prin SMS / WhatsApp
+                  Clientul este de acord să primească mesaje de la stație prin SMS / WhatsApp (remindere ITP, RCA, rovinietă și o cerere de recenzie după ITP)
                   {declined && !form.reminderConsent && (
                     <span className="block text-xs text-amber-700 mt-0.5">
                       A cerut să nu mai primească mesaje. Bifați doar dacă și-a dat din nou acordul.

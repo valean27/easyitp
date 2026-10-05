@@ -63,7 +63,8 @@ function Privacy() {
           </li>
           <li>
             <b>Reminderele (SMS / WhatsApp):</b> nume, telefon, numărul mașinii și data expirării ITP-ului și, dacă stația le
-            completează, a RCA-ului, rovinietei sau a verificării tahografului. Mesajele automate se trimit doar
+            completează, a RCA-ului, rovinietei sau a verificării tahografului; după un ITP, stația vă poate cere o recenzie. Mesajele
+            automate se trimit doar
             dacă v-ați dat acordul, iar acordul se poate retrage oricând din linkul de dezabonare din fiecare mesaj.
           </li>
           <li>

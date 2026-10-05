@@ -9,12 +9,26 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ItpRecordRepository extends JpaRepository<ItpRecord, Long> {
+
+    // ITP-urile facute intre doua date, fara cerere de recenzie trimisa, cu masina si clientul
+    @Query("""
+            SELECT r FROM ItpRecord r JOIN FETCH r.vehicle v JOIN FETCH v.client c
+            WHERE c.user.id = :userId AND r.testDate BETWEEN :from AND :to AND r.reviewRequestedAt IS NULL
+            ORDER BY r.id ASC
+            """)
+    List<ItpRecord> findWithoutReviewRequest(@Param("userId") Long userId, @Param("from") LocalDate from,
+                                             @Param("to") LocalDate to);
+
+    // Clientul a primit deja o cerere de recenzie dupa aceasta data
+    @Query("SELECT COUNT(r) > 0 FROM ItpRecord r WHERE r.vehicle.client.id = :clientId AND r.reviewRequestedAt > :since")
+    boolean reviewRequestedSince(@Param("clientId") Long clientId, @Param("since") LocalDateTime since);
 
     // "r e ultimul ITP al vehiculului": niciun alt ITP al aceleiasi statii, pe acelasi numar normalizat
     // (sau acelasi vehicul, cand numarul e gol), nu e mai nou (data ITP, apoi id).

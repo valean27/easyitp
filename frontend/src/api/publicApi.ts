@@ -25,6 +25,7 @@ export interface PublicStationSummary {
   open: string; // HH:mm:ss
   close: string;
   days: number[];
+  mapsUrl: string | null;
 }
 
 export const getPublicStations = (): Promise<PublicStationSummary[]> =>

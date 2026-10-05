@@ -125,6 +125,19 @@ export interface Profile extends StationInfo {
   bookingSlug: string | null;
   bookingEnabled: boolean;
   digestEnabled: boolean;
+  // linkurile publice ale statiei (recenzie Google, harta, Facebook)
+  reviewUrl: string | null;
+  mapsUrl: string | null;
+  facebookUrl: string | null;
+}
+
+// Recenzii si vizibilitate (Contul meu)
+export interface Visibility {
+  reviewUrl: string | null;
+  mapsUrl: string | null;
+  facebookUrl: string | null;
+  // SMS cu cererea de recenzie in dimineata de dupa ITP
+  reviewSms: boolean;
 }
 
 export type VehicleCategory = 'CAR' | 'FOUR_BY_FOUR' | 'VAN' | 'MOTORCYCLE' | 'TRAILER';
@@ -158,6 +171,9 @@ export interface PublicStation {
   days: number[];
   maxDaysAhead: number;
   vehicleTypes: VehicleType[];
+  mapsUrl: string | null;
+  facebookUrl: string | null;
+  reviewUrl: string | null;
 }
 
 export interface Reminder {
