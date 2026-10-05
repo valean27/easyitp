@@ -2,7 +2,7 @@
 export const SMS_PLANS: { sms: number; price: number }[] = [
   { sms: 300, price: 129 },
   { sms: 600, price: 219 },
-  { sms: 1000, price: 399 },
+  { sms: 1000, price: 349 },
 ];
 
 export function planLabel(sms: number): string {
