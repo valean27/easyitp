@@ -484,7 +484,7 @@ export default function Dashboard() {
             ) : (
               <>
               {/* Telefon: carduri in loc de tabelul lat */}
-              <ul className="md:hidden divide-y divide-slate-100">
+              <ul className="xl:hidden divide-y divide-slate-100">
                 {rows.map((row) => {
                   const border = !row.ultimul
                     ? 'border-l-slate-200'
@@ -541,26 +541,14 @@ export default function Dashboard() {
                   );
                 })}
               </ul>
-              <table className="hidden md:table min-w-full text-sm">
+              {/* 6 coloane, ca butoanele sa incapa fara derulare; VIN-ul e in Detalii, telefonul si modelul pe randul al doilea */}
+              <table className="hidden xl:table w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {[
-                      '#',
-                      'Nume Șofer',
-                      'Contact',
-                      'Marcă',
-                      'VIN',
-                      'Nr. Înmatriculare',
-                      'Status',
-                      'Data ITP',
-                      'Val. (luni)',
-                      'Următor ITP',
-                      'Zile Rămase',
-                      '',
-                    ].map((h) => (
+                    {['Șofer', 'Mașină', 'Număr', 'Data ITP', 'Expiră', ''].map((h, i) => (
                       <th
-                        key={h}
-                        className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                        key={i}
+                        className="text-left px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -568,53 +556,41 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {rows.map((row, idx) => {
+                  {rows.map((row) => {
                     const rowCls = row.ultimul ? getRowStyle(row.zileRamase) : 'text-slate-400';
                     return (
                       <tr
                         key={row.id}
                         className={`hover:brightness-95 transition-colors ${rowCls}`}
                       >
-                        <td className="px-4 py-3 text-xs text-slate-400 font-mono">
-                          {page * PAGE_SIZE + idx + 1}
+                        <td className="px-3 py-2.5 max-w-[12rem] 2xl:max-w-[18rem]">
+                          <div className="font-medium truncate" title={row.numeSofer}>{row.numeSofer}</div>
+                          <div className="text-xs text-slate-400 mt-0.5 whitespace-nowrap">{row.contact || '—'}</div>
                         </td>
-                        <td className="px-4 py-3 font-medium whitespace-nowrap">
-                          {row.numeSofer}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">{row.contact || '—'}</td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="font-medium">{row.marca}</div>
+                        <td className="px-3 py-2.5 max-w-[10rem] 2xl:max-w-[16rem]">
+                          <div className="font-medium truncate">{row.marca || '—'}</div>
                           {(row.model || row.year) && (
-                            <div className="text-xs text-slate-400 mt-0.5">
+                            <div className="text-xs text-slate-400 mt-0.5 truncate">
                               {[row.model, row.year ? `(${row.year})` : null].filter(Boolean).join(' ')}
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
-                          {row.vin || '—'}
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div className="font-mono font-semibold">{row.numarInmatriculare}</div>
+                          <div className="mt-1">{getStatusBadge(row.status)}</div>
                         </td>
-                        <td className="px-4 py-3 font-mono font-semibold whitespace-nowrap">
-                          {row.numarInmatriculare}
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div>{row.dataItp}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">{row.valabilitateLuni} luni</div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {getStatusBadge(row.status)}
+                        <td className="px-3 py-2.5 whitespace-nowrap">
+                          <div className="font-medium">{row.dataUrmatorItp}</div>
+                          <div className="mt-0.5">
+                            {row.ultimul ? getDaysTag(row.zileRamase) : <span className="text-xs italic">Reînnoit</span>}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">{row.dataItp}</td>
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          {row.valabilitateLuni}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap font-medium">
-                          {row.dataUrmatorItp}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {row.ultimul ? (
-                            getDaysTag(row.zileRamase)
-                          ) : (
-                            <span className="text-xs italic">Reînnoit</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1">
+                        <td className="px-2 py-2.5">
+                          <div className="flex items-center justify-end gap-0.5">
                             <button
                               onClick={() => setViewEntry(row)}
                               className="p-1.5 rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
