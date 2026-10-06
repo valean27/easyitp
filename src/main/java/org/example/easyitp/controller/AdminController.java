@@ -51,6 +51,7 @@ public class AdminController {
     private final org.example.easyitp.repository.PaymentRepository paymentRepository;
     private final BillingService billingService;
     private final org.example.easyitp.repository.AuthTokenRepository authTokenRepository;
+    private final org.example.easyitp.service.AccountDeletionService accountDeletionService;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -113,6 +114,7 @@ public class AdminController {
                             .paidPlan(u.getPlan() == null ? null : u.getPlan().name())
                             .planUntil(u.getPlanUntil())
                             .planTrial(Plans.onTrial(u, LocalDate.now()))
+                            .deletionRequestedAt(u.getDeletionRequestedAt())
                             .build();
                 })
                 .toList();
@@ -182,14 +184,21 @@ public class AdminController {
         AppUser user = findManager(id);
         user.setActive(Boolean.TRUE.equals(body.get("active")));
         if (!user.isEnabled()) user.revokeTokens();
+        // reactivarea anuleaza si o cerere de stergere a contului
+        else user.setDeletionRequestedAt(null);
         appUserRepository.save(user);
         return ResponseEntity.noContent().build();
     }
 
-    // Stergem doar conturi fara date; pentru statiile cu istoric se foloseste dezactivarea
+    // Fara force: doar conturi fara date (pentru statiile cu istoric se foloseste dezactivarea).
+    // Cu force=true: statia cu toate datele ei, definitiv (ex. cererea de stergere a statiei, fara cele 30 de zile)
     @DeleteMapping("/managers/{id}")
-    public ResponseEntity<Void> deleteManager(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteManager(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean force) {
         AppUser user = findManager(id);
+        if (force) {
+            accountDeletionService.hardDelete(id);
+            return ResponseEntity.noContent().build();
+        }
         if (clientRepository.existsByUserId(id) || appointmentRepository.existsByUserId(id)
                 || fleetRepository.existsByStationId(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Managerul are date; dezactivati contul");

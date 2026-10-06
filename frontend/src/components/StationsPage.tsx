@@ -5,6 +5,7 @@ import { getPublicStations, type PublicStationSummary } from '../api/publicApi';
 import { WEEKDAYS_SHORT } from '../utils/booking';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import StarRating from './StarRating';
+import { usePageTitle } from '../utils/pageTitle';
 
 // Linkul stației pe Google Maps, altfel o căutare după nume + adresă
 const mapLink = (s: PublicStationSummary) =>
@@ -28,6 +29,7 @@ const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
 
 // Pagina publica pentru soferi: statiile ITP din Easy ITP la care se pot programa online
 export default function StationsPage() {
+  usePageTitle('Stații ITP cu programare online');
   const [stations, setStations] = useState<PublicStationSummary[] | null>(null);
   const [error, setError] = useState(false);
   const [query, setQuery] = useState('');

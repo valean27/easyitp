@@ -107,13 +107,24 @@ export default function UserManagementPage() {
       handleSuccess(`Contul ${m.email} a fost șters.`);
     } catch (err) {
       const status = (err as { response?: { status?: number } })?.response?.status;
-      setBanner({
-        message:
-          status === 409
-            ? 'Managerul are înregistrări sau programări. Dezactivează contul în loc să-l ștergi.'
-            : 'Eroare la ștergere.',
-        type: 'error',
-      });
+      if (status === 409) {
+        // statia are date: stergerea cu tot cu date, doar dupa confirmarea emailului
+        const typed = prompt(
+          `Stația are clienți, ITP-uri sau programări. Ca să ștergi DEFINITIV contul cu toate datele, scrie emailul ${m.email}:`,
+        );
+        if (typed?.trim().toLowerCase() === m.email.toLowerCase()) {
+          try {
+            await deleteManager(m.id, true);
+            handleSuccess(`Contul ${m.email} și toate datele lui au fost șterse.`);
+          } catch {
+            setBanner({ message: 'Eroare la ștergere.', type: 'error' });
+          }
+        } else if (typed !== null) {
+          setBanner({ message: 'Emailul nu se potrivește; nu am șters nimic.', type: 'error' });
+        }
+      } else {
+        setBanner({ message: 'Eroare la ștergere.', type: 'error' });
+      }
     } finally {
       setBusyId(null);
     }
@@ -143,6 +154,14 @@ export default function UserManagementPage() {
         {m.planUntil && m.plan !== 'FREE' ? ` · ${m.planUntil.split('-').reverse().join('.')}` : ''}
         {m.plan === 'FREE' && m.paidPlan && m.paidPlan !== 'FREE' ? ' · expirat' : ''}
       </button>
+      {m.deletionRequestedAt && (
+        <span
+          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700"
+          title="Reactivarea contului anulează cererea; ștergerea îl șterge acum"
+        >
+          Ștergere cerută {m.deletionRequestedAt.slice(0, 10).split('-').reverse().join('.')}
+        </span>
+      )}
       <select
         value={m.smsPlan}
         onChange={(e) => changePlan(m, Number(e.target.value))}

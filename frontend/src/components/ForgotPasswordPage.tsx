@@ -3,9 +3,11 @@ import { Loader2 } from 'lucide-react';
 import { forgotPassword } from '../api/authApi';
 import { apiMessage } from '../utils/errors';
 import AuthCard, { AUTH_INPUT, AuthMessage } from './AuthCard';
+import { usePageTitle } from '../utils/pageTitle';
 
 // "Am uitat parola": trimite pe email linkul de resetare (acelasi raspuns si daca adresa nu are cont)
 export default function ForgotPasswordPage() {
+  usePageTitle('Parolă uitată');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);

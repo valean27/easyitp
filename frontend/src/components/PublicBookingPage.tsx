@@ -21,6 +21,7 @@ import { createPublicBooking, getPublicSlots, getPublicStation } from '../api/pu
 import { toLocalIso } from '../utils/dates';
 import StarRating from './StarRating';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
+import { usePageTitle } from '../utils/pageTitle';
 
 const INPUT_CLS =
   'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-base text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -93,6 +94,7 @@ function StationHeader({ station }: { station: PublicStation }) {
 export default function PublicBookingPage() {
   const { slug = '' } = useParams();
   const [station, setStation] = useState<PublicStation | null>(null);
+  usePageTitle(station ? `Programare ITP – ${station.name}` : 'Programare ITP online');
   const [notFound, setNotFound] = useState(false);
   const [category, setCategory] = useState<VehicleCategory | null>(null);
   const [date, setDate] = useState<string | null>(null);

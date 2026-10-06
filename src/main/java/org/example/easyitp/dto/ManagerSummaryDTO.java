@@ -31,4 +31,6 @@ public class ManagerSummaryDTO {
     private String paidPlan;
     private java.time.LocalDate planUntil;
     private boolean planTrial;
+    // Statia a cerut stergerea contului (datele se sterg dupa 30 de zile)
+    private LocalDateTime deletionRequestedAt;
 }

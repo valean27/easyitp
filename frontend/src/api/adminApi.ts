@@ -23,8 +23,9 @@ export const resetManagerPassword = (id: number, password: string): Promise<void
 export const setManagerActive = (id: number, active: boolean): Promise<void> =>
   api.put(`${BASE}/managers/${id}/active`, { active }).then(() => undefined);
 
-export const deleteManager = (id: number): Promise<void> =>
-  api.delete(`${BASE}/managers/${id}`).then(() => undefined);
+// force = cu toate datele statiei, definitiv (ex. cererea de stergere a statiei, fara cele 30 de zile)
+export const deleteManager = (id: number, force = false): Promise<void> =>
+  api.delete(`${BASE}/managers/${id}`, { params: force ? { force: true } : undefined }).then(() => undefined);
 
 // Cererile de demonstratie din pagina de prezentare
 export const getLeads = (): Promise<Lead[]> => api.get(`${BASE}/leads`).then((r) => r.data);

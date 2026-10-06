@@ -65,3 +65,20 @@ export const unlinkGooglePlace = (): Promise<Visibility> => api.delete(`${BASE}/
 // Retrimite linkul de confirmare a adresei de email
 export const resendVerification = (): Promise<string> =>
   api.post(`${BASE}/resend-verification`).then((r) => r.data.message);
+
+// Toate datele statiei intr-un fisier JSON (GDPR)
+export const exportAllData = (): Promise<void> =>
+  api.get(`${BASE}/export`, { responseType: 'blob' }).then((r) => {
+    const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `easyitp-date-${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  });
+
+// Inchide contul acum; datele se sterg definitiv dupa 30 de zile. Intoarce mesajul cu data stergerii
+export const deleteAccount = (password: string, confirm: string): Promise<string> =>
+  api.post(`${BASE}/delete`, { password, confirm }).then((r) => r.data.message);

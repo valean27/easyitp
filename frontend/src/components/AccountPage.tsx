@@ -12,6 +12,7 @@ import VisibilityCard from './VisibilityCard';
 import StationDeadlinesCard from './StationDeadlinesCard';
 import InvoicingCard from './InvoicingCard';
 import SubscriptionCard from './SubscriptionCard';
+import AccountDataCard from './AccountDataCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
@@ -385,6 +386,7 @@ export default function AccountPage() {
                 <ThemeSwitcher />
               </Card>
               <PasswordCard />
+              {user?.role === 'MANAGER' && <AccountDataCard />}
             </Group>
           </div>
         </div>

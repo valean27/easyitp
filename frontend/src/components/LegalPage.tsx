@@ -4,6 +4,7 @@ import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import { ANPC_SAL_URL, COMPANY } from '../utils/company';
 import { PLANS, PLAN_LABELS, VAT_PERCENT, amountWithVat, formatRon } from '../utils/plans';
 import { SMS_PLANS } from '../utils/smsPlans';
+import { usePageTitle } from '../utils/pageTitle';
 
 const LINKS = [
   { href: '/', label: 'Pentru stații ITP' },
@@ -93,7 +94,7 @@ function Privacy() {
       <Section title="Cui transmitem datele">
         <p>Folosim furnizori care ne ajută să rulăm serviciul, fiecare doar pentru partea lui:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>găzduirea aplicației și a bazei de date (Vercel, Render, Neon);</li>
+          <li>găzduirea aplicației și a bazei de date (Vercel, Render, Neon) și copiile de siguranță criptate ale bazei de date (GitHub);</li>
           <li>trimiterea emailurilor (Resend);</li>
           <li>recunoașterea textului din poza talonului (Anthropic);</li>
           <li>trimiterea SMS-urilor, pe canalul ales de stație (telefonul stației prin SMS Gateway for Android, sau SMSLink);</li>
@@ -111,7 +112,12 @@ function Privacy() {
       <Section title="Cât timp păstrăm datele">
         <ul className="list-disc pl-5 space-y-1">
           <li>cererile de demonstrație: cel mult 12 luni de la ultimul contact;</li>
-          <li>datele stației și ale clienților ei: cât timp stația are cont, apoi se șterg la cererea stației;</li>
+          <li>
+            datele stației și ale clienților ei: cât timp stația are cont; la cererea stației (Contul meu → Datele stației) contul se
+            închide imediat, iar datele se șterg definitiv după 30 de zile;
+          </li>
+          <li>copiile de siguranță ale bazei de date: cel mult 30 de zile;</li>
+          <li>linkurile de resetare a parolei și de confirmare a emailului: până expiră (o oră, respectiv 7 zile);</li>
           <li>istoricul modificărilor: un an;</li>
           <li>poza talonului: nu se păstrează.</li>
         </ul>
@@ -262,6 +268,61 @@ function Terms() {
         </a>
       </Section>
 
+      <Section id="prelucrare" title="Acordul de prelucrare a datelor (art. 28 GDPR)">
+        <p>
+          Această secțiune face parte din contractul dintre stație și {COMPANY.name} și se aplică datelor clienților stației pe care
+          stația le introduce sau le primește prin Easy ITP.
+        </p>
+        <ul className="list-disc pl-5 space-y-1.5">
+          <li>
+            <b>Roluri.</b> Stația ITP este operatorul datelor clienților ei; {COMPANY.name} este persoana împuternicită și le
+            prelucrează doar pentru a furniza serviciul și doar după instrucțiunile stației, date prin folosirea aplicației și prin
+            setările ei.
+          </li>
+          <li>
+            <b>Ce date și ale cui.</b> Clienții stației (persoane fizice, reprezentanți ai firmelor, șoferi): nume, telefon, numărul
+            și datele vehiculului, VIN, datele ITP-urilor și ale altor scadențe, programări, acordul pentru mesaje, mesajele trimise.
+            Nu prelucrăm categorii speciale de date.
+          </li>
+          <li>
+            <b>Scop și durată.</b> Evidența inspecțiilor, programări, remindere și rapoarte, pe durata contului; la încheiere, datele
+            se pot descărca și se șterg conform secțiunii „Cât timp păstrăm datele” din politica de confidențialitate.
+          </li>
+          <li>
+            <b>Confidențialitate și securitate.</b> Accesul la date îl au doar persoanele care întrețin serviciul, obligate la
+            confidențialitate. Folosim conexiuni criptate (https), parole criptate, separarea datelor pe stație, limitarea încercărilor
+            de logare, copii de siguranță și jurnalul modificărilor.
+          </li>
+          <li>
+            <b>Împuterniciți secundari.</b> Stația autorizează folosirea furnizorilor enumerați în politica de confidențialitate
+            (găzduire, bază de date, email, SMS, recunoașterea talonului, facturare). Anunțăm pe această pagină orice furnizor nou
+            înainte să-l folosim; stația se poate opune încheind contractul. Furnizorii au obligații de protecție a datelor cel puțin
+            la fel de stricte, iar transferurile în afara UE se fac pe baza clauzelor contractuale standard.
+          </li>
+          <li>
+            <b>Ajutor pentru stație.</b> Ajutăm stația să răspundă cererilor clienților (acces, rectificare, ștergere, opoziție):
+            datele se pot vedea, corecta, șterge și exporta din aplicație, iar linkul de dezabonare oprește mesajele. O cerere primită
+            direct de noi o transmitem stației.
+          </li>
+          <li>
+            <b>Incidente.</b> Dacă aflăm de o încălcare a securității datelor stației, o anunțăm fără întârziere nejustificată, în cel
+            mult 48 de ore, cu ce știm despre ea și ce am făcut.
+          </li>
+          <li>
+            <b>La încheierea contractului</b> stația își descarcă datele (Contul meu → Datele stației); după ștergerea contului, datele
+            se șterg definitiv în 30 de zile, iar din copiile de siguranță în cel mult încă 30 de zile.
+          </li>
+          <li>
+            <b>Verificare.</b> La cerere, punem la dispoziția stației informațiile necesare pentru a arăta că respectăm aceste
+            obligații.
+          </li>
+          <li>
+            <b>Obligațiile stației.</b> Stația are temei legal pentru datele introduse, informează clienții (poate trimite la această
+            politică), cere acordul pentru mesajele automate și nu trimite prin aplicație mesaje de marketing fără acord.
+          </li>
+        </ul>
+      </Section>
+
       <Section title="Datele personale">
         <p>
           Modul în care prelucrăm datele este descris în{' '}
@@ -281,6 +342,7 @@ function Terms() {
 
 // Paginile legale publice: politica de confidentialitate si termenii
 export default function LegalPage({ doc }: { doc: 'privacy' | 'terms' }) {
+  usePageTitle(doc === 'privacy' ? 'Politica de confidențialitate' : 'Termeni și condiții');
   // linkurile din subsol (/termeni#plata) deruleaza la sectiune
   const { hash } = useLocation();
   useEffect(() => {

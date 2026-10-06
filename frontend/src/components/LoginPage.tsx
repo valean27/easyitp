@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import api from '../api/axiosInstance';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/auth';
+import { usePageTitle } from '../utils/pageTitle';
 
 export default function LoginPage() {
+  usePageTitle('Autentificare');
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -13,6 +15,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slowServer, setSlowServer] = useState(false);
+  // mesaj de dupa o actiune care delogheaza (ex. stergerea contului)
+  const [params] = useSearchParams();
+  const info = params.get('info');
 
   // Serverul gratuit (Render) adoarme; il trezim cat timp utilizatorul completeaza formularul
   useEffect(() => {
@@ -93,6 +98,10 @@ export default function LoginPage() {
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+
+          {info && !error && (
+            <div className="text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">{info}</div>
+          )}
 
           {error && (
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

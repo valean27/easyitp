@@ -138,6 +138,9 @@ public class AppUser {
     // Emailul confirmat din linkul primit la inscriere; null = cont facut inainte (considerat confirmat)
     private Boolean emailVerified;
 
+    // Statia a cerut stergerea contului: contul e dezactivat, datele se sterg definitiv dupa 30 de zile
+    private LocalDateTime deletionRequestedAt;
+
     // Ultimul anunt despre expirarea abonamentului ("<planUntil>:SOON" / "<planUntil>:EXPIRED"), vezi PlanNoticeService
     @Column(length = 40)
     private String planNotice;

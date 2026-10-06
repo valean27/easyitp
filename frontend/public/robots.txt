@@ -1,0 +1,24 @@
+# Paginile publice se pot indexa; aplicatia (dupa login) si linkurile personale din SMS / email nu
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /calendar
+Disallow: /reminders
+Disallow: /clients
+Disallow: /fleets
+Disallow: /reports
+Disallow: /history
+Disallow: /users
+Disallow: /leads
+Disallow: /ghid
+Disallow: /plata
+Disallow: /afis
+Disallow: /fisa/
+Disallow: /p/
+Disallow: /s/
+Disallow: /stop/
+Disallow: /resetare-parola
+Disallow: /confirmare-email
+Disallow: /parola-uitata
+
+Sitemap: https://easyitp.ro/sitemap.xml

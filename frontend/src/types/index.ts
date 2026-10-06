@@ -233,6 +233,8 @@ export interface ManagerSummary extends StationInfo {
   paidPlan: 'FREE' | 'PRO' | 'PREMIUM' | null;
   planUntil: string | null;
   planTrial: boolean;
+  // statia a cerut stergerea contului (datele se sterg dupa 30 de zile)
+  deletionRequestedAt: string | null;
 }
 
 export interface Appointment {

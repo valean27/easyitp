@@ -1,0 +1,53 @@
+name: Database backup
+
+# Copie zilnica a bazei de date Neon (pg_dump), criptata cu AES-256 inainte sa plece de pe runner
+# (repo-ul e public: fara parola, fisierul nu poate fi citit). Se pastreaza 30 de zile ca artifact.
+# Secrete necesare: BACKUP_DATABASE_URL (conexiunea DIRECTA Neon, fara "-pooler", cu ?sslmode=require)
+# si BACKUP_PASSPHRASE (parola lunga, pastrata si in afara GitHub). Restaurarea: .claude/SCRATCHBOARD.md → BACKUP.
+on:
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PASS" ]; then
+            echo "::warning::BACKUP_DATABASE_URL sau BACKUP_PASSPHRASE lipsesc; backup-ul nu ruleaza."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Dump and encrypt
+        if: steps.check.outputs.ok == 'true'
+        env:
+          DB: ${{ secrets.BACKUP_DATABASE_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          FILE="easyitp-$(date -u +%Y-%m-%d).dump"
+          # clientul pg_dump 17 poate salva servere Postgres pana la 17 (Neon)
+          docker run --rm -e DB postgres:17-alpine sh -c 'pg_dump "$DB" -Fc --no-owner --no-privileges' > "$FILE"
+          test -s "$FILE"
+          echo "$PASS" | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "$FILE.gpg" "$FILE"
+          rm -f "$FILE"
+          ls -l "$FILE.gpg"
+          echo "FILE=$FILE.gpg" >> "$GITHUB_ENV"
+
+      - name: Upload
+        if: steps.check.outputs.ok == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 30
+          if-no-files-found: error

@@ -46,6 +46,7 @@ public class AccountController {
     private final JwtUtil jwtUtil;
     private final GooglePlacesService googlePlacesService;
     private final org.example.easyitp.service.AccountEmailService accountEmailService;
+    private final org.example.easyitp.service.AccountDeletionService accountDeletionService;
     // cautari Google pe statie si zi ("id:data" -> numar); se golesc la repornire, ajunge ca frana
     private final java.util.Map<String, Integer> googleSearches = new java.util.concurrent.ConcurrentHashMap<>();
     private static final int MAX_GOOGLE_SEARCHES_PER_DAY = 20;
@@ -153,6 +154,27 @@ public class AccountController {
             throw badRequest("Linkul pentru " + what + " nu este valid.");
         }
         return url;
+    }
+
+    // Toate datele statiei (GDPR, portabilitate): un fisier JSON
+    @GetMapping("/export")
+    public ResponseEntity<Map<String, Object>> exportData() {
+        AppUser user = currentUser.get();
+        String file = "easyitp-date-" + java.time.LocalDate.now() + ".json";
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file + "\"")
+                .body(accountDeletionService.export(user));
+    }
+
+    public record DeleteAccountRequest(String password, String confirm) {
+    }
+
+    // Stergerea contului: se inchide acum, datele se sterg definitiv dupa 30 de zile
+    @PostMapping("/delete")
+    public Map<String, String> deleteAccount(@RequestBody DeleteAccountRequest request) {
+        java.time.LocalDateTime purgeAt = accountDeletionService.requestDeletion(currentUser.get(), request.password(), request.confirm());
+        return Map.of("message", "Contul a fost închis. Datele se șterg definitiv pe "
+                + purgeAt.format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")) + ".");
     }
 
     // Retrimite linkul de confirmare a emailului (banda din aplicatie)

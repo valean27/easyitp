@@ -29,6 +29,7 @@ public class DailyJobService {
     private final GooglePlacesService googlePlacesService;
     private final PlanNoticeService planNoticeService;
     private final AccountEmailService accountEmailService;
+    private final AccountDeletionService accountDeletionService;
     private final JobRunRepository jobRunRepository;
     private final TransactionTemplate transactionTemplate;
 
@@ -45,6 +46,7 @@ public class DailyJobService {
         step("Notele Google", () -> googlePlacesService.refreshAll(java.time.LocalDateTime.now()));
         step("Curatarea istoricului", historyService::purgeOld);
         step("Curatarea linkurilor expirate", accountEmailService::purgeExpired);
+        step("Stergerea conturilor cerute", () -> accountDeletionService.purgeDue(java.time.LocalDateTime.now()));
         return result;
     }
 

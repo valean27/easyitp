@@ -30,6 +30,7 @@ import DemoForm from './landing/DemoForm';
 import Faq from './landing/Faq';
 import { SMS_PLANS } from '../utils/smsPlans';
 import { PLANS, PLAN_LABELS, TRIAL_DAYS, amountWithVat, formatRon } from '../utils/plans';
+import { usePageTitle } from '../utils/pageTitle';
 
 const NAV = [
   { href: '#functionalitati', label: 'Funcționalități' },
@@ -101,6 +102,7 @@ function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string
 
 // Pagina de prezentare pentru vizitatorii nelogati (statii ITP interesate)
 export default function LandingPage() {
+  usePageTitle(null);
   // Venind din alta pagina (ex. /statii -> "/#demo"), browserul nu deruleaza singur la ancora
   useEffect(() => {
     if (window.location.hash) document.querySelector(window.location.hash)?.scrollIntoView();

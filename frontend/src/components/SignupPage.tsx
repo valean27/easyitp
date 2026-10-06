@@ -7,6 +7,7 @@ import { useAuth } from '../context/auth';
 import { apiMessage } from '../utils/errors';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import { TRIAL_DAYS } from '../utils/plans';
+import { usePageTitle } from '../utils/pageTitle';
 
 const NAV = [
   { href: '/#functionalitati', label: 'Funcționalități' },
@@ -21,6 +22,7 @@ const INPUT =
 
 // Inscrierea unei statii noi: cont de manager cu proba Premium, intra direct in aplicatie
 export default function SignupPage() {
+  usePageTitle('Înscrieți stația ITP, 14 zile gratuit');
   const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ stationName: '', city: '', phone: '', email: '', password: '', website: '' });

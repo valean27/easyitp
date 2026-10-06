@@ -1,9 +1,10 @@
 import { Suspense } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
+import { usePageTitle } from '../utils/pageTitle';
 import PlanBanner from './PlanBanner';
 import EmailVerifyBanner from './EmailVerifyBanner';
 import { PlanProvider } from '../context/PlanContext';
@@ -40,10 +41,15 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];
 
+// Titlul tabului pentru paginile din aplicatie (dupa meniu; restul paginilor au titlul implicit)
+const EXTRA_TITLES: Record<string, string> = { '/ghid': 'Ghid de utilizare', '/plata': 'Plata abonamentului' };
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const items = user?.role === 'ADMIN' ? ADMIN_NAV : user?.role === 'FLEET' ? FLEET_NAV : MANAGER_NAV;
+  usePageTitle(items.find((i) => i.to === pathname)?.label ?? EXTRA_TITLES[pathname] ?? null);
 
   const handleLogout = () => {
     logout();
