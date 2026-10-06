@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CreditCard, Loader2, CheckCircle2, AlertTriangle, ExternalLink, Check } from 'lucide-react';
 import SettingsCard from './SettingsCard';
 import { usePlan } from '../context/plan';
@@ -37,6 +38,8 @@ export default function SubscriptionCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // acordul cu termenii (plata, livrarea, anularea) inainte de plata, cerut de NETOPIA Payments
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (!status) return;
@@ -94,6 +97,10 @@ export default function SubscriptionCard() {
   };
 
   const pay = async () => {
+    if (!accepted) {
+      setError('Bifați acordul cu termenii ca să continuați.');
+      return;
+    }
     if (!(await saveDetails())) return;
     setBusy(true);
     try {
@@ -213,6 +220,25 @@ export default function SubscriptionCard() {
               <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {error}
             </p>
           )}
+          {status.paymentsAvailable && (
+            <label className="flex items-start gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(e) => {
+                  setAccepted(e.target.checked);
+                  setError(null);
+                }}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300"
+              />
+              <span>
+                Am citit și accept{' '}
+                <Link to="/termeni#plata" target="_blank" className="font-semibold text-blue-600 hover:underline">termenii</Link>, inclusiv
+                plata, livrarea serviciului și{' '}
+                <Link to="/termeni#anulare" target="_blank" className="font-semibold text-blue-600 hover:underline">anularea</Link>.
+              </span>
+            </label>
+          )}
           {status.paymentsAvailable ? (
             <div className="flex flex-col sm:flex-row gap-2">
               <button
@@ -251,7 +277,12 @@ export default function SubscriptionCard() {
               </button>
             </div>
           )}
-          <p className="text-xs text-slate-400">Plata se face pe pagina securizată NETOPIA Payments. Factura apare mai jos după plată.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <img src="/legal/netopia-visa-mastercard.png" alt="NETOPIA Payments, Visa, Mastercard" width={159} height={30} className="rounded border border-slate-200" />
+            <p className="flex-1 min-w-[12rem] text-xs text-slate-400">
+              Plata se face pe pagina securizată NETOPIA Payments. Factura apare mai jos după plată.
+            </p>
+          </div>
         </div>
 
         {payments.length > 0 && (

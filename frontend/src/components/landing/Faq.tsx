@@ -8,7 +8,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Pot aduce clienții pe care îi am deja?',
-    a: 'Da. Importați lista din Excel (CSV): numele, telefonul, numărul și data ITP-ului. Aplicația recunoaște mărcile și unește înregistrările aceluiași vehicul.',
+    a: 'Da. Încărcați fișierul Excel (.xlsx) sau CSV, inclusiv exportul din altă aplicație: coloanele (nume, telefon, număr, data ITP-ului, expirarea) se potrivesc singure și le puteți corecta înainte de import. Aplicația recunoaște mărcile și unește înregistrările aceluiași vehicul.',
   },
   {
     q: 'Cum pleacă SMS-urile automate?',

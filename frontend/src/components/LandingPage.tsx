@@ -17,6 +17,11 @@ import {
   ClipboardCheck,
   Repeat,
   Check,
+  CalendarCheck,
+  ShieldAlert,
+  Star,
+  ClipboardList,
+  Printer,
 } from 'lucide-react';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import PhoneMockup from './landing/PhoneMockup';
@@ -24,7 +29,7 @@ import RoiCalculator from './landing/RoiCalculator';
 import DemoForm from './landing/DemoForm';
 import Faq from './landing/Faq';
 import { SMS_PLANS } from '../utils/smsPlans';
-import { PLANS, PLAN_LABELS, TRIAL_DAYS } from '../utils/plans';
+import { PLANS, PLAN_LABELS, TRIAL_DAYS, amountWithVat, formatRon } from '../utils/plans';
 
 const NAV = [
   { href: '#functionalitati', label: 'Funcționalități' },
@@ -58,12 +63,16 @@ const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string; points: strin
 
 const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: BellRing, title: 'Listă „De contactat”', text: 'Cine expiră săptămâna asta, cu WhatsApp, SMS și apel dintr-o atingere.' },
+  { icon: CalendarCheck, title: 'Programări fără neprezentări', text: 'SMS de confirmare și reminder cu o zi înainte, cu link din care clientul anulează sau mută singur.' },
+  { icon: ShieldAlert, title: 'RCA, rovinietă, tahograf', text: 'Notați și celelalte scadențe ale mașinii; clientul e anunțat și pentru ele.' },
   { icon: Users, title: 'Clienți și istoric', text: 'Un client cu toate mașinile lui și istoricul ITP al fiecăreia; dublurile se unesc ușor.' },
-  { icon: CalendarClock, title: 'Calendar', text: 'Programările zilei și ale săptămânii; cele online apar singure.' },
-  { icon: BarChart3, title: 'Rapoarte pentru patron', text: 'Încasări pe lună, rata de respingere pe inspector, clienții care nu s-au mai întors.' },
-  { icon: Truck, title: 'Portal pentru flote', text: 'Firmele își văd mașinile, scadențele și centralizatorul lunar.' },
+  { icon: BarChart3, title: 'Rapoarte pentru patron', text: 'Încasări pe lună, rata de respingere pe inspector, clienții care nu s-au mai întors, neprezentări.' },
+  { icon: Truck, title: 'Flote și facturare', text: 'Firmele își văd mașinile și centralizatorul lunar; facturați prin Oblio, cu e-Factura.' },
+  { icon: Star, title: 'Recenzii Google', text: 'După ITP, clientul primește linkul de recenzie; nota stației apare în lista publică de stații.' },
+  { icon: ClipboardList, title: 'Termenele stației', text: 'Autorizația RAR, metrologia și atestatele inspectorilor, cu alertă înainte de expirare.' },
+  { icon: Printer, title: 'Fișa ITP și afiș cu QR', text: 'Fișa de dat clientului și un afiș A4 cu QR spre programarea online.' },
   { icon: Mail, title: 'Rezumat de dimineață', text: 'Pe email sau WhatsApp: programările zilei și cine trebuie sunat.' },
-  { icon: FileSpreadsheet, title: 'Import și export Excel', text: 'Aduceți clienții existenți și scoateți oricând datele, pentru contabilitate.' },
+  { icon: FileSpreadsheet, title: 'Import din Excel sau din altă aplicație', text: 'Aduceți clienții existenți (inclusiv exporturi SITP); coloanele se potrivesc singure.' },
   { icon: ShieldCheck, title: 'GDPR și istoric', text: 'Acordul clientului e înregistrat; orice modificare sau ștergere se poate vedea și anula.' },
 ];
 
@@ -235,6 +244,7 @@ export default function LandingPage() {
                     <p className="mt-4 text-3xl font-extrabold text-slate-900">
                       {p.price} RON<span className="text-base font-semibold text-slate-500"> / lună</span>
                     </p>
+                    <p className="text-xs text-slate-500">{p.price ? `+ TVA · ${formatRon(amountWithVat(p.name, 0, 1))} cu TVA` : 'fără card, fără limită de timp'}</p>
                     <ul className="mt-5 space-y-2 text-sm text-slate-700 flex-1">
                       {p.points.map((pt) => (
                         <li key={pt} className="flex gap-2">
@@ -276,7 +286,14 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
-            <p className="mt-6 text-center text-sm text-slate-500">
+            <div className="mt-6 flex flex-col items-center gap-3 text-center text-sm text-slate-500">
+              <img src="/legal/netopia-visa-mastercard.png" alt="Plată cu cardul prin NETOPIA Payments: Visa, Mastercard" width={212} height={40} className="rounded-md border border-slate-200" />
+              <p>
+                Plată online cu cardul sau prin transfer bancar, pentru 1 sau 12 luni. Fără reînnoire automată; detalii în{' '}
+                <Link to="/termeni#plata" className="font-semibold text-blue-600 hover:underline">termeni</Link>.
+              </p>
+            </div>
+            <p className="mt-3 text-center text-sm text-slate-500">
               Aveți mai multe stații sau vreți să plătiți prin transfer bancar?{' '}
               <a href="#demo" className="font-semibold text-blue-600 hover:underline">Scrieți-ne</a>
             </p>

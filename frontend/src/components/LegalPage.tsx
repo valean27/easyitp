@@ -1,7 +1,9 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
-import { COMPANY } from '../utils/company';
+import { ANPC_SAL_URL, COMPANY } from '../utils/company';
+import { PLANS, PLAN_LABELS, VAT_PERCENT, amountWithVat, formatRon } from '../utils/plans';
+import { SMS_PLANS } from '../utils/smsPlans';
 
 const LINKS = [
   { href: '/', label: 'Pentru stații ITP' },
@@ -10,9 +12,9 @@ const LINKS = [
 
 const UPDATED = '6 octombrie 2026';
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
-    <section className="space-y-2">
+    <section id={id} className="scroll-mt-20 space-y-2">
       <h2 className="text-lg font-bold text-slate-900">{title}</h2>
       <div className="space-y-2 text-slate-600 leading-relaxed">{children}</div>
     </section>
@@ -22,7 +24,8 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Contact() {
   return (
     <>
-      {COMPANY.name}, CUI {COMPANY.cui}, cu sediul în {COMPANY.address}, telefon{' '}
+      {COMPANY.name}
+      {COMPANY.regCom ? `, Nr. Reg. Com. ${COMPANY.regCom}` : ''}, CUI {COMPANY.cui}, cu sediul în {COMPANY.address}, telefon{' '}
       <a href={COMPANY.phoneHref} className="text-blue-600 hover:underline">{COMPANY.phone}</a>, email{' '}
       <a href={`mailto:${COMPANY.email}`} className="text-blue-600 hover:underline">{COMPANY.email}</a>, sau prin formularul de pe <Link to="/#demo" className="text-blue-600 hover:underline">pagina principală</Link>
     </>
@@ -151,23 +154,75 @@ function Terms() {
         </ul>
       </Section>
 
-      <Section title="Pachete, probă și plată">
+      <Section id="pachete" title="Pachete și prețuri">
+        <p>Prețurile sunt în lei (RON), pe lună. Firma este plătitoare de TVA; la prețurile de mai jos se adaugă TVA {VAT_PERCENT}%.</p>
         <ul className="list-disc pl-5 space-y-1">
+          {PLANS.map((p) => (
+            <li key={p.name}>
+              <b>{PLAN_LABELS[p.name]}</b>: {p.price === 0 ? 'gratuit' : `${p.price} RON + TVA (${formatRon(amountWithVat(p.name, 0, 1))} cu TVA)`}{' '}
+              – {p.points.join('; ')}.
+            </li>
+          ))}
+          <li>
+            SMS-uri incluse, opțional, peste Pro sau Premium:{' '}
+            {SMS_PLANS.map((p) => `${p.sms} SMS / lună cu ${p.price} RON + TVA`).join(', ')}.
+          </li>
+          <li>Plata pentru 12 luni costă cât 10 luni.</li>
           <li>
             O stație nouă primește 14 zile de probă cu pachetul Premium, fără card. La final alege un pachet plătit sau trece singură pe
             pachetul Gratuit.
           </li>
+        </ul>
+      </Section>
+
+      <Section id="plata" title="Modalități de plată">
+        <ul className="list-disc pl-5 space-y-1">
           <li>
-            Pachetele Pro și Premium, cu sau fără SMS-uri incluse, se plătesc în avans pentru 1 lună sau 12 luni (12 luni la prețul
-            a 10), cu cardul prin NETOPIA Payments sau prin transfer bancar. Prețurile afișate sunt fără TVA; factura se emite după plată.
+            Cu cardul (Visa, Mastercard), online, din aplicație (Contul meu → Abonament), prin procesatorul NETOPIA Payments. Datele
+            cardului se introduc pe pagina securizată NETOPIA Payments; {COMPANY.name} nu le vede și nu le păstrează.
           </li>
+          <li>Prin transfer bancar, pe baza facturii, la cerere (ne scrieți la datele de contact).</li>
           <li>
-            Abonamentul nu se reînnoiește singur. Dacă nu este prelungit, după ultima zi plătită stația trece pe pachetul Gratuit:
-            datele rămân, iar funcțiile din pachetele plătite (de exemplu SMS-urile automate) se opresc.
+            Plata se face în avans, pentru 1 lună sau 12 luni, în lei. Abonamentul nu se reînnoiește automat și cardul nu se debitează
+            fără o plată inițiată de dumneavoastră. Factura se emite după confirmarea plății și apare în aplicație.
+          </li>
+        </ul>
+      </Section>
+
+      <Section id="livrare" title="Livrarea serviciului">
+        <p>
+          Easy ITP este un serviciu online; nu se livrează produse fizice. Pachetul plătit se activează automat în contul stației imediat
+          după ce NETOPIA Payments confirmă plata (de obicei în câteva secunde), iar la plata prin transfer bancar în cel mult o zi
+          lucrătoare de la primirea banilor. Serviciul se folosește din browser, la adresa aplicației, cu emailul și parola contului.
+        </p>
+        <p>
+          Dacă pachetul nu apare activ după plată, ne scrieți și îl activăm sau vă returnăm suma.
+        </p>
+      </Section>
+
+      <Section id="anulare" title="Anulare, retragere și rambursare">
+        <ul className="list-disc pl-5 space-y-1">
+          <li>
+            Puteți renunța oricând: abonamentul nu se reînnoiește, iar după ultima zi plătită stația trece pe pachetul Gratuit. Datele
+            rămân, iar funcțiile din pachetele plătite (de exemplu SMS-urile automate) se opresc. Contul și datele se pot șterge la
+            cerere.
           </li>
           <li>
             La schimbarea pachetului, cel nou începe în ziua plății, iar zilele rămase din cel vechi se transformă în zile din cel nou,
-            proporțional cu prețul. Sumele plătite nu se returnează pentru perioada rămasă, cu excepția cazurilor prevăzute de lege.
+            proporțional cu prețul.
+          </li>
+          <li>
+            Serviciul se adresează firmelor (stații ITP). Dacă îl cumpărați ca persoană fizică (consumator), aveți dreptul să vă
+            retrageți în 14 zile de la plată, fără să invocați un motiv, cu un email la {COMPANY.email}. Pentru că serviciul începe
+            imediat, la cererea dumneavoastră, vi se returnează suma corespunzătoare zilelor nefolosite (art. 14 din OUG nr. 34/2014).
+          </li>
+          <li>
+            Pentru firme, sumele plătite pentru perioada în curs nu se returnează, cu excepția cazului în care serviciul nu a putut fi
+            furnizat din vina noastră.
+          </li>
+          <li>
+            Rambursările se fac în cel mult 14 zile de la aprobare, pe același card (prin NETOPIA Payments) sau în contul bancar din care
+            s-a plătit.
           </li>
         </ul>
       </Section>
@@ -196,6 +251,17 @@ function Terms() {
         </p>
       </Section>
 
+      <Section id="litigii" title="Reclamații și soluționarea litigiilor">
+        <p>
+          Reclamațiile ni le puteți trimite la datele de contact de mai sus; răspundem în cel mult 30 de zile. Consumatorii pot apela și
+          la Autoritatea Națională pentru Protecția Consumatorilor, prin procedura de soluționare alternativă a litigiilor (SAL):{' '}
+          <a href={ANPC_SAL_URL} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">reclamatiisal.anpc.ro</a>.
+        </p>
+        <a href={ANPC_SAL_URL} target="_blank" rel="noreferrer" className="inline-block">
+          <img src="/legal/anpc-sal.png" alt="ANPC – Soluționarea alternativă a litigiilor (SAL)" width={201} height={50} />
+        </a>
+      </Section>
+
       <Section title="Datele personale">
         <p>
           Modul în care prelucrăm datele este descris în{' '}
@@ -215,6 +281,12 @@ function Terms() {
 
 // Paginile legale publice: politica de confidentialitate si termenii
 export default function LegalPage({ doc }: { doc: 'privacy' | 'terms' }) {
+  // linkurile din subsol (/termeni#plata) deruleaza la sectiune
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+    else window.scrollTo(0, 0);
+  }, [hash, doc]);
   const title = doc === 'privacy' ? 'Politica de confidențialitate' : 'Termeni și condiții';
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800">

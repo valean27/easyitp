@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Car, Menu, X } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
-import { COMPANY } from '../../utils/company';
+import { ANPC_SAL_URL, COMPANY } from '../../utils/company';
 
 export function Logo() {
   return (
@@ -78,15 +78,31 @@ export function PublicFooter() {
           <Link to="/login" className="block hover:text-slate-800">Intră în cont</Link>
           <Link to="/confidentialitate" className="block hover:text-slate-800">Politica de confidențialitate</Link>
           <Link to="/termeni" className="block hover:text-slate-800">Termeni și condiții</Link>
+          <Link to="/termeni#plata" className="block hover:text-slate-800">Plată și livrarea serviciului</Link>
+          <Link to="/termeni#anulare" className="block hover:text-slate-800">Anulare și rambursare</Link>
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-slate-700">Contact</p>
           <p>{COMPANY.name}</p>
+          {COMPANY.regCom && <p>Nr. Reg. Com. {COMPANY.regCom}</p>}
           <p>CUI {COMPANY.cui}</p>
           <p>{COMPANY.address}</p>
           <a href={COMPANY.phoneHref} className="block hover:text-slate-800">Tel. {COMPANY.phone}</a>
           <a href={`mailto:${COMPANY.email}`} className="block hover:text-slate-800 break-all">{COMPANY.email}</a>
         </div>
+      </div>
+      {/* Cerute de NETOPIA Payments si ANPC: siglele cardurilor si pictograma SAL */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 flex flex-wrap items-center gap-4">
+        <img
+          src="/legal/netopia-visa-mastercard.png"
+          alt="Plăți securizate cu cardul prin NETOPIA Payments: Visa, Mastercard"
+          width={212}
+          height={40}
+          className="rounded-md border border-slate-200"
+        />
+        <a href={ANPC_SAL_URL} target="_blank" rel="noreferrer" title="ANPC – Soluționarea alternativă a litigiilor">
+          <img src="/legal/anpc-sal.png" alt="ANPC – Soluționarea alternativă a litigiilor (SAL)" width={201} height={50} />
+        </a>
       </div>
       <p className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">
         © {new Date().getFullYear()} {COMPANY.name} · Easy ITP
