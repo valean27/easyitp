@@ -11,6 +11,8 @@ import org.example.easyitp.repository.AuditEventRepository;
 import org.example.easyitp.repository.ReminderSendRepository;
 import org.example.easyitp.repository.SmsUsageRepository;
 import org.example.easyitp.service.SmsQuotaService;
+import org.example.easyitp.service.BillingService;
+import org.example.easyitp.service.Plans;
 import org.example.easyitp.repository.FleetRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.ClientRepository;
@@ -46,6 +48,8 @@ public class AdminController {
     private final SmsUsageRepository smsUsageRepository;
     private final org.example.easyitp.repository.StationDeadlineRepository stationDeadlineRepository;
     private final org.example.easyitp.repository.InvoiceRepository invoiceRepository;
+    private final org.example.easyitp.repository.PaymentRepository paymentRepository;
+    private final BillingService billingService;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -65,6 +69,7 @@ public class AdminController {
                 .address(trimToNull(request.getAddress()))
                 .phone(trimToNull(request.getPhone()))
                 .build();
+        BillingService.startTrial(user, LocalDate.now());
         appUserRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -103,6 +108,10 @@ public class AdminController {
                             .appointmentsThisMonth(appointments.getOrDefault(u.getId(), 0L))
                             .smsPlan(SmsQuotaService.plan(u))
                             .smsUsedThisMonth(smsUsed.getOrDefault(u.getId(), 0))
+                            .plan(Plans.effective(u).name())
+                            .paidPlan(u.getPlan() == null ? null : u.getPlan().name())
+                            .planUntil(u.getPlanUntil())
+                            .planTrial(Plans.onTrial(u, LocalDate.now()))
                             .build();
                 })
                 .toList();
@@ -140,6 +149,33 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // Abonament dat de admin (ex. platit prin transfer bancar): pachetul si ultima zi platita (gol = fara expirare)
+    public record PlanRequest(String plan, LocalDate until) {
+    }
+
+    @PutMapping("/managers/{id}/plan")
+    public ResponseEntity<Void> setPlan(@PathVariable Long id, @RequestBody PlanRequest body) {
+        billingService.grant(findManager(id), BillingService.parsePlan(body.plan()), body.until());
+        return ResponseEntity.noContent().build();
+    }
+
+    // Platile tuturor statiilor (abonamentele platformei)
+    @GetMapping("/payments")
+    public List<Map<String, Object>> payments() {
+        Map<Long, String> names = new HashMap<>();
+        appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER).forEach(u -> names.put(u.getId(),
+                u.getStationName() != null ? u.getStationName() : u.getEmail()));
+        return paymentRepository.findAllByOrderByCreatedAtDesc(org.springframework.data.domain.PageRequest.of(0, 300)).stream()
+                .map(p -> {
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
+                    m.put("station", names.getOrDefault(p.getUserId(), "#" + p.getUserId()));
+                    m.put("payment", BillingService.dto(p));
+                    m.put("invoiceError", p.getInvoiceError());
+                    return m;
+                })
+                .toList();
+    }
+
     @PutMapping("/managers/{id}/active")
     public ResponseEntity<Void> setActive(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
         AppUser user = findManager(id);
@@ -161,6 +197,7 @@ public class AdminController {
         reminderSendRepository.deleteByUserId(id);
         stationDeadlineRepository.deleteByUserId(id);
         invoiceRepository.deleteByUserId(id);
+        paymentRepository.deleteByUserId(id);
         appUserRepository.delete(user);
         return ResponseEntity.noContent().build();
     }

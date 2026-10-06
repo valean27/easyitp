@@ -42,7 +42,8 @@ public class AppointmentSmsService {
     // Dupa programarea online; o eroare de trimitere nu strica programarea
     public void sendConfirmation(Appointment appt) {
         AppUser station = appt.getUser();
-        if (!Boolean.TRUE.equals(station.getApptConfirmSms()) || !canSend(station, appt)) return;
+        if (!Boolean.TRUE.equals(station.getApptConfirmSms()) || !canSend(station, appt)
+                || !Plans.allows(station, Plans.Feature.AUTO_SMS)) return;
         try {
             smsSender.send(station, appt.getPhone(), confirmationText(station, appt));
             appt.setConfirmationSentAt(LocalDateTime.now());
@@ -57,7 +58,8 @@ public class AppointmentSmsService {
         LocalDate until = today.getDayOfWeek() == DayOfWeek.SATURDAY ? today.plusDays(2) : today.plusDays(1);
         int sent = 0, failed = 0;
         for (AppUser station : appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER)) {
-            if (!station.isEnabled() || !Boolean.TRUE.equals(station.getApptReminderSms()) || station.getAutoSmsProvider() == null) {
+            if (!station.isEnabled() || !Boolean.TRUE.equals(station.getApptReminderSms()) || station.getAutoSmsProvider() == null
+                    || !Plans.allows(station, Plans.Feature.AUTO_SMS)) {
                 continue;
             }
             for (Appointment appt : appointmentRepository.findByUserIdAndAppointmentDateBetweenOrderByAppointmentDateAsc(

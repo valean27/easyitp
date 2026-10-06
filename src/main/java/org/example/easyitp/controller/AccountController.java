@@ -17,6 +17,7 @@ import org.example.easyitp.service.BookingService;
 import org.example.easyitp.service.DigestService;
 import org.example.easyitp.service.GooglePlacesService;
 import org.example.easyitp.service.EmailService;
+import org.example.easyitp.service.Plans;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -77,6 +78,7 @@ public class AccountController {
         String maps = publicUrl(request.mapsUrl(), "hartă");
         String facebook = publicUrl(request.facebookUrl(), "Facebook");
         if (request.reviewSms()) {
+            Plans.require(user, Plans.Feature.REVIEWS);
             if (review == null) throw badRequest("Pentru SMS-ul de recenzie completați linkul de recenzie Google.");
             if (user.getAutoSmsProvider() == null) {
                 throw badRequest("Pentru SMS-ul de recenzie alegeți întâi cum se trimit SMS-urile (cardul SMS automate).");
@@ -104,6 +106,7 @@ public class AccountController {
     @GetMapping("/google-place/search")
     public List<GooglePlacesService.Place> searchGooglePlace(@RequestParam String q) {
         AppUser user = currentUser.get();
+        Plans.require(user, Plans.Feature.REVIEWS);
         String query = trimToNull(q);
         if (query == null || query.length() > 200) throw badRequest("Scrieți numele și orașul stației.");
         String key = user.getId() + ":" + java.time.LocalDate.now();
@@ -123,6 +126,7 @@ public class AccountController {
     @PutMapping("/google-place")
     public VisibilityDTO linkGooglePlace(@RequestBody GooglePlaceRequest request) {
         AppUser user = currentUser.get();
+        Plans.require(user, Plans.Feature.REVIEWS);
         if (trimToNull(request.placeId()) == null) throw badRequest("Alegeți locul stației.");
         try {
             googlePlacesService.link(user, request.placeId().trim());

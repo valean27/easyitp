@@ -122,8 +122,34 @@ public class AppUser {
     @Column(length = 100)
     private String callmebotApiKey;
 
-    // Pachetul de SMS inclus in abonament (SMS pe luna); null / 0 = niciunul. Setat de admin
+    // Pachetul de SMS inclus in abonament (SMS pe luna); null / 0 = niciunul. Setat de admin sau cumparat
     private Integer smsPlan;
+
+    // Abonamentul (vezi Plans): pachetul, ultima zi platita (null = fara expirare) si daca e perioada de proba.
+    // plan null = cont facut inainte de abonamente: Premium fara expirare
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Plan plan;
+
+    private LocalDate planUntil;
+
+    private Boolean planTrial;
+
+    // Datele de facturare ale statiei (pentru plata Netopia si factura abonamentului)
+    @Column(length = 200)
+    private String billingName;
+
+    @Column(length = 30)
+    private String billingCui;
+
+    @Column(length = 200)
+    private String billingAddress;
+
+    @Column(length = 80)
+    private String billingCity;
+
+    @Column(length = 80)
+    private String billingCounty;
 
     // SMS-uri pentru programari (AppointmentSmsService), pe canalul SMS al statiei; null = oprite
     private Boolean apptConfirmSms;

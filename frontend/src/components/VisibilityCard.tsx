@@ -6,6 +6,8 @@ import SettingsCard from './SettingsCard';
 import type { GooglePlace, Visibility } from '../types';
 import { getProfile, getVisibility, linkGooglePlace, searchGooglePlace, unlinkGooglePlace, updateVisibility } from '../api/accountApi';
 import StarRating from './StarRating';
+import PlanLock from './PlanLock';
+import { usePlan } from '../context/plan';
 
 type Message = { text: string; type: 'success' | 'error' } | null;
 
@@ -117,6 +119,7 @@ const INPUT_CLS =
 
 // Recenzii si vizibilitate: linkul de recenzie Google, harta, Facebook, SMS-ul de dupa ITP si afisul cu QR
 export default function VisibilityCard() {
+  const { has } = usePlan();
   const [settings, setSettings] = useState<Visibility | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -195,7 +198,11 @@ export default function VisibilityCard() {
           {field('mapsUrl', 'Link Google Maps', 'https://maps.app.goo.gl/...', 'Apare pe pagina de programare și în lista stațiilor.')}
           {field('facebookUrl', 'Pagina de Facebook', 'https://facebook.com/...')}
 
-          {settings.googleAvailable && (
+          <PlanLock
+            feature="REVIEWS"
+            text="Linkurile apar pe pagina de programare în orice pachet. Nota Google în lista stațiilor și SMS-ul cu cererea de recenzie fac parte din pachetul Premium."
+          />
+          {settings.googleAvailable && has('REVIEWS') && (
             <GooglePlacePicker
               settings={settings}
               // alegerea locului se salveaza imediat; pastram ce era nesalvat in restul formularului
@@ -210,6 +217,7 @@ export default function VisibilityCard() {
               type="checkbox"
               checked={settings.reviewSms}
               onChange={(e) => update({ reviewSms: e.target.checked })}
+              disabled={!has('REVIEWS') && !settings.reviewSms}
               className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             <span>

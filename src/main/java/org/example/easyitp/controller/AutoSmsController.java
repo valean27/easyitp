@@ -1,5 +1,7 @@
 package org.example.easyitp.controller;
 
+import org.example.easyitp.service.Plans;
+
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.AutoSmsSettingsDTO;
 import org.example.easyitp.entity.AppUser;
@@ -83,6 +85,9 @@ public class AutoSmsController {
             throw badRequest(e.getMessage());
         }
 
+        if (request.enabled() || request.apptConfirmSms() || request.apptReminderSms() || request.deadlinesSms()) {
+            Plans.require(user, Plans.Feature.AUTO_SMS);
+        }
         if (request.provider() == SmsProvider.PLATFORM && (request.enabled() || request.apptConfirmSms() || request.apptReminderSms())) {
             if (!smsQuotaService.platformAvailable()) throw badRequest("SMS-urile incluse în abonament nu sunt disponibile momentan.");
             if (SmsQuotaService.plan(user) <= 0) {
@@ -114,6 +119,7 @@ public class AutoSmsController {
         AppUser user = currentUser.get();
         String phone = request != null && trimToNull(request.phone()) != null ? request.phone().trim() : user.getPhone();
         if (phone == null) throw badRequest("Introduceți numărul pe care vreți SMS-ul de test.");
+        Plans.require(user, Plans.Feature.AUTO_SMS);
         try {
             String text = autoReminderService.sendTest(user, phone);
             return ResponseEntity.ok(Map.of("message", "SMS-ul de test a plecat spre " + phone + ".", "text", text));

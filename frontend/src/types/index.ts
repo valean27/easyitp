@@ -226,6 +226,11 @@ export interface ManagerSummary extends StationInfo {
   // pachetul de SMS inclus in abonament si folosirea lui luna aceasta
   smsPlan: number;
   smsUsedThisMonth: number;
+  // abonamentul: pachetul de azi, cel ales (null = cont vechi, Premium fara expirare), ultima zi platita, proba
+  plan: 'FREE' | 'PRO' | 'PREMIUM';
+  paidPlan: 'FREE' | 'PRO' | 'PREMIUM' | null;
+  planUntil: string | null;
+  planTrial: boolean;
 }
 
 export interface Appointment {
@@ -263,8 +268,9 @@ export interface Report {
   topBrands: { brand: string; count: number }[];
   // gol pentru admin (vede doar cifre agregate)
   inspectors: InspectorMonth[];
-  retention: Retention;
-  appointments: AppointmentStats;
+  // null pe pachetul Gratuit (partea pentru patron e in Pro)
+  retention: Retention | null;
+  appointments: AppointmentStats | null;
 }
 
 export interface InspectorMonth {

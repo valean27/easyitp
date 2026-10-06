@@ -66,7 +66,8 @@ public class AutoReminderService {
     public RunResult runDaily(LocalDate today) {
         int sent = 0, failed = 0, skipped = 0;
         for (AppUser station : appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER)) {
-            if (!station.isEnabled() || !Boolean.TRUE.equals(station.getAutoSmsEnabled()) || station.getAutoSmsProvider() == null) {
+            if (!station.isEnabled() || !Boolean.TRUE.equals(station.getAutoSmsEnabled()) || station.getAutoSmsProvider() == null
+                    || !Plans.allows(station, Plans.Feature.AUTO_SMS)) {
                 continue;
             }
             RunResult r = runStation(station, today);

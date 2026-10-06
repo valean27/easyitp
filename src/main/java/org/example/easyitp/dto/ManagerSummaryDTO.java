@@ -26,4 +26,9 @@ public class ManagerSummaryDTO {
     // Pachetul de SMS inclus in abonament si cat a folosit statia luna aceasta
     private int smsPlan;
     private int smsUsedThisMonth;
+    // Abonamentul: pachetul de azi, cel ales (null = cont vechi), ultima zi platita, daca e proba
+    private String plan;
+    private String paidPlan;
+    private java.time.LocalDate planUntil;
+    private boolean planTrial;
 }

@@ -16,6 +16,7 @@ import {
   ArrowRight,
   ClipboardCheck,
   Repeat,
+  Check,
 } from 'lucide-react';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import PhoneMockup from './landing/PhoneMockup';
@@ -23,6 +24,7 @@ import RoiCalculator from './landing/RoiCalculator';
 import DemoForm from './landing/DemoForm';
 import Faq from './landing/Faq';
 import { SMS_PLANS } from '../utils/smsPlans';
+import { PLANS, PLAN_LABELS, TRIAL_DAYS } from '../utils/plans';
 
 const NAV = [
   { href: '#functionalitati', label: 'Funcționalități' },
@@ -115,11 +117,11 @@ export default function LandingPage() {
                 Mai puține telefoane, mai puțini clienți pierduți la concurență.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
-                <a href="#demo" className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-lg shadow-blue-600/20">
-                  Cere o demonstrație <ArrowRight size={18} />
-                </a>
-                <a href="#cum-functioneaza" className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50">
-                  Vezi cum funcționează
+                <Link to="/inregistrare" className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-lg shadow-blue-600/20">
+                  Încearcă gratuit {TRIAL_DAYS} zile <ArrowRight size={18} />
+                </Link>
+                <a href="#demo" className="inline-flex items-center justify-center px-6 py-3 rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50">
+                  Cere o demonstrație
                 </a>
               </div>
               <p className="mt-4 text-sm text-slate-500">
@@ -214,36 +216,69 @@ export default function LandingPage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6">
             <SectionTitle
               eyebrow="Prețuri"
-              title="SMS-uri incluse, fără cont la alt furnizor"
-              text="Alegeți câte SMS-uri pe lună vă trebuie. Le trimitem noi, cu link de programare și dezabonare. Prețuri pe lună, fără TVA."
+              title="Începeți gratuit, plătiți doar ce folosiți"
+              text={`${TRIAL_DAYS} zile de probă cu tot inclus, fără card. Prețuri pe lună, fără TVA; 12 luni la prețul a 10.`}
             />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 flex flex-col">
-                <p className="font-bold text-slate-900">Telefonul stației</p>
-                <p className="mt-3 text-3xl font-extrabold text-slate-900">0 RON</p>
-                <p className="text-sm text-slate-500">SMS nelimitate</p>
-                <p className="mt-4 text-sm text-slate-600 flex-1">
-                  SMS-urile pleacă de pe un telefon Android al stației, din abonamentul lui, cu o aplicație gratuită.
-                </p>
-              </div>
-              {SMS_PLANS.map((p, i) => (
-                <div
-                  key={p.sms}
-                  className={`relative rounded-2xl border p-6 flex flex-col ${i === 1 ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-600/10' : 'border-slate-200 bg-white'}`}
-                >
-                  {i === 1 && (
-                    <span className="absolute -top-3 left-6 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white">Recomandat</span>
-                  )}
-                  <p className="font-bold text-slate-900">{p.sms} SMS / lună</p>
-                  <p className="mt-3 text-3xl font-extrabold text-slate-900">{p.price} RON</p>
-                  <p className="text-sm text-slate-500">≈ {(p.price / p.sms).toFixed(2).replace('.', ',')} RON / SMS</p>
-                  <p className="mt-4 text-sm text-slate-600 flex-1">Fără cont la furnizorul de SMS și fără telefon de ținut pornit.</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {PLANS.map((p) => {
+                const featured = p.name === 'PRO';
+                return (
+                  <div
+                    key={p.name}
+                    className={`relative rounded-2xl border p-6 flex flex-col ${featured ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-600/10' : 'border-slate-200 bg-white'}`}
+                  >
+                    {featured && (
+                      <span className="absolute -top-3 left-6 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-bold text-white">Recomandat</span>
+                    )}
+                    <p className="font-bold text-slate-900">{PLAN_LABELS[p.name]}</p>
+                    <p className="text-sm text-slate-500">{p.tagline}</p>
+                    <p className="mt-4 text-3xl font-extrabold text-slate-900">
+                      {p.price} RON<span className="text-base font-semibold text-slate-500"> / lună</span>
+                    </p>
+                    <ul className="mt-5 space-y-2 text-sm text-slate-700 flex-1">
+                      {p.points.map((pt) => (
+                        <li key={pt} className="flex gap-2">
+                          <Check size={16} className="mt-0.5 shrink-0 text-blue-600" /> {pt}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      to="/inregistrare"
+                      className={`mt-6 text-center px-4 py-2.5 rounded-xl font-semibold ${
+                        featured ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {p.name === 'FREE' ? 'Creează cont gratuit' : `Încearcă ${TRIAL_DAYS} zile gratuit`}
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+              <p className="font-bold text-slate-900">SMS-uri automate: de pe telefonul stației sau incluse de noi</p>
+              <p className="mt-1 text-sm text-slate-600">
+                În Pro și Premium, SMS-urile pot pleca gratuit și nelimitat de pe un telefon Android al stației, cu o aplicație gratuită.
+                Dacă nu vreți telefon de ținut pornit, adăugați un pachet: le trimitem noi, cu link de programare și dezabonare.
+              </p>
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="rounded-xl bg-white border border-slate-200 p-4">
+                  <p className="font-semibold text-slate-800">Telefonul stației</p>
+                  <p className="mt-1 text-xl font-extrabold text-slate-900">0 RON</p>
+                  <p className="text-xs text-slate-500">SMS nelimitate, din abonamentul telefonului</p>
                 </div>
-              ))}
+                {SMS_PLANS.map((p) => (
+                  <div key={p.sms} className="rounded-xl bg-white border border-slate-200 p-4">
+                    <p className="font-semibold text-slate-800">{p.sms} SMS / lună</p>
+                    <p className="mt-1 text-xl font-extrabold text-slate-900">+{p.price} RON</p>
+                    <p className="text-xs text-slate-500">≈ {(p.price / p.sms).toFixed(2).replace('.', ',')} RON / SMS</p>
+                  </div>
+                ))}
+              </div>
             </div>
             <p className="mt-6 text-center text-sm text-slate-500">
-              Abonamentul aplicației îl stabilim împreună, după mărimea stației.{' '}
-              <a href="#demo" className="font-semibold text-blue-600 hover:underline">Cereți oferta</a>
+              Aveți mai multe stații sau vreți să plătiți prin transfer bancar?{' '}
+              <a href="#demo" className="font-semibold text-blue-600 hover:underline">Scrieți-ne</a>
             </p>
           </div>
         </section>

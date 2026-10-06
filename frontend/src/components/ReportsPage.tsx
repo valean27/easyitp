@@ -6,6 +6,7 @@ import { getManagers } from '../api/adminApi';
 import { useAuth } from '../context/auth';
 import BarChart from './BarChart';
 import { AppointmentStatsCard, InspectorRanking, RetentionCard } from './ReportInsights';
+import PlanLock from './PlanLock';
 
 const MONTHS = ['Ian', 'Feb', 'Mar', 'Apr', 'Mai', 'Iun', 'Iul', 'Aug', 'Sep', 'Oct', 'Noi', 'Dec'];
 const MONTHS_LONG = [
@@ -212,7 +213,14 @@ export default function ReportsPage() {
               </Card>
             </div>
 
-            {report && (
+            {/* Pe Gratuit serverul nu trimite partea pentru patron (retention lipseste) */}
+            {report && !report.retention && (
+              <PlanLock
+                feature="OWNER_REPORTS"
+                text="Clasamentul inspectorilor, clienții de anul trecut care nu au revenit (cu lista de sunat) și neprezentările la programări fac parte din pachetul Pro."
+              />
+            )}
+            {report?.retention && (
               <div className={`grid grid-cols-1 gap-6 items-start ${isAdmin ? '' : 'lg:grid-cols-2'}`}>
                 {!isAdmin && <InspectorRanking key={year} rows={report.inspectors} year={year} />}
                 <RetentionCard retention={report.retention} year={year} showList={!isAdmin} />

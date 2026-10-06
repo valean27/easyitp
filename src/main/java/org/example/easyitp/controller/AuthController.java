@@ -10,6 +10,7 @@ import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.security.ClientIp;
 import org.example.easyitp.security.JwtUtil;
 import org.example.easyitp.service.LoginRateLimiter;
+import org.example.easyitp.service.SignupService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final LoginRateLimiter loginRateLimiter;
+    private final SignupService signupService;
 
     // Hash bcrypt al unei parole aleatoare: pentru un email inexistent verificam totusi o parola, ca timpul
     // de raspuns sa nu arate daca emailul are cont
@@ -63,5 +65,16 @@ public class AuthController {
         appUserRepository.save(user);
         return ResponseEntity.ok(new AuthResponse(jwtUtil.generateToken(user), user.getEmail(), user.getRole().name(),
                 user.getStationName()));
+    }
+
+    // Inscrierea unei statii noi (pagina /inregistrare): contul e gata de folosit, cu proba Premium de 14 zile
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponse> signup(@RequestBody SignupService.SignupRequest request, HttpServletRequest http) {
+        AppUser user = signupService.signup(request, ClientIp.of(http));
+        if (user == null) return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        user.setLastLoginAt(LocalDateTime.now());
+        appUserRepository.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(jwtUtil.generateToken(user), user.getEmail(),
+                user.getRole().name(), user.getStationName()));
     }
 }

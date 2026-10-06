@@ -96,7 +96,7 @@ public class GooglePlacesService {
         if (!available()) return 0;
         int refreshed = 0;
         for (AppUser station : appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER)) {
-            if (!station.isEnabled() || station.getGooglePlaceId() == null) continue;
+            if (!station.isEnabled() || station.getGooglePlaceId() == null || !Plans.allows(station, Plans.Feature.REVIEWS)) continue;
             if (station.getGoogleRatingAt() != null && station.getGoogleRatingAt().isAfter(now.minus(REFRESH_AFTER))) continue;
             try {
                 apply(station, details(station.getGooglePlaceId()));

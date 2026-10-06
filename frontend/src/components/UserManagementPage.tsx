@@ -20,7 +20,8 @@ import {
 import { SMS_PLANS, planLabel } from '../utils/smsPlans';
 import type { ManagerSummary } from '../types';
 import { getManagers, setManagerActive, deleteManager, setSmsPlan } from '../api/adminApi';
-import { ManagerFormModal, ResetPasswordModal } from './ManagerModals';
+import { ManagerFormModal, ResetPasswordModal, PlanModal } from './ManagerModals';
+import { PLAN_LABELS } from '../utils/plans';
 
 const formatRon = (v: number) =>
   `${v.toLocaleString('ro-RO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} RON`;
@@ -61,6 +62,7 @@ export default function UserManagementPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<ManagerSummary | null>(null);
   const [resetting, setResetting] = useState<ManagerSummary | null>(null);
+  const [planFor, setPlanFor] = useState<ManagerSummary | null>(null);
 
   const fetchManagers = useCallback(async () => {
     setLoading(true);
@@ -128,7 +130,19 @@ export default function UserManagementPage() {
   };
 
   const renderPlan = (m: ManagerSummary) => (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={() => setPlanFor(m)}
+        className={`rounded-lg border px-2 py-1 text-xs font-medium ${
+          m.plan === 'FREE' ? 'border-slate-200 text-slate-600' : 'border-blue-200 bg-blue-50 text-blue-700'
+        } hover:border-blue-400`}
+        title="Abonament"
+      >
+        {PLAN_LABELS[m.plan]}
+        {m.planTrial ? ' · probă' : ''}
+        {m.planUntil && m.plan !== 'FREE' ? ` · ${m.planUntil.split('-').reverse().join('.')}` : ''}
+        {m.plan === 'FREE' && m.paidPlan && m.paidPlan !== 'FREE' ? ' · expirat' : ''}
+      </button>
       <select
         value={m.smsPlan}
         onChange={(e) => changePlan(m, Number(e.target.value))}
@@ -361,7 +375,7 @@ export default function UserManagementPage() {
               <table className="hidden md:table min-w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {['Stație', 'Contact', 'ITP-uri', 'Luna aceasta', 'Expiră ≤30z', 'Expirate', 'Programări luna', 'Pachet SMS', 'Ultima logare', 'Status', ''].map(
+                    {['Stație', 'Contact', 'ITP-uri', 'Luna aceasta', 'Expiră ≤30z', 'Expirate', 'Programări luna', 'Abonament · SMS', 'Ultima logare', 'Status', ''].map(
                       (h) => (
                         <th
                           key={h}
@@ -427,6 +441,7 @@ export default function UserManagementPage() {
 
       {showCreate && <ManagerFormModal onClose={() => setShowCreate(false)} onSuccess={handleSuccess} />}
       {editing && <ManagerFormModal manager={editing} onClose={() => setEditing(null)} onSuccess={handleSuccess} />}
+      {planFor && <PlanModal manager={planFor} onClose={() => setPlanFor(null)} onSuccess={handleSuccess} />}
       {resetting && <ResetPasswordModal manager={resetting} onClose={() => setResetting(null)} onSuccess={handleSuccess} />}
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useCallback, type ReactNode } from 'react';
-import { login as loginApi } from '../api/authApi';
+import { login as loginApi, signup as signupApi, type SignupData } from '../api/authApi';
 import type { UserRole } from '../types';
 import { AuthContext, type AuthUser } from './auth';
 
@@ -24,8 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return parsed;
   });
 
-  const login = useCallback(async (email: string, password: string) => {
-    const data = await loginApi(email, password);
+  const start = useCallback((data: { email: string; token: string; role: string; stationName: string | null }) => {
     const authUser: AuthUser = {
       email: data.email,
       token: data.token,
@@ -35,6 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(authUser);
     localStorage.setItem('auth_user', JSON.stringify(authUser));
   }, []);
+
+  const login = useCallback(async (email: string, password: string) => start(await loginApi(email, password)), [start]);
+
+  const signup = useCallback(
+    async (form: SignupData) => {
+      const data = await signupApi(form);
+      if (data) start(data);
+    },
+    [start],
+  );
 
   const logout = useCallback(() => {
     setUser(null);
@@ -51,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

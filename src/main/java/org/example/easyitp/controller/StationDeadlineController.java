@@ -22,22 +22,28 @@ public class StationDeadlineController {
 
     @GetMapping
     public List<StationDeadlineDTO> list() {
-        return service.list(currentUser.get().getId(), LocalDate.now());
+        return service.list(station().getId(), LocalDate.now());
     }
 
     @PostMapping
     public ResponseEntity<StationDeadlineDTO> create(@RequestBody StationDeadlineDTO.Request request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(currentUser.get().getId(), request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(station().getId(), request));
     }
 
     @PutMapping("/{id}")
     public StationDeadlineDTO update(@PathVariable Long id, @RequestBody StationDeadlineDTO.Request request) {
-        return service.update(currentUser.get().getId(), id, request);
+        return service.update(station().getId(), id, request);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(currentUser.get().getId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    private org.example.easyitp.entity.AppUser station() {
+        org.example.easyitp.entity.AppUser u = currentUser.get();
+        org.example.easyitp.service.Plans.require(u, org.example.easyitp.service.Plans.Feature.STATION_DEADLINES);
+        return u;
     }
 }

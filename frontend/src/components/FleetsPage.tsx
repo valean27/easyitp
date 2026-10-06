@@ -7,6 +7,8 @@ import FleetVehicles from './FleetVehicles';
 import FleetStatementView from './FleetStatementView';
 import InvoiceButton from './InvoiceButton';
 import { getFleetInvoice, issueFleetInvoice } from '../api/invoicingApi';
+import PlanLock from './PlanLock';
+import { usePlan } from '../context/plan';
 
 type Tab = 'vehicles' | 'statement';
 
@@ -107,6 +109,28 @@ function FleetDetail({ id, onBack, onChanged }: { id: number; onBack: () => void
 
 // Flotele (clientii B2B) statiei: firmele, masinile lor si accesul in portal
 export default function FleetsPage() {
+  const { has } = usePlan();
+  if (!has('FLEETS')) {
+    return (
+      <div className="min-h-full bg-slate-50">
+        <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+          <div className="max-w-screen-xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center">
+            <h1 className="text-lg font-bold text-slate-800">Flote</h1>
+          </div>
+        </header>
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+          <PlanLock
+            feature="FLEETS"
+            text="Flotele fac parte din pachetul Premium: firmele cu mai multe mașini primesc un portal cu scadențele lor și un centralizator lunar, pe care îl puteți factura prin Oblio. Firmele adăugate rămân salvate."
+          />
+        </main>
+      </div>
+    );
+  }
+  return <Fleets />;
+}
+
+function Fleets() {
   const [fleets, setFleets] = useState<FleetSummary[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);

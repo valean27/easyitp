@@ -105,6 +105,10 @@ public class ReportService {
 
         // Adminul vede doar cifre agregate: fara nume de inspectori si fara lista de clienti
         boolean admin = user.getRole() == Role.ADMIN;
+        // Pe Gratuit: doar lunile si marcile (inspectorii, clientii pierduti si programarile sunt in Pro)
+        if (!admin && !Plans.allows(user, Plans.Feature.OWNER_REPORTS)) {
+            return new ReportDTO(year, new ArrayList<>(years), months, topBrands, List.of(), null, null);
+        }
         return new ReportDTO(year, new ArrayList<>(years), months, topBrands,
                 admin ? List.of() : inspectorMonths(records, year),
                 retention(records, year, LocalDate.now(), !admin),

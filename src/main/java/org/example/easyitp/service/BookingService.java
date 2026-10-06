@@ -77,7 +77,7 @@ public class BookingService {
                         && !Boolean.FALSE.equals(u.getPublicListing()))
                 .map(u -> new PublicStationSummaryDTO(u.getStationName() != null ? u.getStationName() : "Stație ITP",
                         u.getBookingSlug(), u.getAddress(), u.getPhone(), open(u), close(u), days(u), u.getMapsUrl(),
-                        u.getGoogleRating(), u.getGoogleRatingCount()))
+                        rating(u), rating(u) == null ? null : u.getGoogleRatingCount()))
                 .sorted(java.util.Comparator.comparing(s -> s.name().toLowerCase(java.util.Locale.ROOT)))
                 .toList();
     }
@@ -163,8 +163,13 @@ public class BookingService {
                 days(station),
                 MAX_DAYS_AHEAD,
                 InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled).toList(),
-                station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl(), station.getGoogleRating(),
-                station.getGoogleRatingCount());
+                station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl(), rating(station),
+                rating(station) == null ? null : station.getGoogleRatingCount());
+    }
+
+    // Nota Google se arata doar pe Premium (si nu se mai reimprospateaza fara el; Google nu permite note vechi)
+    private static Double rating(AppUser station) {
+        return Plans.allows(station, Plans.Feature.REVIEWS) ? station.getGoogleRating() : null;
     }
 
     public List<LocalTime> availableSlots(String slug, LocalDate date, VehicleCategory category) {

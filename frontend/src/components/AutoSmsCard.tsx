@@ -8,6 +8,7 @@ import { renderSms, smsSegments } from '../utils/smsText';
 import { apiMessage } from '../utils/errors';
 import { formatDateRo } from '../utils/fleet';
 import { SMS_PLANS, planLabel } from '../utils/smsPlans';
+import PlanLock from './PlanLock';
 
 type Message = { text: string; type: 'success' | 'error' } | null;
 
@@ -159,6 +160,10 @@ export default function AutoSmsCard() {
     >
 
       <form onSubmit={save} className="p-5 space-y-5">
+        <PlanLock
+          feature="AUTO_SMS"
+          text="SMS-urile automate (remindere ITP, confirmări și remindere la programări, RCA / rovinietă / tahograf) fac parte din pachetul Pro. Setările se pot pregăti de acum; pornesc după alegerea pachetului."
+        />
         <label className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer select-none">
           <input
             type="checkbox"

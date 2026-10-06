@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import api from '../api/axiosInstance';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Car, Loader2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../context/auth';
 
@@ -107,8 +107,11 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-400">
-          Accesul este restricționat. Contactați administratorul pentru un cont.
+        <p className="text-center text-sm text-slate-500">
+          Nu aveți cont?{' '}
+          <Link to="/inregistrare" className="font-semibold text-blue-600 hover:underline">
+            Înscrieți stația, 14 zile gratuit
+          </Link>
         </p>
       </div>
     </div>

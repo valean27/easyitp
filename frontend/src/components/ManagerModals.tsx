@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { X, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import type { ManagerSummary } from '../types';
-import { createUser, updateManager, resetManagerPassword } from '../api/adminApi';
+import { createUser, updateManager, resetManagerPassword, setManagerPlan } from '../api/adminApi';
+import DateField from './DateField';
+import { PLAN_LABELS, type PlanName } from '../utils/plans';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -256,6 +258,64 @@ export function ResetPasswordModal({ manager, onClose, onSuccess }: ResetPasswor
           apoi din „Contul meu”.
         </p>
         <PasswordField value={password} onChange={setPassword} label="Parolă nouă" />
+        {error && <ErrorBox message={error} />}
+      </form>
+    </ModalShell>
+  );
+}
+
+// Abonamentul dat de admin: pachetul si pana cand (gol = fara expirare). Inlocuieste proba.
+export function PlanModal({ manager, onClose, onSuccess }: ResetPasswordProps) {
+  const [plan, setPlan] = useState<PlanName>(manager.paidPlan ?? 'PREMIUM');
+  const [until, setUntil] = useState(manager.planUntil ?? '');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await setManagerPlan(manager.id, plan, plan === 'FREE' || !until ? null : until);
+      onSuccess(`Abonamentul pentru ${manager.stationName ?? manager.email}: ${PLAN_LABELS[plan]}${plan !== 'FREE' && until ? ` până la ${until.split('-').reverse().join('.')}` : ''}.`);
+      onClose();
+    } catch {
+      setError('Abonamentul nu a putut fi salvat.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <ModalShell
+      title="Abonament"
+      onClose={onClose}
+      footer={<FooterButtons formId="plan-form" loading={loading} onClose={onClose} label="Salvează" />}
+    >
+      <form id="plan-form" onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-slate-600">
+          Pentru <span className="font-semibold">{manager.stationName ?? manager.email}</span> (ex. plătit prin transfer bancar).
+          Plățile cu cardul se aplică singure.
+        </p>
+        <label className="block">
+          <span className="block text-sm font-medium text-slate-600 mb-1">Pachet</span>
+          <select
+            value={plan}
+            onChange={(e) => setPlan(e.target.value as PlanName)}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800"
+          >
+            {(Object.keys(PLAN_LABELS) as PlanName[]).map((p) => (
+              <option key={p} value={p}>{PLAN_LABELS[p]}</option>
+            ))}
+          </select>
+        </label>
+        {plan !== 'FREE' && (
+          <div>
+            <span className="block text-sm font-medium text-slate-600 mb-1">Plătit până la (inclusiv)</span>
+            <DateField value={until} onChange={setUntil} />
+            <p className="mt-1 text-xs text-slate-400">Gol = fără dată de expirare.</p>
+          </div>
+        )}
         {error && <ErrorBox message={error} />}
       </form>
     </ModalShell>

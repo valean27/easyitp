@@ -47,8 +47,10 @@ public class SmsQuotaService {
         return plan != null && ALLOWED.contains(plan);
     }
 
+    // Pe pachetul Gratuit (abonament expirat) SMS-urile incluse nu se mai trimit
     public static int plan(AppUser station) {
-        return station.getSmsPlan() == null ? 0 : station.getSmsPlan();
+        if (station.getSmsPlan() == null || Plans.effective(station) == org.example.easyitp.entity.Plan.FREE) return 0;
+        return station.getSmsPlan();
     }
 
     public int usedThisMonth(Long userId) {

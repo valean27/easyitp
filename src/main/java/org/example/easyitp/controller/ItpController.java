@@ -118,6 +118,7 @@ public class ItpController {
     // Poza talonului -> campurile formularului ITP (poza nu se salveaza)
     @PostMapping(value = "/scan-registration", consumes = "multipart/form-data")
     public RegistrationScanDTO scanRegistration(@RequestParam("image") MultipartFile image) throws IOException {
+        org.example.easyitp.service.Plans.require(currentUser.get(), org.example.easyitp.service.Plans.Feature.SCAN);
         String type = image.getContentType() == null ? "" : image.getContentType();
         if (!SCAN_IMAGE_TYPES.contains(type)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trimiteți o poză JPEG, PNG sau WebP.");

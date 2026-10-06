@@ -8,7 +8,7 @@ const LINKS = [
   { href: '/statii', label: 'Stații ITP' },
 ];
 
-const UPDATED = '5 octombrie 2026';
+const UPDATED = '6 octombrie 2026';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -57,6 +57,12 @@ function Privacy() {
             și interesul nostru legitim de a răspunde).
           </li>
           <li>
+            <b>Contul stației și abonamentul:</b> numele stației, orașul, telefonul, emailul și parola (păstrată criptat), iar pentru
+            plată datele de facturare ale firmei (denumire, CUI, adresă), ca să furnizăm serviciul și să emitem factura (executarea
+            contractului și obligația legală de facturare). Datele cardului le introduceți direct pe pagina NETOPIA Payments; noi nu
+            le vedem și nu le păstrăm.
+          </li>
+          <li>
             <b>Programarea online la o stație:</b> nume, telefon, număr de înmatriculare, tipul vehiculului, data și ora, ca stația să vă
             poată primi; dacă stația le folosește, primiți un SMS de confirmare și unul cu o zi înainte, cu un link din care vă
             puteți anula sau muta programarea.
@@ -90,6 +96,7 @@ function Privacy() {
           <li>trimiterea SMS-urilor, pe canalul ales de stație (telefonul stației prin SMS Gateway for Android, sau SMSLink);</li>
           <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește;</li>
           <li>emiterea facturilor în contul de facturare al stației (Oblio) și, de acolo, în e-Factura (ANAF), dacă stația le folosește;</li>
+          <li>plata abonamentului cu cardul (NETOPIA Payments) și factura abonamentului (Oblio, e-Factura);</li>
           <li>nota și recenziile stației de pe Google (Google Places), doar date publice ale stației, fără date despre clienți.</li>
         </ul>
         <p>
@@ -141,6 +148,27 @@ function Terms() {
           <li>Stația păstrează confidențialitatea parolei și răspunde pentru ce se face din contul ei.</li>
           <li>Stația răspunde de corectitudinea datelor introduse și de acordul clienților pentru mesaje.</li>
           <li>Datele introduse sunt ale stației; le poate exporta oricând din aplicație.</li>
+        </ul>
+      </Section>
+
+      <Section title="Pachete, probă și plată">
+        <ul className="list-disc pl-5 space-y-1">
+          <li>
+            O stație nouă primește 14 zile de probă cu pachetul Premium, fără card. La final alege un pachet plătit sau trece singură pe
+            pachetul Gratuit.
+          </li>
+          <li>
+            Pachetele Pro și Premium, cu sau fără SMS-uri incluse, se plătesc în avans pentru 1 lună sau 12 luni (12 luni la prețul
+            a 10), cu cardul prin NETOPIA Payments sau prin transfer bancar. Prețurile afișate sunt fără TVA; factura se emite după plată.
+          </li>
+          <li>
+            Abonamentul nu se reînnoiește singur. Dacă nu este prelungit, după ultima zi plătită stația trece pe pachetul Gratuit:
+            datele rămân, iar funcțiile din pachetele plătite (de exemplu SMS-urile automate) se opresc.
+          </li>
+          <li>
+            La schimbarea pachetului, cel nou începe în ziua plății, iar zilele rămase din cel vechi se transformă în zile din cel nou,
+            proporțional cu prețul. Sumele plătite nu se returnează pentru perioada rămasă, cu excepția cazurilor prevăzute de lege.
+          </li>
         </ul>
       </Section>
 

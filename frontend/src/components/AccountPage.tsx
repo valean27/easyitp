@@ -11,6 +11,7 @@ import AutoSmsCard from './AutoSmsCard';
 import VisibilityCard from './VisibilityCard';
 import StationDeadlinesCard from './StationDeadlinesCard';
 import InvoicingCard from './InvoicingCard';
+import SubscriptionCard from './SubscriptionCard';
 import { bookingUrl } from '../utils/booking';
 import { DEFAULT_REMINDER_TEMPLATE, TEMPLATE_PLACEHOLDERS, renderReminder } from '../utils/reminderMessage';
 
@@ -357,6 +358,11 @@ export default function AccountPage() {
             </Group>
           )}
           <div className="space-y-6">
+            {user?.role === 'MANAGER' && (
+              <Group title="Abonament">
+                <SubscriptionCard />
+              </Group>
+            )}
             {user?.role === 'MANAGER' && (
               <Group title="Mesaje către clienți">
                 <AutoSmsCard />

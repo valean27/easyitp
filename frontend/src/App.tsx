@@ -28,6 +28,8 @@ const HistoryPage = lazy(() => import('./components/HistoryPage'));
 const FleetPortalPage = lazy(() => import('./components/FleetPortalPage'));
 const PosterPage = lazy(() => import('./components/PosterPage'));
 const ItpSheetPage = lazy(() => import('./components/ItpSheetPage'));
+const SignupPage = lazy(() => import('./components/SignupPage'));
+const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -63,6 +65,8 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Inscrierea unei statii noi (proba Premium) */}
+          <Route path="/inregistrare" element={<Suspense fallback={null}><SignupPage /></Suspense>} />
           {/* Pagina publica de programare: fara login si fara meniul aplicatiei */}
           {/* Pagini publice: lista statiilor pentru soferi si paginile legale */}
           <Route path="/statii" element={<Suspense fallback={null}><StationsPage /></Suspense>} />
@@ -161,6 +165,15 @@ function App() {
               }
             />
             <Route path="account" element={<AccountPage />} />
+            {/* Intoarcerea din pagina de plata Netopia */}
+            <Route
+              path="plata"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <PaymentResultPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="users"
               element={

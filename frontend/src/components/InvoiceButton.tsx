@@ -3,23 +3,27 @@ import { Link } from 'react-router-dom';
 import { Receipt, Loader2, ExternalLink } from 'lucide-react';
 import type { Invoice } from '../types';
 import { getInvoicingSettings } from '../api/invoicingApi';
+import { usePlan } from '../context/plan';
 import { apiMessage } from '../utils/errors';
 
 const ron = (v: number) => `${v.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`;
 
 // Factura Oblio pentru ceva anume (centralizatorul unei luni sau un ITP): o arata daca exista, altfel butonul de emitere.
 // Fara facturare configurata: un link spre setari. `load` se apeleaza o singura data (la montare).
-export default function InvoiceButton({
-  load,
-  issue,
-  confirmText,
-  label = 'Emite factura în Oblio',
-}: {
+interface Props {
   load: () => Promise<Invoice | null>;
   issue: () => Promise<Invoice>;
   confirmText: string;
   label?: string;
-}) {
+}
+
+// Facturarea e in Premium: fara ea butonul nu apare
+export default function InvoiceButton(props: Props) {
+  const { has } = usePlan();
+  return has('INVOICING') ? <InvoiceButtonBody {...props} /> : null;
+}
+
+function InvoiceButtonBody({ load, issue, confirmText, label = 'Emite factura în Oblio' }: Props) {
   const [ready, setReady] = useState<boolean | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);

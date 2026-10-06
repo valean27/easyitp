@@ -44,7 +44,7 @@ public class ReviewRequestService {
         int sent = 0, failed = 0;
         for (AppUser station : appUserRepository.findByRoleOrderByIdAsc(Role.MANAGER)) {
             if (!station.isEnabled() || !Boolean.TRUE.equals(station.getReviewSms()) || station.getReviewUrl() == null
-                    || station.getAutoSmsProvider() == null) {
+                    || station.getAutoSmsProvider() == null || !Plans.allows(station, Plans.Feature.REVIEWS)) {
                 continue;
             }
             Set<Long> asked = new HashSet<>();

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Receipt, Loader2, CheckCircle2, AlertTriangle, Plug } from 'lucide-react';
 import SettingsCard from './SettingsCard';
 import type { InvoicingOptions, InvoicingSettings } from '../types';
+import PlanLock from './PlanLock';
+import { usePlan } from '../context/plan';
 import { getInvoicingOptions, getInvoicingSettings, updateInvoicingSettings } from '../api/invoicingApi';
 import { apiMessage } from '../utils/errors';
 
@@ -11,7 +13,22 @@ const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
 
 // Contul meu -> Facturare (Oblio): contul Oblio al statiei, firma emitenta, seria, cota TVA, e-Factura
+// Facturarea prin Oblio e in pachetul Premium
 export default function InvoicingCard() {
+  const { has } = usePlan();
+  if (!has('INVOICING')) {
+    return (
+      <SettingsCard id="facturare" icon={<Receipt size={15} />} title="Facturare (Oblio)" summary="În pachetul Premium">
+        <div className="px-6 py-5">
+          <PlanLock feature="INVOICING" text="Facturile prin Oblio (pentru flote și persoane fizice) și trimiterea în e-Factura fac parte din pachetul Premium." />
+        </div>
+      </SettingsCard>
+    );
+  }
+  return <InvoicingBody />;
+}
+
+function InvoicingBody() {
   const [s, setS] = useState<InvoicingSettings | null>(null);
   const [secret, setSecret] = useState('');
   const [options, setOptions] = useState<InvoicingOptions | null>(null);

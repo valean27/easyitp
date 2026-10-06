@@ -31,6 +31,14 @@ const QUESTIONS: { q: string; a: string }[] = [
     a: 'Fiecare firmă poate primi un cont propriu, în care își vede mașinile, scadențele ITP și centralizatorul lunar.',
   },
   {
+    q: 'Cât costă și cum plătesc?',
+    a: 'Pachetul Gratuit e gratuit pentru totdeauna. Pro costă 59 RON și Premium 99 RON pe lună, fără TVA, iar SMS-urile incluse se adaugă opțional. Plătiți cu cardul din aplicație, pentru 1 lună sau 12 luni (12 la prețul a 10). Abonamentul nu se reînnoiește singur.',
+  },
+  {
+    q: 'Ce se întâmplă după cele 14 zile de probă?',
+    a: 'Alegeți un pachet plătit sau rămâneți pe Gratuit. Nu pierdeți nimic: clienții, ITP-urile și programările rămân, doar funcțiile din pachetele plătite se opresc până le activați.',
+  },
+  {
     q: 'Cine vede datele stației?',
     a: 'Doar contul stației. Fiecare stație își vede numai clienții ei, iar orice modificare sau ștergere rămâne în istoric și poate fi anulată.',
   },

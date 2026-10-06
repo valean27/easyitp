@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck, Loader2, Pencil, Trash2, Plus, Check } from 'lucide-react';
 import SettingsCard from './SettingsCard';
+import PlanLock from './PlanLock';
+import { usePlan } from '../context/plan';
 import type { StationDeadline, StationDeadlineInput, StationDeadlineKind } from '../types';
 import {
   createStationDeadline,
@@ -108,7 +110,22 @@ function DeadlineForm({
 }
 
 // Contul meu -> Termenele statiei: autorizatia RAR, verificarile metrologice, atestatele inspectorilor
+// Termenele statiei sunt in pachetul Pro
 export default function StationDeadlinesCard() {
+  const { has } = usePlan();
+  if (!has('STATION_DEADLINES')) {
+    return (
+      <SettingsCard id="termene" icon={<ShieldCheck size={15} />} title="Termenele stației" summary="În pachetul Pro">
+        <div className="px-6 py-5">
+          <PlanLock feature="STATION_DEADLINES" text="Autorizația RAR, metrologia și atestatele inspectorilor, cu alertă înainte de expirare, fac parte din pachetul Pro." />
+        </div>
+      </SettingsCard>
+    );
+  }
+  return <StationDeadlinesBody />;
+}
+
+function StationDeadlinesBody() {
   const [list, setList] = useState<StationDeadline[] | null>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
   const [editing, setEditing] = useState<number | 'new' | null>(null);

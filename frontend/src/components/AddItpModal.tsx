@@ -14,6 +14,8 @@ import { todayIso } from '../utils/dates';
 import { getMakes, createMake, getModels, createModel } from '../api/carApi';
 import { getInspectors } from '../api/accountApi';
 import type { CarMake, CarModel } from '../api/carApi';
+import PlanLock, { PlanBadge } from './PlanLock';
+import { usePlan } from '../context/plan';
 
 interface Props {
   onClose: () => void;
@@ -126,6 +128,9 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
   // greselile pe campuri (din verificarea de aici sau de pe server)
   const [errors, setErrors] = useState<ItpErrors>({});
   const [scanning, setScanning] = useState(false);
+  // Scanarea talonului e in Premium: pe alt pachet butonul arata de ce nu merge
+  const { has } = usePlan();
+  const [scanLocked, setScanLocked] = useState(false);
   const [scanNote, setScanNote] = useState<{ text: string; warnings: string[]; type: 'success' | 'error' } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [inspectors, setInspectors] = useState<string[]>([]);
@@ -424,13 +429,15 @@ export default function AddItpModal({ onClose, onSuccess, entry, prefill, appoin
                 <input ref={photoInput} type="file" accept="image/*" capture="environment" hidden onChange={handlePhoto} />
                 <button
                   type="button"
-                  onClick={() => photoInput.current?.click()}
+                  onClick={() => (has('SCAN') ? photoInput.current?.click() : setScanLocked(true))}
                   disabled={scanning}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 text-sm font-medium text-blue-700 hover:bg-blue-50 hover:border-blue-300 disabled:opacity-70 transition-colors"
                 >
                   {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
                   {scanning ? 'Se citește talonul...' : 'Scanează talonul'}
+                  <PlanBadge feature="SCAN" />
                 </button>
+                {scanLocked && <PlanLock feature="SCAN" className="mt-2" text="Scanarea talonului cu AI face parte din pachetul Premium." />}
                 {scanNote && (
                   <div
                     className={`mt-2 text-xs rounded-lg px-2.5 py-1.5 border ${

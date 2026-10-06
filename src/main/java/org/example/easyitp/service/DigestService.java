@@ -121,7 +121,8 @@ public class DigestService {
                 .sorted((a, b) -> Long.compare(b.getZileRamase(), a.getZileRamase()))
                 .toList();
 
-        List<StationDeadlineDTO> stationDue = stationDeadlineService.due(user.getId(), today);
+        List<StationDeadlineDTO> stationDue = Plans.allows(user, Plans.Feature.STATION_DEADLINES)
+                ? stationDeadlineService.due(user.getId(), today) : List.of();
 
         boolean empty = todayAppointments.isEmpty() && newOnline.isEmpty() && expiringSoon.isEmpty() && expired.isEmpty()
                 && stationDue.isEmpty();
