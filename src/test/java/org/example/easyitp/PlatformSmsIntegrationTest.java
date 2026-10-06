@@ -54,7 +54,8 @@ class PlatformSmsIntegrationTest {
             SERVER.createContext("/", exchange -> {
                 QUERIES.add(URLDecoder.decode(exchange.getRequestURI().getRawQuery(), StandardCharsets.UTF_8));
                 byte[] body = "{\"response_type\":\"MESSAGE\",\"message_id\":\"9\"}".getBytes(StandardCharsets.UTF_8);
-                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                // ca SMSLink-ul real: JSON trimis cu Content-Type text/html
+                exchange.getResponseHeaders().add("Content-Type", "text/html; charset=iso-8859-1");
                 exchange.sendResponseHeaders(200, body.length);
                 try (OutputStream out = exchange.getResponseBody()) {
                     out.write(body);

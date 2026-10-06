@@ -1,6 +1,8 @@
 package org.example.easyitp.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.SmsProvider;
@@ -34,6 +36,8 @@ public class SmsSender {
     private static final int SMS_GATE_TTL_SECONDS = 6 * 3600;
 
     private final RestClient client;
+    private static final ObjectMapper JSON = new ObjectMapper();
+
     private final String smslinkUrl;
     private final String smsGateDefaultUrl;
     private final SmsQuotaService quota;
@@ -112,11 +116,13 @@ public class SmsSender {
         // SMSLink vrea numerele romanesti in forma nationala (07xxxxxxxx)
         String to = digits.startsWith("40") ? "0" + digits.substring(2) : "00" + digits;
         try {
-            JsonNode body = client.get()
+            // SMSLink trimite JSON-ul cu Content-Type text/html, deci il citim ca text si il parsam noi
+            String raw = client.get()
                     .uri(smslinkUrl + "?connection_id={c}&password={p}&to={to}&message={m}",
                             connectionId.trim(), password.trim(), to, text)
                     .retrieve()
-                    .body(JsonNode.class);
+                    .body(String.class);
+            JsonNode body = parseSmsLink(raw);
             if (body != null && "MESSAGE".equals(body.path("response_type").asText())) {
                 return body.path("message_id").asText(null);
             }
@@ -127,6 +133,16 @@ public class SmsSender {
             // mesajul exceptiei contine URL-ul cu parola, deci nu se logheaza
             log.warn("SMSLink indisponibil pentru statia {}: {}", station.getId(), e.getClass().getSimpleName());
             throw new DeliveryException("SMSLink nu răspunde.");
+        }
+    }
+
+    // Raspunsul SMSLink: JSON ({"response_type":"MESSAGE",...}); un raspuns care nu e JSON devine motivul refuzului
+    static JsonNode parseSmsLink(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return JSON.readTree(raw.trim());
+        } catch (JsonProcessingException e) {
+            return JSON.createObjectNode().put("response_message", raw.trim());
         }
     }
 
