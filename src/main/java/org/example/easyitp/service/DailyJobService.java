@@ -33,9 +33,18 @@ public class DailyJobService {
     private final JobRunRepository jobRunRepository;
     private final TransactionTemplate transactionTemplate;
 
+    // Ziua deja rulata pe acest server: ceasul (din 10 in 10 minute) nu mai intreaba baza de date, ca Neon sa poata
+    // adormi (compute platit pe ora)
+    private volatile LocalDate doneOn;
+
     // null = a rulat deja azi
     public synchronized DigestService.Result runOnce(LocalDate today) {
-        if (!claim(today)) return null;
+        if (today.equals(doneOn)) return null;
+        if (!claim(today)) {
+            doneOn = today;
+            return null;
+        }
+        doneOn = today;
         log.info("Rularea zilnica pentru {} a pornit", today);
         DigestService.Result result = digestService.sendDailyDigests(today);
         // O eroare la un pas nu le opreste pe celelalte si nu strica rezumatul deja trimis
