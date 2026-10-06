@@ -40,3 +40,20 @@ export const setManagerPlan = (id: number, plan: string, until: string | null): 
 // Pachetul de SMS inclus in abonament al statiei (0 / 300 / 600 / 1000 pe luna)
 export const setSmsPlan = (id: number, plan: number): Promise<void> =>
   api.put(`${BASE}/managers/${id}/sms-plan`, { plan }).then(() => undefined);
+
+// Cererile de retragere din contract (functia de retragere de pe site)
+export interface Withdrawal {
+  id: number;
+  name: string;
+  email: string;
+  contract: string;
+  message: string | null;
+  userId: number | null;
+  createdAt: string;
+  handled: boolean;
+}
+
+export const getWithdrawals = (): Promise<Withdrawal[]> => api.get(`${BASE}/withdrawals`).then((r) => r.data);
+
+export const setWithdrawalHandled = (id: number, handled: boolean): Promise<Withdrawal> =>
+  api.put(`${BASE}/withdrawals/${id}/handled`, { handled }).then((r) => r.data);

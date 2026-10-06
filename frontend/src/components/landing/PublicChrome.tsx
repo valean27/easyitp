@@ -81,6 +81,7 @@ export function PublicFooter() {
           <Link to="/termeni#plata" className="block hover:text-slate-800">Plată și livrarea serviciului</Link>
           <Link to="/termeni#prelucrare" className="block hover:text-slate-800">Acordul de prelucrare a datelor (GDPR)</Link>
           <Link to="/termeni#anulare" className="block hover:text-slate-800">Anulare și rambursare</Link>
+          <Link to="/retragere" className="block font-semibold text-slate-700 hover:text-slate-900">Retrageți-vă din contract aici</Link>
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-slate-700">Contact</p>

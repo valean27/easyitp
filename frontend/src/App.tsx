@@ -34,6 +34,7 @@ const GuidePage = lazy(() => import('./components/GuidePage'));
 const ForgotPasswordPage = lazy(() => import('./components/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage'));
 const VerifyEmailPage = lazy(() => import('./components/VerifyEmailPage'));
+const WithdrawalPage = lazy(() => import('./components/WithdrawalPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -80,6 +81,8 @@ function App() {
           <Route path="/statii" element={<Suspense fallback={null}><StationsPage /></Suspense>} />
           <Route path="/confidentialitate" element={<Suspense fallback={null}><LegalPage doc="privacy" /></Suspense>} />
           <Route path="/termeni" element={<Suspense fallback={null}><LegalPage doc="terms" /></Suspense>} />
+          {/* Functia de retragere din contract (OUG 34/2014 art. 11^1), mereu accesibila din subsol */}
+          <Route path="/retragere" element={<Suspense fallback={null}><WithdrawalPage /></Suspense>} />
           {/* Link-ul din SMS-ul de programare: anulare / mutare, fara login */}
           <Route path="/p/:token" element={<Suspense fallback={null}><ManageAppointmentPage /></Suspense>} />
           {/* Link-ul de dezabonare din mesaje: fara login */}

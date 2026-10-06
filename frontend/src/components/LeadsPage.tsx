@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Inbox, Loader2, Phone, Mail, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { getLeads, setLeadHandled } from '../api/adminApi';
+import { getLeads, getWithdrawals, setLeadHandled, setWithdrawalHandled, type Withdrawal } from '../api/adminApi';
 import type { Lead } from '../types';
 import { formatDateRo } from '../utils/fleet';
 
@@ -93,7 +93,52 @@ export default function LeadsPage() {
             ))}
           </ul>
         )}
+        <Withdrawals />
       </main>
     </div>
+  );
+}
+
+// Cererile de retragere din contract (pagina publica /retragere): de rezolvat in 14 zile
+function Withdrawals() {
+  const [list, setList] = useState<Withdrawal[] | null>(null);
+
+  useEffect(() => {
+    getWithdrawals()
+      .then(setList)
+      .catch(() => setList([]));
+  }, []);
+
+  if (!list || list.length === 0) return null;
+  const toggle = async (w: Withdrawal) => {
+    const saved = await setWithdrawalHandled(w.id, !w.handled);
+    setList((ls) => ls?.map((x) => (x.id === saved.id ? saved : x)) ?? null);
+  };
+  return (
+    <section className="mt-10 space-y-3">
+      <h2 className="text-base font-bold text-slate-800">Cereri de retragere din contract</h2>
+      <ul className="space-y-3">
+        {list.map((w) => (
+          <li key={w.id} className={`bg-white rounded-xl border p-4 ${w.handled ? 'border-slate-100 opacity-60' : 'border-red-200'}`}>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">{w.name}</p>
+                <p className="text-sm text-slate-600 break-all">{w.email} · {w.contract}</p>
+                {w.message && <p className="mt-1 text-sm text-slate-500">{w.message}</p>}
+                <p className="mt-1 text-xs text-slate-400">
+                  {new Date(w.createdAt).toLocaleString('ro-RO')} · {w.userId ? `cont #${w.userId}` : 'fără cont găsit'}
+                </p>
+              </div>
+              <button
+                onClick={() => toggle(w)}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {w.handled ? 'Redeschide' : 'Rezolvată'}
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

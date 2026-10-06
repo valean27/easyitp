@@ -280,7 +280,8 @@ export default function SubscriptionCard() {
           <div className="flex flex-wrap items-center gap-3">
             <img src="/legal/netopia-visa-mastercard.png" alt="NETOPIA Payments, Visa, Mastercard" width={159} height={30} className="rounded border border-slate-200" />
             <p className="flex-1 min-w-[12rem] text-xs text-slate-400">
-              Plata se face pe pagina securizată NETOPIA Payments. Factura apare mai jos după plată.
+              Plata se face pe pagina securizată NETOPIA Payments. Factura apare mai jos după plată.{' '}
+              <Link to="/retragere" className="underline">Retrageți-vă din contract aici</Link>.
             </p>
           </div>
         </div>

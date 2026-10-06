@@ -67,6 +67,10 @@ function Privacy() {
             le vedem și nu le păstrăm.
           </li>
           <li>
+            <b>Cererea de retragere din contract:</b> nume, email, contractul și mesajul, ca să o soluționăm și să vă trimitem
+            confirmarea (obligație legală).
+          </li>
+          <li>
             <b>Programarea online la o stație:</b> nume, telefon, număr de înmatriculare, tipul vehiculului, data și ora, ca stația să vă
             poată primi; dacă stația le folosește, primiți un SMS de confirmare și unul cu o zi înainte, cu un link din care vă
             puteți anula sau muta programarea.
@@ -112,6 +116,7 @@ function Privacy() {
       <Section title="Cât timp păstrăm datele">
         <ul className="list-disc pl-5 space-y-1">
           <li>cererile de demonstrație: cel mult 12 luni de la ultimul contact;</li>
+          <li>cererile de retragere din contract: 3 ani, ca dovadă a primirii și a soluționării;</li>
           <li>
             datele stației și ale clienților ei: cât timp stația are cont; la cererea stației (Contul meu → Datele stației) contul se
             închide imediat, iar datele se șterg definitiv după 30 de zile;
@@ -219,7 +224,9 @@ function Terms() {
           </li>
           <li>
             Serviciul se adresează firmelor (stații ITP). Dacă îl cumpărați ca persoană fizică (consumator), aveți dreptul să vă
-            retrageți în 14 zile de la plată, fără să invocați un motiv, cu un email la {COMPANY.email}. Pentru că serviciul începe
+            retrageți în 14 zile de la plată, fără să invocați un motiv, din pagina{' '}
+            <Link to="/retragere" className="text-blue-600 hover:underline">Retrageți-vă din contract aici</Link> (link permanent în
+            subsolul site-ului; primiți imediat confirmarea pe email) sau cu un email la {COMPANY.email}. Pentru că serviciul începe
             imediat, la cererea dumneavoastră, vi se returnează suma corespunzătoare zilelor nefolosite (art. 14 din OUG nr. 34/2014).
           </li>
           <li>

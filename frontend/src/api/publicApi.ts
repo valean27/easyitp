@@ -97,3 +97,7 @@ export interface LeadData {
 
 export const submitLead = (data: LeadData): Promise<void> =>
   publicApi.post('/api/public/leads', data).then(() => undefined);
+
+// Functia de retragere din contract (pagina /retragere); intoarce mesajul de confirmare
+export const submitWithdrawal = (data: { name: string; email: string; contract: string; message: string; website: string }): Promise<string> =>
+  publicApi.post('/api/public/withdrawal', data).then((r) => r.data.message);

@@ -147,6 +147,8 @@ public class AccountDeletionService {
         jdbc.update("delete from sms_usage where user_id = ?", id);
         jdbc.update("delete from auth_tokens where user_id = ?", id);
         jdbc.update("delete from station_inspectors where user_id = ?", id);
+        // cererea de retragere ramane (dovada primirii), fara legatura cu contul sters
+        jdbc.update("update withdrawals set user_id = null where user_id = ?", id);
         jdbc.update("delete from app_users where id = ? and role = 'MANAGER'", id);
     }
 
