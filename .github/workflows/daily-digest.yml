@@ -1,11 +1,12 @@
 name: Daily digest email
 
-# Emailul de dimineata pentru manageri (luni-sambata, 07:30 vara / 06:30 iarna, ora Romaniei).
-# Apelul trezeste si serverul Render, care pe planul gratuit doarme. Backend-ul nu trimite
-# de doua ori in aceeasi zi, deci o rulare repetata manual e sigura.
+# Rezerva pentru rularea de dimineata. De regula o porneste chiar aplicatia la 07:00 ora Romaniei
+# (DailyJobScheduler); apelul acesta o face doar daca serverul era oprit atunci (il si trezeste).
+# Programarile GitHub pot intarzia cu ore, de aceea mai multe incercari; backend-ul ruleaza o singura data pe zi.
+# Orele sunt UTC: 05:15 / 06:15 / 07:15 = 08:15 / 09:15 / 10:15 vara, 07:15 / 08:15 / 09:15 iarna (ora Romaniei).
 on:
   schedule:
-    - cron: '30 4 * * 1-6'
+    - cron: '15 5,6,7 * * 1-6'
   workflow_dispatch:
 
 jobs:
@@ -13,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Wake backend
-        run: curl -fsS -m 120 --retry 3 --retry-all-errors https://easyitp.onrender.com/api/health
-      - name: Send digests
+        run: curl -fsS -m 120 --retry 3 --retry-all-errors https://api.easyitp.ro/api/health
+      - name: Run the morning job (no-op if it already ran today)
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           curl -fsS -m 120 --retry 2 --retry-all-errors -X POST \
             -H "X-Cron-Secret: $CRON_SECRET" \
-            https://easyitp.onrender.com/api/internal/daily-digest
+            https://api.easyitp.ro/api/internal/daily-digest

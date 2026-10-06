@@ -142,6 +142,10 @@ class DigestIntegrationTest {
         mvc.perform(post("/api/internal/daily-digest").header("X-Cron-Secret", "test-cron-secret"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sent").value(1));
+        // a doua declansare in aceeasi zi (ceasul aplicatiei sau GitHub) nu mai ruleaza nimic
+        mvc.perform(post("/api/internal/daily-digest").header("X-Cron-Secret", "test-cron-secret"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sent").value(0));
     }
 
     @Test

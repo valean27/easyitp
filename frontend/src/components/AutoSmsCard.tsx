@@ -175,7 +175,7 @@ export default function AutoSmsCard() {
           <span>
             <span className="font-medium">Trimite singur SMS clienților înainte să le expire ITP-ul</span>
             <span className="block text-xs text-slate-500 mt-0.5">
-              Doar clienților care și-au dat acordul și nu au deja o programare. Pleacă dimineața (în jurul orei 7:30,
+              Doar clienților care și-au dat acordul și nu au deja o programare. Pleacă dimineața (la ora 7:00,
               luni–sâmbătă), o singură dată pentru fiecare termen.
             </span>
           </span>

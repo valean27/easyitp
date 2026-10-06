@@ -1,12 +1,8 @@
 package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.easyitp.service.DailyJobService;
 import org.example.easyitp.service.DigestService;
-import org.example.easyitp.service.AppointmentSmsService;
-import org.example.easyitp.service.AutoReminderService;
-import org.example.easyitp.service.GooglePlacesService;
-import org.example.easyitp.service.HistoryService;
-import org.example.easyitp.service.ReviewRequestService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,22 +13,15 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 
-// Apelat de GitHub Actions dimineata (.github/workflows/daily-digest.yml), cu secretul CRON_SECRET.
-// Pe Render free un job programat in aplicatie nu ar rula cand serverul doarme; apelul extern il si trezeste.
+// Apelat de GitHub Actions (.github/workflows/daily-digest.yml), cu secretul CRON_SECRET: rezerva pentru ceasul
+// aplicatiei (DailyJobScheduler, 07:00), daca serverul dormea; apelul il si trezeste. Ruleaza o singura data pe zi.
 @lombok.extern.slf4j.Slf4j
 @RestController
 @RequestMapping("/api/internal")
 @RequiredArgsConstructor
 public class InternalController {
 
-    private final DigestService digestService;
-    private final HistoryService historyService;
-    private final AutoReminderService autoReminderService;
-    private final AppointmentSmsService appointmentSmsService;
-    private final ReviewRequestService reviewRequestService;
-    private final GooglePlacesService googlePlacesService;
-    private final org.example.easyitp.service.PlanNoticeService planNoticeService;
-    private final org.example.easyitp.service.AccountEmailService accountEmailService;
+    private final DailyJobService dailyJobService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -46,36 +35,9 @@ public class InternalController {
         if (secret == null || !MessageDigest.isEqual(secret.getBytes(StandardCharsets.UTF_8), cronSecret.getBytes(StandardCharsets.UTF_8))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        DigestService.Result result = digestService.sendDailyDigests(LocalDate.now());
-        // Tot o data pe zi: SMS-urile automate catre clienti si curatarea istoricului mai vechi de un an.
-        // O eroare aici nu strica rezumatul deja trimis.
-        try {
-            autoReminderService.runDaily(LocalDate.now());
-        } catch (RuntimeException e) {
-            log.error("SMS-urile automate au esuat", e);
-        }
-        try {
-            appointmentSmsService.runDayBefore(LocalDate.now());
-        } catch (RuntimeException e) {
-            log.error("Reminderele pentru programari au esuat", e);
-        }
-        try {
-            reviewRequestService.runDaily(LocalDate.now());
-        } catch (RuntimeException e) {
-            log.error("Cererile de recenzie au esuat", e);
-        }
-        try {
-            planNoticeService.runDaily(LocalDate.now());
-        } catch (RuntimeException e) {
-            log.error("Anunturile despre abonament au esuat", e);
-        }
-        try {
-            googlePlacesService.refreshAll(java.time.LocalDateTime.now());
-        } catch (RuntimeException e) {
-            log.error("Notele Google nu au putut fi reimprospatate", e);
-        }
-        historyService.purgeOld();
-        accountEmailService.purgeExpired();
+        // Ceasul aplicatiei ruleaza de regula la 07:00; apelul acesta e rezerva si nu dubleaza nimic
+        DigestService.Result result = dailyJobService.runOnce(LocalDate.now(java.time.ZoneId.of("Europe/Bucharest")));
+        if (result == null) result = new DigestService.Result(0, 0, 0);
         return ResponseEntity.ok(result);
     }
 }
