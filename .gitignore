@@ -45,3 +45,7 @@ node_modules/
 
 # Notite locale de sesiune (Claude)
 /.claude/SCRATCHBOARD.md
+
+# Copii ale bazei de date (date reale de clienti)
+*.dump
+*.dump.gpg
