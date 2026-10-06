@@ -181,7 +181,7 @@ function Terms() {
           <li>Plata pentru 12 luni costă cât 10 luni.</li>
           <li>
             O stație nouă primește 14 zile de probă cu pachetul Premium, fără card. La final alege un pachet plătit sau trece singură pe
-            pachetul Gratuit.
+            pachetul Gratuit. Dacă plătește în timpul probei, perioada plătită începe după ultima zi de probă.
           </li>
         </ul>
       </Section>

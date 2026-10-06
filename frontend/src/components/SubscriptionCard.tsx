@@ -16,6 +16,9 @@ import {
   billedMonths,
   formatRon,
   monthlyPrice,
+  paidUntil,
+  planPrice,
+  smsPrice,
   type PlanName,
 } from '../utils/plans';
 
@@ -114,6 +117,7 @@ export default function SubscriptionCard() {
 
   const total = amountWithVat(plan, sms, months);
   const net = monthlyPrice(plan, sms) * billedMonths(months);
+  const until = paidUntil(status, plan, sms, months, new Date().toLocaleDateString('sv-SE'));
   const changing = !status.trial && status.plan !== 'FREE' && status.planUntil && (status.paidPlan !== plan || status.smsPlan !== sms);
 
   return (
@@ -129,7 +133,23 @@ export default function SubscriptionCard() {
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-slate-800 mb-2">Alegeți pachetul</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="text-sm font-semibold text-slate-800">Alegeți pachetul</p>
+            <div role="radiogroup" aria-label="Perioada" className="inline-flex rounded-lg border border-slate-200 p-0.5 text-xs font-semibold">
+              {[1, 12].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  role="radio"
+                  aria-checked={months === m}
+                  onClick={() => setMonths(m)}
+                  className={`px-3 py-1.5 rounded-md transition-colors ${months === m ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {m === 1 ? 'Lunar' : 'Anual · 2 luni gratuite'}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PLANS.filter((p) => p.name !== 'FREE').map((p) => (
               <button
@@ -141,10 +161,25 @@ export default function SubscriptionCard() {
                   plan === p.name ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                <p className="w-full flex items-baseline justify-between gap-2">
+                <span className="w-full flex items-center justify-between gap-2">
                   <span className="text-base font-bold text-slate-900">{PLAN_LABELS[p.name]}</span>
-                  <span className="text-sm font-semibold text-slate-700">{p.price} RON / lună</span>
-                </p>
+                  {current === PLAN_LABELS[p.name] && !status.trial && status.planUntil && (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Pachetul actual</span>
+                  )}
+                </span>
+                <span className="mt-1 block">
+                  {months === 1 ? (
+                    <span className="text-lg font-extrabold text-slate-900">{p.price} RON<span className="text-xs font-medium text-slate-500"> / lună</span></span>
+                  ) : (
+                    <>
+                      <span className="text-lg font-extrabold text-slate-900">{formatRon(p.price * 10)}<span className="text-xs font-medium text-slate-500"> / an</span></span>
+                      <span className="block text-xs text-slate-500">
+                        <s>{formatRon(p.price * 12)}</s> · {formatRon(Math.round((p.price * 1000) / 12) / 100)} / lună
+                      </span>
+                    </>
+                  )}
+                  <span className="block text-[11px] text-slate-400">fără TVA</span>
+                </span>
                 <ul className="mt-2 space-y-1 text-xs text-slate-600">
                   {p.points.slice(1).map((pt) => (
                     <li key={pt} className="flex gap-1.5">
@@ -160,25 +195,28 @@ export default function SubscriptionCard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <label className="block">
-            <span className="block text-sm font-medium text-slate-700 mb-1">SMS-uri incluse (opțional)</span>
-            <select value={sms} onChange={(e) => setSms(Number(e.target.value))} className={INPUT_CLS}>
-              <option value={0}>Fără (telefonul stației)</option>
-              {SMS_PLANS.map((p) => (
-                <option key={p.sms} value={p.sms}>
-                  {p.sms} SMS / lună · +{p.price} RON
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="block text-sm font-medium text-slate-700 mb-1">Perioada</span>
-            <select value={months} onChange={(e) => setMonths(Number(e.target.value))} className={INPUT_CLS}>
-              <option value={1}>1 lună</option>
-              <option value={12}>12 luni (plătiți 10)</option>
-            </select>
-          </label>
+        <div>
+          <p className="text-sm font-semibold text-slate-800">SMS-uri incluse (opțional)</p>
+          <p className="text-xs text-slate-500 mb-2">
+            Fără pachet, mesajele automate pleacă de pe telefonul stației. Cu pachet, pleacă din numărul platformei, fără telefon.
+          </p>
+          <div role="radiogroup" aria-label="SMS-uri incluse" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[{ sms: 0, price: 0 }, ...SMS_PLANS].map((o) => (
+              <button
+                key={o.sms}
+                type="button"
+                role="radio"
+                aria-checked={sms === o.sms}
+                onClick={() => setSms(o.sms)}
+                className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                  sms === o.sms ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <span className="block text-sm font-semibold text-slate-800">{o.sms ? `${o.sms} SMS` : 'Fără'}</span>
+                <span className="block text-xs text-slate-500">{o.sms ? `+${o.price} RON / lună` : 'telefonul stației'}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <fieldset className="space-y-3">
@@ -198,18 +236,39 @@ export default function SubscriptionCard() {
         </fieldset>
 
         <div className="rounded-xl border border-slate-200 p-4 space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm text-slate-600">
-              {PLAN_LABELS[plan]}
-              {sms ? ` + ${sms} SMS` : ''} · {months === 1 ? '1 lună' : '12 luni'}
-            </span>
-            <span className="text-right">
-              <span className="block text-xl font-extrabold text-slate-900">{formatRon(total)}</span>
-              <span className="block text-xs text-slate-500">
-                {formatRon(net)} + TVA {VAT_PERCENT}%
-              </span>
-            </span>
-          </div>
+          <dl className="space-y-1 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-slate-600">
+                {PLAN_LABELS[plan]} · {months === 1 ? '1 lună' : '12 luni'}
+              </dt>
+              <dd className="tabular-nums text-slate-800">{formatRon(planPrice(plan) * months)}</dd>
+            </div>
+            {sms > 0 && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-slate-600">
+                  {sms} SMS / lună · {months === 1 ? '1 lună' : '12 luni'}
+                </dt>
+                <dd className="tabular-nums text-slate-800">{formatRon(smsPrice(sms) * months)}</dd>
+              </div>
+            )}
+            {months === 12 && (
+              <div className="flex justify-between gap-3 text-emerald-700">
+                <dt>2 luni gratuite</dt>
+                <dd className="tabular-nums">−{formatRon(monthlyPrice(plan, sms) * 2)}</dd>
+              </div>
+            )}
+            <div className="flex justify-between gap-3">
+              <dt className="text-slate-600">TVA {VAT_PERCENT}%</dt>
+              <dd className="tabular-nums text-slate-800">{formatRon(Math.round((total - net) * 100) / 100)}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 border-t border-slate-100 pt-2">
+              <dt className="font-semibold text-slate-800">Total</dt>
+              <dd className="text-xl font-extrabold text-slate-900 tabular-nums">{formatRon(total)}</dd>
+            </div>
+          </dl>
+          <p className="text-xs text-slate-500">
+            Activ până la <b className="text-slate-700">{formatDateRo(until)}</b> inclusiv. Nu se reînnoiește automat: vă anunțăm pe email cu 3 zile înainte.
+          </p>
           {changing && (
             <p className="text-xs text-slate-500">
               Noul pachet începe azi; zilele rămase din cel actual se transformă în zile din cel nou, după preț.

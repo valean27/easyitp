@@ -188,13 +188,16 @@ public class BillingService {
     }
 
     // Noua perioada platita. Acelasi pachet: se adauga dupa ultima zi platita. Alt pachet: incepe azi, iar zilele
-    // ramase din cel vechi se transforma in zile din cel nou, dupa pret.
+    // ramase din cel vechi se transforma in zile din cel nou, dupa pret. In proba: incepe dupa ultima zi de proba.
     static LocalDate applyPaid(AppUser u, Plan plan, int sms, int months, LocalDate today) {
         boolean paidActive = u.getPlan() != null && u.getPlan() != Plan.FREE && !Boolean.TRUE.equals(u.getPlanTrial())
                 && u.getPlanUntil() != null && !u.getPlanUntil().isBefore(today);
         LocalDate start = today;
         long extraDays = 0;
-        if (paidActive) {
+        boolean trialActive = Boolean.TRUE.equals(u.getPlanTrial()) && u.getPlanUntil() != null && u.getPlanUntil().isAfter(today);
+        if (trialActive) {
+            start = u.getPlanUntil();
+        } else if (paidActive) {
             int oldSms = u.getSmsPlan() == null ? 0 : u.getSmsPlan();
             if (u.getPlan() == plan && oldSms == sms) {
                 start = u.getPlanUntil();

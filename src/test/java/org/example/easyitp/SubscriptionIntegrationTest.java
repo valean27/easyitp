@@ -215,7 +215,7 @@ class SubscriptionIntegrationTest {
         assertThat(u.getPlan()).isEqualTo(Plan.PRO);
         assertThat(u.getPlanTrial()).isFalse();
         assertThat(u.getSmsPlan()).isEqualTo(300);
-        assertThat(u.getPlanUntil()).isEqualTo(today.plusMonths(1));
+        assertThat(u.getPlanUntil()).isEqualTo(today.plusDays(5).plusMonths(1));
 
         // a doua notificare si intoarcerea din pagina nu mai prelungesc
         ipn(orderId);
@@ -223,7 +223,7 @@ class SubscriptionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PAID"))
                 .andExpect(jsonPath("$.invoiceNumber").value("EI 0007"));
-        assertThat(user("plata@itp.ro").getPlanUntil()).isEqualTo(today.plusMonths(1));
+        assertThat(user("plata@itp.ro").getPlanUntil()).isEqualTo(today.plusDays(5).plusMonths(1));
         assertThat(INVOICES).hasSize(1);
         JsonNode invoice = json.readTree(INVOICES.get(0));
         assertThat(invoice.get("cif").asText()).isEqualTo("RO48267925");

@@ -36,7 +36,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Ce se întâmplă după cele 14 zile de probă?',
-    a: 'Alegeți un pachet plătit sau rămâneți pe Gratuit. Nu pierdeți nimic: clienții, ITP-urile și programările rămân, doar funcțiile din pachetele plătite se opresc până le activați.',
+    a: 'Alegeți un pachet plătit sau rămâneți pe Gratuit. Dacă plătiți mai devreme, nu pierdeți zilele de probă: perioada plătită începe după ele. Nu pierdeți nimic: clienții, ITP-urile și programările rămân, doar funcțiile din pachetele plătite se opresc până le activați.',
   },
   {
     q: 'Cine vede datele stației?',

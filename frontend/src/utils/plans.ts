@@ -106,3 +106,35 @@ export function amountWithVat(plan: PlanName, sms: number, months: number): numb
 export function formatRon(value: number): string {
   return value.toLocaleString('ro-RO', { minimumFractionDigits: value % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' RON';
 }
+
+// "yyyy-mm-dd" + luni, cu ziua taiata la sfarsitul lunii (ca LocalDate.plusMonths)
+function addMonths(iso: string, months: number): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  const last = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 1 + months, Math.min(d, last)));
+}
+
+function isoDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export interface CurrentPlan {
+  paidPlan: PlanName;
+  planUntil: string | null;
+  trial: boolean;
+  smsPlan: number;
+}
+
+// Ultima zi platita dupa plata, la fel ca BillingService.applyPaid: acelasi pachet se adauga dupa ultima zi platita,
+// alt pachet incepe azi (in proba: dupa ultima zi de proba), iar zilele ramase din cel vechi se transforma in zile din cel nou, dupa pret
+export function paidUntil(current: CurrentPlan, plan: PlanName, sms: number, months: number, today: string): string {
+  if (current.trial && current.planUntil && current.planUntil > today) return isoDay(addMonths(current.planUntil, months));
+  const active = current.paidPlan !== 'FREE' && !current.trial && !!current.planUntil && current.planUntil >= today;
+  if (!active) return isoDay(addMonths(today, months));
+  if (current.paidPlan === plan && current.smsPlan === sms) return isoDay(addMonths(current.planUntil!, months));
+  const remaining = Math.round((Date.parse(current.planUntil!) - Date.parse(today)) / 86_400_000);
+  const extra = Math.floor((remaining * monthlyPrice(current.paidPlan, current.smsPlan)) / monthlyPrice(plan, sms));
+  const end = addMonths(today, months);
+  end.setUTCDate(end.getUTCDate() + extra);
+  return isoDay(end);
+}

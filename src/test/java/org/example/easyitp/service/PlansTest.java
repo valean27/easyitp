@@ -31,8 +31,9 @@ class PlansTest {
     @Test
     void renewingExtendsAndChangingPlanConvertsTheRemainingDays() {
         AppUser trial = AppUser.builder().plan(Plan.PREMIUM).planUntil(today.plusDays(10)).planTrial(true).build();
-        // proba nu se aduna
-        assertThat(BillingService.applyPaid(trial, Plan.PRO, 0, 1, today)).isEqualTo(today.plusMonths(1));
+        // in proba: perioada platita incepe dupa ultima zi de proba
+        assertThat(BillingService.applyPaid(trial, Plan.PRO, 0, 1, today)).isEqualTo(today.plusDays(10).plusMonths(1));
+        assertThat(trial.getPlanTrial()).isFalse();
 
         AppUser pro = AppUser.builder().plan(Plan.PRO).smsPlan(0).planUntil(today.plusDays(20)).planTrial(false).build();
         // acelasi pachet: dupa ultima zi platita
