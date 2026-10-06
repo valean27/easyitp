@@ -73,7 +73,7 @@ function DetailsModal({ entry, onClose }: { entry: DashboardEntry; onClose: () =
       <div className="modal-panel sm:max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
           <h2 className="text-lg font-semibold text-slate-800">Detalii Înregistrare ITP</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
+          <button onClick={onClose} aria-label="Închide" className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -209,8 +209,11 @@ function StatCard({
   return (
     <div
       onClick={onClick}
+      onKeyDown={onClick ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onClick()) : undefined}
+      role={onClick ? 'link' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={`bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-4 ${
-        onClick ? 'cursor-pointer hover:border-blue-200 hover:shadow transition' : ''
+        onClick ? 'cursor-pointer hover:border-blue-200 hover:shadow transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500' : ''
       }`}
     >
       <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
@@ -336,7 +339,7 @@ export default function Dashboard() {
             <div className="bg-blue-600 p-2 rounded-lg">
               <Car size={20} className="text-white" />
             </div>
-            <div>
+            <div className="hidden min-[400px]:block">
               <span className="text-lg font-bold text-slate-800">EasyITP</span>
               <span className="hidden sm:inline ml-2 text-sm text-slate-400">
                 Evidență Inspecții Tehnice
@@ -348,6 +351,7 @@ export default function Dashboard() {
               to="/history"
               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               title="Istoric modificări"
+              aria-label="Istoric modificări"
             >
               <History size={16} />
             </Link>
@@ -355,11 +359,14 @@ export default function Dashboard() {
               onClick={fetchData}
               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               title="Reîncarcă"
+              aria-label="Reîncarcă"
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
             <button
               onClick={() => setShowImportModal(true)}
+              aria-label="Import CSV"
+              title="Import CSV / Excel"
               className="flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm"
             >
               <Upload size={15} />
@@ -368,6 +375,8 @@ export default function Dashboard() {
             <button
               onClick={handleExport}
               disabled={exporting}
+              aria-label="Export CSV"
+              title="Export CSV"
               className="flex items-center gap-2 px-2.5 sm:px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-60"
             >
               {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
@@ -375,7 +384,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
             >
               <Plus size={16} />
               <span className="whitespace-nowrap">
@@ -414,6 +423,7 @@ export default function Dashboard() {
             value={summary.expired}
             icon={<AlertTriangle size={18} className="text-red-600" />}
             color="bg-red-50"
+            onClick={() => navigate('/reminders?urgenta=expirate')}
           />
         </div>
 
@@ -683,7 +693,7 @@ export default function Dashboard() {
       {/* Toast notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
+          className={`fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all ${
             toast.type === 'success'
               ? 'bg-emerald-600 text-white'
               : 'bg-red-600 text-white'
@@ -697,7 +707,8 @@ export default function Dashboard() {
           <span>{toast.message}</span>
           <button
             onClick={() => setToast(null)}
-            className="ml-1 opacity-70 hover:opacity-100 transition-opacity"
+            aria-label="Închide"
+            className="ml-auto md:ml-1 opacity-70 hover:opacity-100 transition-opacity"
           >
             <X size={14} />
           </button>

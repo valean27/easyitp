@@ -291,7 +291,7 @@ export default function LandingPage() {
             <div className="mt-6 flex flex-col items-center gap-3 text-center text-sm text-slate-500">
               <img src="/legal/netopia-visa-mastercard.png" alt="Plată cu cardul prin NETOPIA Payments: Visa, Mastercard" width={212} height={40} className="rounded-md border border-slate-200" />
               <p>
-                Plată online cu cardul sau prin transfer bancar, pentru 1 sau 12 luni. Fără reînnoire automată; detalii în{' '}
+                Plată online cu cardul, pentru 1 sau 12 luni (transfer bancar la cerere). Fără reînnoire automată; detalii în{' '}
                 <Link to="/termeni#plata" className="font-semibold text-blue-600 hover:underline">termeni</Link>.
               </p>
             </div>

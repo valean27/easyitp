@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { TRIAL_DAYS } from '../../utils/plans';
 import { Car, Menu, X } from 'lucide-react';
 import ThemeSwitcher from '../ThemeSwitcher';
 import { ANPC_SAL_URL, COMPANY } from '../../utils/company';
@@ -74,7 +75,7 @@ export function PublicFooter() {
         <div className="space-y-2">
           <p className="font-semibold text-slate-700">Pagini</p>
           <Link to="/statii" className="block hover:text-slate-800">Stații ITP cu programare online</Link>
-          <Link to="/inregistrare" className="block hover:text-slate-800">Înscrie stația (14 zile gratuit)</Link>
+          <Link to="/inregistrare" className="block hover:text-slate-800">Înscrie stația ({TRIAL_DAYS} zile gratuit)</Link>
           <Link to="/login" className="block hover:text-slate-800">Intră în cont</Link>
           <Link to="/confidentialitate" className="block hover:text-slate-800">Politica de confidențialitate</Link>
           <Link to="/termeni" className="block hover:text-slate-800">Termeni și condiții</Link>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { TRIAL_DAYS, planPrice } from '../../utils/plans';
 
 const QUESTIONS: { q: string; a: string }[] = [
   {
@@ -32,10 +33,10 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Cât costă și cum plătesc?',
-    a: 'Pachetul Gratuit e gratuit pentru totdeauna. Pro costă 59 RON și Premium 99 RON pe lună, fără TVA, iar SMS-urile incluse se adaugă opțional. Plătiți cu cardul din aplicație, pentru 1 lună sau 12 luni (12 la prețul a 10). Abonamentul nu se reînnoiește singur.',
+    a: `Pachetul Gratuit e gratuit pentru totdeauna. Pro costă ${planPrice('PRO')} RON și Premium ${planPrice('PREMIUM')} RON pe lună, fără TVA, iar SMS-urile incluse se adaugă opțional. Plătiți cu cardul din aplicație, pentru 1 lună sau 12 luni (12 la prețul a 10). Abonamentul nu se reînnoiește singur.`,
   },
   {
-    q: 'Ce se întâmplă după cele 14 zile de probă?',
+    q: `Ce se întâmplă după cele ${TRIAL_DAYS} zile de probă?`,
     a: 'Alegeți un pachet plătit sau rămâneți pe Gratuit. Dacă plătiți mai devreme, nu pierdeți zilele de probă: perioada plătită începe după ele. Nu pierdeți nimic: clienții, ITP-urile și programările rămân, doar funcțiile din pachetele plătite se opresc până le activați.',
   },
   {

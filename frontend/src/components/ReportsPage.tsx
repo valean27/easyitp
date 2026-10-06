@@ -126,6 +126,7 @@ export default function ReportsPage() {
               <select
                 value={stationId ?? ''}
                 onChange={(e) => setStationId(e.target.value ? Number(e.target.value) : undefined)}
+                aria-label="Stația"
                 className={SELECT_CLS}
               >
                 <option value="">Toate stațiile</option>
@@ -136,7 +137,8 @@ export default function ReportsPage() {
                 ))}
               </select>
             )}
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={SELECT_CLS}>
+            {loading && report && <Loader2 size={16} className="animate-spin text-slate-400" aria-label="Se încarcă" />}
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="Anul" className={SELECT_CLS}>
               {(report?.availableYears ?? [year]).map((y) => (
                 <option key={y} value={y}>
                   {y}
@@ -151,11 +153,16 @@ export default function ReportsPage() {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0" />
-            {error}
+            <span className="flex-1">{error}</span>
+            {!report && !loading && (
+              <button onClick={fetchReport} className="font-semibold underline hover:no-underline">
+                Încearcă din nou
+              </button>
+            )}
           </div>
         )}
 
-        {loading && !report ? (
+        {!report && !loading ? null : loading && !report ? (
           <div className="flex items-center justify-center py-20 text-slate-400">
             <Loader2 size={24} className="animate-spin mr-2" />
             Se încarcă...
@@ -280,10 +287,11 @@ export default function ReportsPage() {
                       <select
                         value={exportMonth}
                         onChange={(e) => setExportMonth(Number(e.target.value))}
+                        aria-label="Luna pentru export"
                         className={SELECT_CLS + ' flex-1'}
                       >
                         {MONTHS_LONG.map((name, i) => (
-                          <option key={name} value={i + 1}>
+                          <option key={name} value={i + 1} disabled={year === now.getFullYear() && i > now.getMonth()}>
                             {name} {year}
                           </option>
                         ))}

@@ -33,6 +33,15 @@ const STATUS_COLOR: Record<AppointmentStatus, SchedulerEventColor> = {
   NO_SHOW: 'orange',
 };
 
+// Aceleasi culori ca in calendar (STATUS_COLOR + online)
+const LEGEND: [string, string][] = [
+  ['bg-blue-500', 'Programat'],
+  ['bg-purple-500', 'Programat online'],
+  ['bg-green-500', 'Finalizat'],
+  ['bg-orange-500', 'Neprezentat'],
+  ['bg-slate-400', 'Anulat'],
+];
+
 // Tema MUI aliniata cu restul aplicatiei (Tailwind): fontul paginii, albastrul principal si tema luminoasa/intunecata
 function muiTheme(mode: 'light' | 'dark') {
   return createTheme({
@@ -107,6 +116,7 @@ export default function CalendarPage() {
     setLoading(true);
     try {
       setAppointments(await getAppointments(toLocalIso(range.start), toLocalIso(range.end)));
+      setError(null);
     } catch {
       setError('Programările nu au putut fi încărcate.');
     } finally {
@@ -154,8 +164,8 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50">
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+    <div className="h-full flex flex-col bg-slate-50">
+      <header className="shrink-0 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-800">Calendar Programări</h1>
@@ -172,14 +182,14 @@ export default function CalendarPage() {
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-2 sm:px-6 py-2 sm:py-4 space-y-3">
+      <main className="flex-1 min-h-0 w-full max-w-screen-2xl mx-auto px-2 sm:px-6 py-2 sm:py-4 flex flex-col gap-2 sm:gap-3">
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
             <AlertTriangle size={15} className="shrink-0" />
             {error}
           </div>
         )}
-        <div ref={calendarRef} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden" style={{ height: 'calc(100dvh - 7.5rem)' }}>
+        <div ref={calendarRef} className="flex-1 min-h-[28rem] bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
           <ThemeProvider theme={theme}>
             <EventCalendar
               events={events}
@@ -218,6 +228,13 @@ export default function CalendarPage() {
             />
           </ThemeProvider>
         </div>
+        <ul className="shrink-0 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-slate-500" aria-label="Legenda culorilor">
+          {LEGEND.map(([cls, label]) => (
+            <li key={label} className="flex items-center gap-1.5">
+              <span className={`h-2.5 w-2.5 rounded-full ${cls}`} /> {label}
+            </li>
+          ))}
+        </ul>
       </main>
 
       {createDate && (

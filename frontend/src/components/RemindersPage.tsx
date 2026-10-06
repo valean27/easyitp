@@ -279,7 +279,10 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<StatusTab>('TODO');
-  const [urgency, setUrgency] = useState<Urgency>('ALL');
+  // ?urgenta=expirate vine din cardul „Expirat” de pe dashboard
+  const [urgency, setUrgency] = useState<Urgency>(() =>
+    new URLSearchParams(window.location.search).get('urgenta') === 'expirate' ? 'EXPIRED' : 'ALL',
+  );
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<number | null>(null);
   const [scheduling, setScheduling] = useState<Reminder | null>(null);
@@ -400,7 +403,7 @@ export default function RemindersPage() {
           <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0 mt-0.5" />
             <span>
-              Completează numele și telefonul stației în{' '}
+              Completați numele și telefonul stației în{' '}
               <Link to="/account" className="font-semibold underline">
                 Contul meu
               </Link>{' '}
@@ -420,7 +423,10 @@ export default function RemindersPage() {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             <AlertTriangle size={16} className="shrink-0" />
-            {error}
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError(null)} className="text-xs opacity-60 hover:opacity-100">
+              Închide
+            </button>
           </div>
         )}
 
@@ -511,12 +517,19 @@ export default function RemindersPage() {
                 <Loader2 size={24} className="animate-spin mr-2" />
                 Se încarcă...
               </div>
+            ) : error && reminders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
+                <p className="text-sm">Lista nu a putut fi încărcată.</p>
+                <button onClick={fetchData} className="px-4 py-2 rounded-lg border border-slate-200 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  Încearcă din nou
+                </button>
+              </div>
             ) : visible.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
                 <Inbox size={40} className="opacity-30" />
                 <p className="text-sm">
                   {tab === 'TODO' && reminders.length > 0 && !search && urgency === 'ALL'
-                    ? 'Ai contactat pe toată lumea. Bravo!'
+                    ? 'Ați contactat pe toată lumea. Bravo!'
                     : 'Niciun client în această listă.'}
                 </p>
               </div>

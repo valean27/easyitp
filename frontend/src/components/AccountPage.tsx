@@ -113,23 +113,23 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Nume stație</label>
+          <label className="block">
+            <span className="block text-sm font-medium text-slate-600 mb-1">Nume stație</span>
             <input value={stationName} onChange={(e) => setStationName(e.target.value)} placeholder="ITP Auto Center" className={INPUT_CLS} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Adresă</label>
+          </label>
+          <label className="block">
+            <span className="block text-sm font-medium text-slate-600 mb-1">Adresă</span>
             <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Str. Exemplu nr. 1" className={INPUT_CLS} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Telefon stație</label>
+          </label>
+          <label className="block">
+            <span className="block text-sm font-medium text-slate-600 mb-1">Telefon stație</span>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07xx xxx xxx" className={INPUT_CLS} />
-          </div>
+          </label>
           <div>
-            <label className="flex items-center justify-between text-sm font-medium text-slate-600 mb-1">
-              <span className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between text-sm font-medium text-slate-600 mb-1">
+              <label htmlFor="reminder-template" className="flex items-center gap-1.5">
                 <MessageSquareText size={14} /> Mesaj de reamintire ITP
-              </span>
+              </label>
               {template !== DEFAULT_REMINDER_TEMPLATE && (
                 <button
                   type="button"
@@ -139,8 +139,8 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
                   <RotateCcw size={12} /> Mesajul implicit
                 </button>
               )}
-            </label>
-            <textarea value={template} onChange={(e) => setTemplate(e.target.value)} rows={4} className={INPUT_CLS + ' resize-y'} />
+            </div>
+            <textarea id="reminder-template" value={template} onChange={(e) => setTemplate(e.target.value)} rows={4} className={INPUT_CLS + ' resize-y'} />
             <p className="text-xs text-slate-400 mt-1">
               {TEMPLATE_PLACEHOLDERS.map((p) => (
                 <span key={p.key} className="inline-block mr-2" title={p.description}>
@@ -206,6 +206,10 @@ function InspectorsCard() {
     e.preventDefault();
     const name = draft.trim();
     if (!name || !names) return;
+    if (names.some((n) => n.toLocaleLowerCase('ro') === name.toLocaleLowerCase('ro'))) {
+      setMessage({ text: `${name} este deja în listă.`, type: 'error' });
+      return;
+    }
     setDraft('');
     save([...names, name]);
   };
@@ -219,7 +223,7 @@ function InspectorsCard() {
     >
       <div className="space-y-3">
         <p className="text-xs text-slate-500">
-          La fiecare ITP alegi cine a făcut verificarea, iar în Rapoarte vezi câte verificări și câte respingeri are fiecare.
+          La fiecare ITP alegeți cine a făcut verificarea, iar în Rapoarte vedeți câte verificări și câte respingeri are fiecare.
           Nu au nevoie de cont.
         </p>
         {names === null ? (
@@ -299,18 +303,18 @@ function PasswordCard() {
   return (
     <Card icon={<KeyRound size={15} />} title="Schimbă parola">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Parola curentă</label>
+        <label className="block">
+          <span className="block text-sm font-medium text-slate-600 mb-1">Parola curentă</span>
           <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" className={INPUT_CLS} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Parola nouă</label>
+        </label>
+        <label className="block">
+          <span className="block text-sm font-medium text-slate-600 mb-1">Parola nouă</span>
           <input type="password" required minLength={6} value={next} onChange={(e) => setNext(e.target.value)} placeholder="Minim 6 caractere" autoComplete="new-password" className={INPUT_CLS} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Confirmă parola nouă</label>
+        </label>
+        <label className="block">
+          <span className="block text-sm font-medium text-slate-600 mb-1">Confirmă parola nouă</span>
           <input type="password" required minLength={6} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} autoComplete="new-password" className={INPUT_CLS} />
-        </div>
+        </label>
         <MessageBox message={message} />
         <SubmitButton loading={loading} label="Schimbă parola" />
       </form>

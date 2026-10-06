@@ -254,10 +254,11 @@ export const GUIDE: GuideGroup[] = [
         title: 'Abonamentul',
         intro: 'Pachetul Gratuit rămâne mereu; Pro și Premium se plătesc din aplicație, pentru 1 sau 12 luni, fără reînnoire automată.',
         steps: [
-          'În Contul meu → Abonament alegeți pachetul, eventual SMS-uri incluse, și perioada.',
+          'În Contul meu → Abonament alegeți perioada (lunar sau anual, cu 2 luni gratuite), pachetul și, opțional, SMS-urile incluse; jos vedeți totalul cu TVA și data până la care e plătit.',
           'Completați datele de facturare și plătiți cu cardul; pachetul se activează imediat, iar factura apare în aceeași secțiune.',
         ],
         tips: [
+          'Dacă plătiți în perioada de probă, nu pierdeți zilele rămase: perioada plătită începe după ultima zi de probă.',
           'Cu 3 zile înainte de expirare (și când expiră) primiți un email; confirmați adresa de email din emailul de bun venit ca să-l primiți.',
           'Parola uitată se resetează din pagina de autentificare, cu „Ați uitat parola?”.',
         ],
