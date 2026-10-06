@@ -169,6 +169,7 @@ export default function VisibilityCard() {
 
   return (
     <SettingsCard
+      id="recenzii"
       icon={<Star size={15} />}
       title="Recenzii și vizibilitate"
       summary={

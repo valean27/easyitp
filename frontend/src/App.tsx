@@ -30,6 +30,7 @@ const PosterPage = lazy(() => import('./components/PosterPage'));
 const ItpSheetPage = lazy(() => import('./components/ItpSheetPage'));
 const SignupPage = lazy(() => import('./components/SignupPage'));
 const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'));
+const GuidePage = lazy(() => import('./components/GuidePage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -165,6 +166,15 @@ function App() {
               }
             />
             <Route path="account" element={<AccountPage />} />
+            {/* Ghidul de utilizare pentru statie */}
+            <Route
+              path="ghid"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <GuidePage />
+                </ProtectedRoute>
+              }
+            />
             {/* Intoarcerea din pagina de plata Netopia */}
             <Route
               path="plata"

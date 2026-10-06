@@ -36,7 +36,7 @@ export default function DigestCard() {
 
   if (!settings) {
     return (
-      <SettingsCard icon={<Mail size={15} />} title="Rezumat zilnic">
+      <SettingsCard id="rezumat" icon={<Mail size={15} />} title="Rezumat zilnic">
         <div className="px-6 py-5 flex items-center text-sm text-slate-400">
           {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
         </div>
@@ -103,6 +103,7 @@ export default function DigestCard() {
 
   return (
     <SettingsCard
+      id="rezumat"
       icon={<Mail size={15} />}
       title="Rezumat zilnic"
       summary={settings.enabled ? `Pornit · pe ${settings.channel === 'WHATSAPP' ? 'WhatsApp' : 'email'}` : 'Oprit'}

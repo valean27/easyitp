@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, X, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, X, Plus, BookOpen } from 'lucide-react';
 import { getProfile, updateProfile, changePassword, getInspectors, updateInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
@@ -48,9 +48,9 @@ function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
   );
 }
 
-function Card({ icon, title, summary, children }: { icon: React.ReactNode; title: string; summary?: React.ReactNode; children: React.ReactNode }) {
+function Card({ id, icon, title, summary, children }: { id?: string; icon: React.ReactNode; title: string; summary?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <SettingsCard icon={icon} title={title} summary={summary}>
+    <SettingsCard id={id} icon={icon} title={title} summary={summary}>
       <div className="px-6 py-5">{children}</div>
     </SettingsCard>
   );
@@ -105,7 +105,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
   };
 
   return (
-    <Card icon={<Building2 size={15} />} title="Date stație ITP" summary={loaded ? stationName || 'Necompletat' : undefined}>
+    <Card id="statie" icon={<Building2 size={15} />} title="Date stație ITP" summary={loaded ? stationName || 'Necompletat' : undefined}>
       {!loaded ? (
         <div className="flex items-center text-sm text-slate-400">
           <Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...
@@ -211,6 +211,7 @@ function InspectorsCard() {
 
   return (
     <Card
+      id="inspectori"
       icon={<HardHat size={15} />}
       title="Inspectori"
       summary={names && (names.length === 0 ? 'Niciun inspector' : names.length === 1 ? names[0] : `${names.length} inspectori`)}
@@ -332,7 +333,16 @@ export default function AccountPage() {
             <h1 className="text-base font-bold text-slate-800 leading-tight">Contul meu</h1>
             <p className="text-xs text-slate-400 leading-tight truncate">{user?.email}</p>
           </div>
-          {/* Pe telefon nu exista meniul lateral cu butonul de deconectare */}
+          {/* Pe telefon nu exista meniul lateral: ghidul si deconectarea sunt aici */}
+          {user?.role === 'MANAGER' && (
+            <Link
+              to="/ghid"
+              className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50"
+            >
+              <BookOpen size={15} />
+              Ghid
+            </Link>
+          )}
           <button
             onClick={() => {
               logout();

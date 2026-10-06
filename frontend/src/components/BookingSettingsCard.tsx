@@ -29,7 +29,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
 
   if (!settings) {
     return (
-      <SettingsCard icon={<Globe size={15} />} title="Programare online">
+      <SettingsCard id="programare" icon={<Globe size={15} />} title="Programare online">
         <div className="px-6 py-5 flex items-center text-sm text-slate-400">
           {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
         </div>
@@ -87,6 +87,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
 
   return (
     <SettingsCard
+      id="programare"
       icon={<Globe size={15} />}
       title="Programare online"
       summary={settings.enabled && settings.slug ? `Pornită · /programare/${settings.slug}` : 'Oprită'}

@@ -92,7 +92,7 @@ export default function AutoSmsCard() {
 
   if (!settings) {
     return (
-      <SettingsCard icon={<MessageSquareText size={15} />} title="Remindere SMS automate">
+      <SettingsCard id="sms" icon={<MessageSquareText size={15} />} title="Remindere SMS automate">
         <div className="px-6 py-5 flex items-center text-sm text-slate-400">
           {message ? message.text : (<><Loader2 size={16} className="animate-spin mr-2" /> Se încarcă...</>)}
         </div>
@@ -149,6 +149,7 @@ export default function AutoSmsCard() {
 
   return (
     <SettingsCard
+      id="sms"
       icon={<MessageSquareText size={15} />}
       title="Remindere SMS automate"
       summary={[
