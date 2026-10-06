@@ -32,6 +32,7 @@ public class SignupService {
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final AccountEmailService accountEmailService;
     // Cel mult 3 conturi pe ora de pe acelasi IP
     private final SlidingWindowLimiter limiter = new SlidingWindowLimiter(3, Duration.ofHours(1));
 
@@ -72,10 +73,12 @@ public class SignupService {
                 .address(city)
                 .phone(phone)
                 .billingCity(city)
+                .emailVerified(false)
                 .build();
         BillingService.startTrial(user, LocalDate.now());
         appUserRepository.save(user);
         notifyAdmin(user);
+        accountEmailService.sendWelcome(user);
         return user;
     }
 

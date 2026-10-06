@@ -20,4 +20,6 @@ public class ProfileDTO {
     private String reviewUrl;
     private String mapsUrl;
     private String facebookUrl;
+    // false = statia nu a confirmat inca adresa de email (banda din aplicatie)
+    private boolean emailVerified;
 }

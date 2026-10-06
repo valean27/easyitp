@@ -50,6 +50,7 @@ public class AdminController {
     private final org.example.easyitp.repository.InvoiceRepository invoiceRepository;
     private final org.example.easyitp.repository.PaymentRepository paymentRepository;
     private final BillingService billingService;
+    private final org.example.easyitp.repository.AuthTokenRepository authTokenRepository;
 
     @PostMapping("/create-user")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest request) {
@@ -198,6 +199,7 @@ public class AdminController {
         stationDeadlineRepository.deleteByUserId(id);
         invoiceRepository.deleteByUserId(id);
         paymentRepository.deleteByUserId(id);
+        authTokenRepository.deleteByUserId(id);
         appUserRepository.delete(user);
         return ResponseEntity.noContent().build();
     }

@@ -31,6 +31,9 @@ const ItpSheetPage = lazy(() => import('./components/ItpSheetPage'));
 const SignupPage = lazy(() => import('./components/SignupPage'));
 const PaymentResultPage = lazy(() => import('./components/PaymentResultPage'));
 const GuidePage = lazy(() => import('./components/GuidePage'));
+const ForgotPasswordPage = lazy(() => import('./components/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage'));
+const VerifyEmailPage = lazy(() => import('./components/VerifyEmailPage'));
 
 // Adminul nu are statie proprie, asa ca pagina lui de start e lista de manageri; firmele vad portalul flotei
 function Home() {
@@ -66,6 +69,10 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          {/* Parola uitata, resetarea din email si confirmarea adresei: fara login */}
+          <Route path="/parola-uitata" element={<Suspense fallback={null}><ForgotPasswordPage /></Suspense>} />
+          <Route path="/resetare-parola" element={<Suspense fallback={null}><ResetPasswordPage /></Suspense>} />
+          <Route path="/confirmare-email" element={<Suspense fallback={null}><VerifyEmailPage /></Suspense>} />
           {/* Inscrierea unei statii noi (proba Premium) */}
           <Route path="/inregistrare" element={<Suspense fallback={null}><SignupPage /></Suspense>} />
           {/* Pagina publica de programare: fara login si fara meniul aplicatiei */}

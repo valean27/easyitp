@@ -76,9 +76,14 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              Parolă
-            </label>
+            <div className="flex items-baseline justify-between mb-1">
+              <label className="block text-sm font-medium text-slate-600">
+                Parolă
+              </label>
+              <Link to="/parola-uitata" className="text-xs font-medium text-blue-600 hover:underline">
+                Ați uitat parola?
+              </Link>
+            </div>
             <input
               type="password"
               required

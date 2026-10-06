@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -31,6 +32,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final LoginRateLimiter loginRateLimiter;
     private final SignupService signupService;
+    private final org.example.easyitp.service.AccountEmailService accountEmailService;
 
     // Hash bcrypt al unei parole aleatoare: pentru un email inexistent verificam totusi o parola, ca timpul
     // de raspuns sa nu arate daca emailul are cont
@@ -65,6 +67,34 @@ public class AuthController {
         appUserRepository.save(user);
         return ResponseEntity.ok(new AuthResponse(jwtUtil.generateToken(user), user.getEmail(), user.getRole().name(),
                 user.getStationName()));
+    }
+
+    // "Am uitat parola": acelasi raspuns, fie ca emailul are cont, fie ca nu
+    public record ForgotRequest(String email) {
+    }
+
+    public record ResetRequest(String token, String password) {
+    }
+
+    public record TokenRequest(String token) {
+    }
+
+    @PostMapping("/forgot-password")
+    public Map<String, String> forgotPassword(@RequestBody ForgotRequest request, HttpServletRequest http) {
+        accountEmailService.forgotPassword(request.email(), ClientIp.of(http));
+        return Map.of("message", "Dacă adresa are cont, am trimis un email cu linkul de resetare. Verificați și folderul Spam.");
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String, String> resetPassword(@RequestBody ResetRequest request) {
+        accountEmailService.resetPassword(request.token(), request.password());
+        return Map.of("message", "Parola a fost schimbată. Intrați în cont cu parola nouă.");
+    }
+
+    @PostMapping("/verify-email")
+    public Map<String, String> verifyEmail(@RequestBody TokenRequest request) {
+        accountEmailService.verifyEmail(request.token());
+        return Map.of("message", "Adresa de email a fost confirmată. Mulțumim!");
     }
 
     // Inscrierea unei statii noi (pagina /inregistrare): contul e gata de folosit, cu proba Premium de 14 zile

@@ -61,3 +61,7 @@ export const linkGooglePlace = (placeId: string): Promise<Visibility> =>
   api.put(`${BASE}/google-place`, { placeId }).then((r) => r.data);
 
 export const unlinkGooglePlace = (): Promise<Visibility> => api.delete(`${BASE}/google-place`).then((r) => r.data);
+
+// Retrimite linkul de confirmare a adresei de email
+export const resendVerification = (): Promise<string> =>
+  api.post(`${BASE}/resend-verification`).then((r) => r.data.message);

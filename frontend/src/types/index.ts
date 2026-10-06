@@ -129,6 +129,8 @@ export interface Profile extends StationInfo {
   reviewUrl: string | null;
   mapsUrl: string | null;
   facebookUrl: string | null;
+  // false = adresa de email nu a fost confirmata din linkul primit la inscriere
+  emailVerified: boolean;
 }
 
 // Recenzii si vizibilitate (Contul meu)

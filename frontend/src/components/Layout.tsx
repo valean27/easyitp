@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
 import PlanBanner from './PlanBanner';
+import EmailVerifyBanner from './EmailVerifyBanner';
 import { PlanProvider } from '../context/PlanContext';
 
 interface NavItem {
@@ -118,6 +119,7 @@ export default function Layout() {
         </aside>
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <EmailVerifyBanner />
           <PlanBanner />
           <div className="flex-1 overflow-y-auto">
             <Suspense

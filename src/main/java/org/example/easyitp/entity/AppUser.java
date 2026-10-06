@@ -135,6 +135,13 @@ public class AppUser {
 
     private Boolean planTrial;
 
+    // Emailul confirmat din linkul primit la inscriere; null = cont facut inainte (considerat confirmat)
+    private Boolean emailVerified;
+
+    // Ultimul anunt despre expirarea abonamentului ("<planUntil>:SOON" / "<planUntil>:EXPIRED"), vezi PlanNoticeService
+    @Column(length = 40)
+    private String planNotice;
+
     // Datele de facturare ale statiei (pentru plata Netopia si factura abonamentului)
     @Column(length = 200)
     private String billingName;

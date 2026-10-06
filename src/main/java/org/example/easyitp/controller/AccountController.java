@@ -45,6 +45,7 @@ public class AccountController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GooglePlacesService googlePlacesService;
+    private final org.example.easyitp.service.AccountEmailService accountEmailService;
     // cautari Google pe statie si zi ("id:data" -> numar); se golesc la repornire, ajunge ca frana
     private final java.util.Map<String, Integer> googleSearches = new java.util.concurrent.ConcurrentHashMap<>();
     private static final int MAX_GOOGLE_SEARCHES_PER_DAY = 20;
@@ -154,6 +155,13 @@ public class AccountController {
         return url;
     }
 
+    // Retrimite linkul de confirmare a emailului (banda din aplicatie)
+    @PostMapping("/resend-verification")
+    public Map<String, String> resendVerification() {
+        accountEmailService.resendVerification(currentUser.get());
+        return Map.of("message", "Am trimis din nou emailul de confirmare. Verificați și folderul Spam.");
+    }
+
     @PutMapping("/password")
     public Map<String, String> changePassword(@RequestBody ChangePasswordRequest request) {
         AppUser user = currentUser.get();
@@ -259,7 +267,8 @@ public class AccountController {
     private ProfileDTO toDto(AppUser u) {
         return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
                 u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()),
-                !Boolean.FALSE.equals(u.getDigestEnabled()), u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl());
+                !Boolean.FALSE.equals(u.getDigestEnabled()), u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl(),
+                !Boolean.FALSE.equals(u.getEmailVerified()));
     }
 
     private static ResponseStatusException badRequest(String message) {

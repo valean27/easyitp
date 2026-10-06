@@ -31,6 +31,8 @@ public class InternalController {
     private final AppointmentSmsService appointmentSmsService;
     private final ReviewRequestService reviewRequestService;
     private final GooglePlacesService googlePlacesService;
+    private final org.example.easyitp.service.PlanNoticeService planNoticeService;
+    private final org.example.easyitp.service.AccountEmailService accountEmailService;
 
     @Value("${cron.secret:}")
     private String cronSecret;
@@ -63,11 +65,17 @@ public class InternalController {
             log.error("Cererile de recenzie au esuat", e);
         }
         try {
+            planNoticeService.runDaily(LocalDate.now());
+        } catch (RuntimeException e) {
+            log.error("Anunturile despre abonament au esuat", e);
+        }
+        try {
             googlePlacesService.refreshAll(java.time.LocalDateTime.now());
         } catch (RuntimeException e) {
             log.error("Notele Google nu au putut fi reimprospatate", e);
         }
         historyService.purgeOld();
+        accountEmailService.purgeExpired();
         return ResponseEntity.ok(result);
     }
 }
