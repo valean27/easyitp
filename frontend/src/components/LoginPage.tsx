@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import api from '../api/axiosInstance';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Loader2, AlertTriangle } from 'lucide-react';
+import { Car, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/auth';
 
 export default function LoginPage() {
@@ -45,15 +45,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4 px-4 py-8">
+      {/* Inapoi la pagina de prezentare (vizitatorii nelogati o vad pe "/") */}
+      <div className="w-full max-w-md">
+        <Link to="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
+          <ArrowLeft size={15} /> Înapoi la pagina principală
+        </Link>
+      </div>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 space-y-6">
-        <div className="flex flex-col items-center gap-2">
+        <Link to="/" className="flex flex-col items-center gap-2" title="Pagina principală">
           <div className="bg-blue-600 p-3 rounded-xl">
             <Car size={28} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold text-slate-800">EasyITP</h1>
           <p className="text-sm text-slate-500">Autentificați-vă pentru a continua</p>
-        </div>
+        </Link>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
