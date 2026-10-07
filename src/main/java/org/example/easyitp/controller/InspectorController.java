@@ -1,6 +1,7 @@
 package org.example.easyitp.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.easyitp.dto.InspectorDTOs.AccountRequest;
 import org.example.easyitp.dto.InspectorDTOs.Dashboard;
 import org.example.easyitp.dto.InspectorDTOs.InspectorDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorRequest;
@@ -45,6 +46,17 @@ public class InspectorController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(currentUser.get(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Contul propriu al inspectorului (logare cu prenume.nume@statie)
+    @PutMapping("/{id}/account")
+    public InspectorDTO saveAccount(@PathVariable Long id, @RequestBody AccountRequest request) {
+        return service.saveAccount(currentUser.get(), id, request);
+    }
+
+    @DeleteMapping("/{id}/account")
+    public InspectorDTO deleteAccount(@PathVariable Long id) {
+        return service.deleteAccount(currentUser.get(), id);
     }
 
     @GetMapping("/shifts")

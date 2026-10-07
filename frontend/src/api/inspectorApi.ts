@@ -10,6 +10,12 @@ export const createInspector = (data: InspectorRequest): Promise<Inspector> => a
 export const updateInspector = (id: number, data: InspectorRequest): Promise<Inspector> =>
   api.put(`${BASE}/${id}`, data).then((r) => r.data);
 
+// Contul propriu: login gol = cel propus; password gol = nu se schimba
+export const saveInspectorAccount = (id: number, login: string, password: string): Promise<Inspector> =>
+  api.put(`${BASE}/${id}/account`, { login: login || null, password: password || null }).then((r) => r.data);
+
+export const deleteInspectorAccount = (id: number): Promise<Inspector> => api.delete(`${BASE}/${id}/account`).then((r) => r.data);
+
 export const deleteInspector = (id: number): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined);
 
 // Cine lucreaza pe fiecare linie in ziua aleasa

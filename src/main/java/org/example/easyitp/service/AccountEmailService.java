@@ -100,7 +100,8 @@ public class AccountEmailService {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Prea multe cereri. Încercați din nou peste o oră.");
         }
         AppUser user = appUserRepository.findByEmailIgnoreCase(email).filter(AppUser::isEnabled).orElse(null);
-        if (user == null) return;
+        // Inspectorii n-au email real (prenume.nume@statie): parola le-o reseteaza managerul
+        if (user == null || user.getRole() == org.example.easyitp.entity.Role.INSPECTOR) return;
         String link = link("/resetare-parola", newToken(user, AuthToken.Purpose.RESET_PASSWORD, RESET_TTL));
         String html = AccountMail.html("Resetarea parolei", new String[]{
                 "Ați cerut o parolă nouă pentru contul Easy ITP " + user.getEmail() + ".",

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { HardHat, Loader2, AlertTriangle, Plus, Phone, Pencil, ClipboardCheck, Banknote, XCircle, CalendarClock, BadgeAlert, RotateCcw } from 'lucide-react';
+import { HardHat, Loader2, AlertTriangle, Plus, Phone, Pencil, ClipboardCheck, Banknote, XCircle, CalendarClock, BadgeAlert, RotateCcw, KeyRound, Clock } from 'lucide-react';
 import type { Inspector, InspectorDashboard, InspectorStats, LineShift } from '../types';
 import { getInspectorDashboard, getInspectorTeam, getLineShifts, setLineShift } from '../api/inspectorApi';
 import { getBookingSettings } from '../api/accountApi';
@@ -10,7 +10,7 @@ import { todayIso } from '../utils/dates';
 import { formatDateRo } from '../utils/fleet';
 import { formatRon } from '../utils/plans';
 import { lineName } from '../utils/lines';
-import { PERIOD_LABELS, chartBars, colorHex, failRate, initials, perDay, periodRange, type Period } from '../utils/inspectors';
+import { PERIOD_LABELS, chartBars, colorHex, failRate, initials, perDay, periodRange, scheduleSummary, type Period } from '../utils/inspectors';
 import { apiMessage } from '../utils/errors';
 import PlanLock from './PlanLock';
 import DateField from './DateField';
@@ -382,7 +382,8 @@ export default function InspectorsPage() {
               </ul>
             )}
             <p className="mt-3 text-xs text-slate-400">
-              Fiecare inspector are linia lui obișnuită; aici schimbați doar ziua aleasă (concediu, înlocuire). Liniile se setează în{' '}
+              Fiecare inspector are linia lui obișnuită și programul săptămânal (în fereastra inspectorului); aici schimbați doar ziua aleasă
+              (concediu, înlocuire). Liniile se setează în{' '}
               <Link to="/account#programare" className="text-blue-600 hover:underline">
                 Contul meu → Programare online
               </Link>
@@ -409,11 +410,19 @@ export default function InspectorsPage() {
                       {i.name} {!i.active && <span className="text-xs font-normal text-slate-500">· inactiv</span>}
                     </p>
                     <p className="flex flex-wrap gap-x-3 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={11} /> {scheduleSummary(i.schedule)}
+                      </span>
                       {i.defaultLine && <span>{lineName(lineNames, i.defaultLine)}</span>}
                       {i.phone && (
                         <a href={`tel:${i.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 hover:text-blue-600">
                           <Phone size={11} /> {i.phone}
                         </a>
+                      )}
+                      {i.login && (
+                        <span className="inline-flex items-center gap-1" title="Contul cu care se loghează">
+                          <KeyRound size={11} /> {i.login}
+                        </span>
                       )}
                       {i.attestationUntil && (
                         <span className={i.attestationDaysLeft !== null && i.attestationDaysLeft <= 60 ? 'font-medium text-amber-700' : ''}>
@@ -466,9 +475,11 @@ function InspectorCard({ stats, color, share, lineNames }: { stats: InspectorSta
                 ? `Azi pe ${lineName(lineNames, stats.todayLine)}${stats.todayAppointments ? ` · ${stats.todayAppointments} programări` : ''}`
                 : stats.todayAppointments
                   ? `Azi: ${stats.todayAppointments} programări`
-                  : stats.active
-                    ? 'Azi nu e pe nicio linie'
-                    : 'Inactiv'}
+                  : stats.offToday
+                    ? 'Liber azi'
+                    : stats.active
+                      ? 'Azi nu e pe nicio linie'
+                      : 'Inactiv'}
           </p>
         </div>
         <div className="text-right">

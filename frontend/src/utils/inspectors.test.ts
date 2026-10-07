@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { appointmentInspector, chartBars, failRate, initials, perDay, periodRange } from './inspectors';
+import { appointmentInspector, chartBars, failRate, initials, perDay, periodRange, scheduleSummary } from './inspectors';
 import type { Inspector } from '../types';
 
 const team: Inspector[] = [
-  { id: 1, name: 'Ana Pop', phone: null, color: 'blue', active: true, defaultLine: 1, attestationUntil: null, attestationDaysLeft: null },
-  { id: 2, name: 'Ion', phone: null, color: 'orange', active: true, defaultLine: 2, attestationUntil: null, attestationDaysLeft: null },
+  { id: 1, name: 'Ana Pop', phone: null, color: 'blue', active: true, defaultLine: 1, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null },
+  { id: 2, name: 'Ion', phone: null, color: 'orange', active: true, defaultLine: 2, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null },
 ];
 
 describe('inspectors', () => {
@@ -52,5 +52,16 @@ describe('inspectors', () => {
     const bars = chartBars(days, ['id:1']);
     expect(bars.map((b) => b.label)).toEqual(['ian', 'feb', 'mar']);
     expect(bars[0].total).toBe(31);
+  });
+});
+
+describe('scheduleSummary', () => {
+  const day = (weekday: number, start: string | null = '08:00:00', end: string | null = '16:00:00') => ({ weekday, line: null, start, end });
+  it('summarizes the week', () => {
+    expect(scheduleSummary([])).toBe('Fără program fix');
+    expect(scheduleSummary([1, 2, 3, 4, 5].map((d) => day(d)))).toBe('Lu–Vi 08:00–16:00');
+    expect(scheduleSummary([day(1), day(3), day(5)])).toBe('Lu, Mi, Vi 08:00–16:00');
+    expect(scheduleSummary([day(1, null, null), day(2, null, null)])).toBe('Lu, Ma');
+    expect(scheduleSummary([day(1), day(2, '12:00', '20:00'), day(3)])).toBe('Lu–Mi · ore diferite');
   });
 });

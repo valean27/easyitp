@@ -47,6 +47,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Conturile de flota vad doar portalul lor si isi pot schimba parola
                 .requestMatchers("/api/fleet-portal/**").hasRole("FLEET")
+                // Inspectorii vad doar ziua lor (programarile lor si programul)
+                .requestMatchers("/api/inspector-portal/**").hasRole("INSPECTOR")
                 .requestMatchers("/api/account/me", "/api/account/password").authenticated()
                 .requestMatchers("/api/fleets/**", "/api/clients/**", "/api/history/**", "/api/station-deadlines/**", "/api/inspectors/**", "/api/invoicing/**", "/api/billing/**").hasRole("MANAGER")
                 .anyRequest().hasAnyRole("ADMIN", "MANAGER")

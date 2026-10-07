@@ -8,6 +8,7 @@ import { usePageTitle } from '../utils/pageTitle';
 import PlanBanner from './PlanBanner';
 import EmailVerifyBanner from './EmailVerifyBanner';
 import { PlanProvider } from '../context/PlanContext';
+import ForcePasswordChange from './ForcePasswordChange';
 
 interface NavItem {
   to: string;
@@ -37,6 +38,12 @@ const FLEET_NAV: NavItem[] = [
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];
 
+// Inspectorul (rol INSPECTOR) vede ziua lui si contul lui
+const INSPECTOR_NAV: NavItem[] = [
+  { to: '/', label: 'Ziua mea', short: 'Ziua mea', icon: CalendarDays, end: true },
+  { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
+];
+
 const ADMIN_NAV: NavItem[] = [
   { to: '/users', label: 'Manageri', short: 'Manageri', icon: Users },
   { to: '/leads', label: 'Cereri demo', short: 'Cereri', icon: Inbox },
@@ -51,7 +58,8 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const items = user?.role === 'ADMIN' ? ADMIN_NAV : user?.role === 'FLEET' ? FLEET_NAV : MANAGER_NAV;
+  const items =
+    user?.role === 'ADMIN' ? ADMIN_NAV : user?.role === 'FLEET' ? FLEET_NAV : user?.role === 'INSPECTOR' ? INSPECTOR_NAV : MANAGER_NAV;
   usePageTitle(items.find((i) => i.to === pathname)?.label ?? EXTRA_TITLES[pathname] ?? null);
 
   const handleLogout = () => {
@@ -70,6 +78,9 @@ export default function Layout() {
     `flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors ${
       isActive ? 'text-blue-600' : 'text-slate-500'
     }`;
+
+  // Parola provizorie (cont de inspector nou): doar ecranul de schimbare, pana o alege pe a lui
+  if (user?.passwordChangeRequired) return <ForcePasswordChange />;
 
   return (
     <PlanProvider>

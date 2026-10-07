@@ -523,6 +523,86 @@ class ApiIntegrationTest {
                 .content("{\"name\":\"X\"}")).andExpect(status().isNotFound());
     }
 
+    @Test
+    void inspectorScheduleAndOwnAccount() throws Exception {
+        mvc.perform(put("/api/account/booking").header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"open\":\"08:00\",\"close\":\"17:00\",\"days\":[1,2,3,4,5,6,7],\"capacity\":2}"))
+                .andExpect(status().isOk());
+        LocalDate today = LocalDate.now();
+        int w = today.getDayOfWeek().getValue();
+        // azi lucreaza pe linia 2 (peste linia lui obisnuita), maine e liber
+        String schedule = "[{\"weekday\":" + w + ",\"line\":2,\"start\":\"08:00\",\"end\":\"16:00\"}]";
+        long ana = json.readTree(sendJson(post("/api/inspectors"), "{\"name\":\"Ana Mărin\",\"defaultLine\":1,\"schedule\":" + schedule + "}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.schedule[0].line").value(2))
+                .andExpect(jsonPath("$.login").doesNotExist())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+        sendJson(post("/api/inspectors"), "{\"name\":\"Rau\",\"schedule\":[{\"weekday\":8}]}").andExpect(jsonPath("$.field").value("schedule"));
+        sendJson(post("/api/inspectors"), "{\"name\":\"Rau\",\"schedule\":[{\"weekday\":1,\"start\":\"16:00\",\"end\":\"08:00\"}]}")
+                .andExpect(jsonPath("$.field").value("schedule"));
+
+        JsonNode shifts = getJson("/api/inspectors/shifts?date=" + today, manager);
+        assertThat(shifts.get(0).get("source").asText()).isEqualTo("NONE");
+        assertThat(shifts.get(1).get("inspectorId").asLong()).isEqualTo(ana);
+        JsonNode tomorrow = getJson("/api/inspectors/shifts?date=" + today.plusDays(1), manager);
+        assertThat(tomorrow.findValues("source").stream().map(JsonNode::asText).toList()).containsOnly("NONE");
+
+        // contul: parola prea scurta, apoi cont cu numele propus (fara diacritice)
+        sendJson(put("/api/inspectors/" + ana + "/account"), "{\"password\":\"scurta\"}").andExpect(jsonPath("$.field").value("password"));
+        String loginName = json.readTree(sendJson(put("/api/inspectors/" + ana + "/account"), "{\"password\":\"changeme\"}")
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("login").asText();
+        assertThat(loginName).matches("ana\\.marin@[a-z0-9-]+");
+
+        // la prima logare trebuie schimbata parola; pana atunci nu vede nimic altceva
+        JsonNode auth = json.readTree(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + loginName + "\",\"password\":\"changeme\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(auth.get("role").asText()).isEqualTo("INSPECTOR");
+        assertThat(auth.get("passwordChangeRequired").asBoolean()).isTrue();
+        String first = auth.get("token").asText();
+        mvc.perform(get("/api/inspector-portal/me").header("Authorization", bearer(first))).andExpect(status().isForbidden());
+        mvc.perform(put("/api/account/password").header("Authorization", bearer(first)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"currentPassword\":\"changeme\",\"newPassword\":\"changeme\"}")).andExpect(status().isBadRequest());
+        String token = json.readTree(mvc.perform(put("/api/account/password").header("Authorization", bearer(first)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"changeme\",\"newPassword\":\"parola-noua-1\"}"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("token").asText();
+
+        mvc.perform(get("/api/inspector-portal/me").header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Ana Mărin"))
+                .andExpect(jsonPath("$.schedule[0].weekday").value(w));
+        mvc.perform(get("/api/itp/dashboard").header("Authorization", bearer(token))).andExpect(status().isForbidden());
+        mvc.perform(get("/api/inspectors").header("Authorization", bearer(token))).andExpect(status().isForbidden());
+
+        // ziua lui: doar programarea de pe linia 2 (pe care e azi)
+        String at = today + "T23:00:00";
+        long mine = json.readTree(sendJson(post("/api/appointments"), "{\"clientName\":\"Pe linia 2\",\"appointmentDate\":\"" + at + "\",\"durationMinutes\":20,\"line\":2}")
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+        long other = json.readTree(sendJson(post("/api/appointments"), "{\"clientName\":\"Pe linia 1\",\"appointmentDate\":\"" + at + "\",\"durationMinutes\":20,\"line\":1}")
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+        JsonNode day = getJson("/api/inspector-portal/day?date=" + today, token);
+        assertThat(day.get("works").asBoolean()).isTrue();
+        assertThat(day.get("line").asInt()).isEqualTo(2);
+        assertThat(day.get("appointments")).hasSize(1);
+        assertThat(day.get("appointments").get(0).get("clientName").asText()).isEqualTo("Pe linia 2");
+        assertThat(getJson("/api/inspector-portal/day?date=" + today.plusDays(1), token).get("works").asBoolean()).isFalse();
+
+        mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
+        mvc.perform(put("/api/inspector-portal/appointments/" + other + "/status").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}")).andExpect(status().isNotFound());
+        mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CANCELLED\"}")).andExpect(status().isBadRequest());
+
+        // inactiv: contul nu mai merge
+        sendJson(put("/api/inspectors/" + ana), "{\"name\":\"Ana Mărin\",\"active\":false}").andExpect(status().isOk());
+        mvc.perform(get("/api/inspector-portal/me").header("Authorization", bearer(token))).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + loginName + "\",\"password\":\"parola-noua-1\"}")).andExpect(status().isForbidden());
+    }
+
     private org.springframework.test.web.servlet.ResultActions sendJson(
             org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, String body) throws Exception {
         return mvc.perform(request.header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON).content(body));

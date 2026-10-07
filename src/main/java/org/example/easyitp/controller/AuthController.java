@@ -66,7 +66,7 @@ public class AuthController {
         user.setLastLoginAt(LocalDateTime.now());
         appUserRepository.save(user);
         return ResponseEntity.ok(new AuthResponse(jwtUtil.generateToken(user), user.getEmail(), user.getRole().name(),
-                user.getStationName()));
+                user.getStationName(), Boolean.TRUE.equals(user.getPasswordChangeRequired())));
     }
 
     // "Am uitat parola": acelasi raspuns, fie ca emailul are cont, fie ca nu
@@ -105,6 +105,6 @@ public class AuthController {
         user.setLastLoginAt(LocalDateTime.now());
         appUserRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(new AuthResponse(jwtUtil.generateToken(user), user.getEmail(),
-                user.getRole().name(), user.getStationName()));
+                user.getRole().name(), user.getStationName(), false));
     }
 }

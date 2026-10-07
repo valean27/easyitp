@@ -16,6 +16,7 @@ const AccountPage = lazy(() => import('./components/AccountPage'));
 const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
 const InspectorsPage = lazy(() => import('./components/InspectorsPage'));
+const InspectorHomePage = lazy(() => import('./components/InspectorHomePage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const StopPage = lazy(() => import('./components/StopPage'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
@@ -42,6 +43,7 @@ function Home() {
   const { user } = useAuth();
   if (user?.role === 'ADMIN') return <Navigate to="/users" replace />;
   if (user?.role === 'FLEET') return <FleetPortalPage />;
+  if (user?.role === 'INSPECTOR') return <InspectorHomePage />;
   return <Dashboard />;
 }
 

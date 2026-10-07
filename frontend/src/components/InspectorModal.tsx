@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { X, Loader2, Trash2, Check } from 'lucide-react';
-import type { Inspector, InspectorColor, InspectorRequest } from '../types';
-import { createInspector, deleteInspector, updateInspector } from '../api/inspectorApi';
+import { X, Loader2, Trash2, Check, KeyRound, CalendarDays } from 'lucide-react';
+import type { Inspector, InspectorColor, InspectorDay, InspectorRequest } from '../types';
+import { createInspector, deleteInspector, deleteInspectorAccount, saveInspectorAccount, updateInspector } from '../api/inspectorApi';
 import { apiMessage } from '../utils/errors';
-import { COLOR_ORDER, INSPECTOR_COLORS, colorHex, initials } from '../utils/inspectors';
+import { COLOR_ORDER, INSPECTOR_COLORS, WEEKDAYS_SHORT, colorHex, hm, initials } from '../utils/inspectors';
 import { lineName } from '../utils/lines';
 import { useTheme } from '../context/theme';
 import { usePlan } from '../context/plan';
@@ -35,10 +35,22 @@ export default function InspectorModal({ inspector, lineNames, usedColors, onClo
     active: inspector?.active ?? true,
     defaultLine: inspector?.defaultLine ?? null,
     attestationUntil: inspector?.attestationUntil ?? null,
+    schedule: (inspector?.schedule ?? []).map((d) => ({ ...d, start: hm(d.start) || null, end: hm(d.end) || null })),
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<{ text: string; field?: string } | null>(null);
   const canAttest = has('STATION_DEADLINES');
+
+  // Programul: o zi bifata = lucreaza; fara nicio zi = fara program fix
+  const setDay = (weekday: number, changes: Partial<InspectorDay> | null) =>
+    setForm((f) => {
+      const others = f.schedule.filter((d) => d.weekday !== weekday);
+      const current = f.schedule.find((d) => d.weekday === weekday) ?? { weekday, line: null, start: '08:00', end: '16:00' };
+      const schedule = changes === null ? others : [...others, { ...current, ...changes }];
+      return { ...f, schedule: schedule.sort((a, b) => a.weekday - b.weekday) };
+    });
+  const workWeek = () =>
+    setForm((f) => ({ ...f, schedule: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, line: null, start: '08:00', end: '16:00' })) }));
 
   const set = <K extends keyof InspectorRequest>(key: K, value: InspectorRequest[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -154,6 +166,69 @@ export default function InspectorModal({ inspector, lineNames, usedColors, onClo
             )}
             {error?.field === 'attestationUntil' && <p className="text-xs text-red-600 mt-1">{error.text}</p>}
           </div>
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
+              <CalendarDays size={14} /> Program săptămânal
+            </p>
+            {form.schedule.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-200 px-3 py-2.5 text-xs text-slate-500">
+                Fără program fix: e pe linia lui în fiecare zi.{' '}
+                <button type="button" onClick={workWeek} className="font-semibold text-blue-600 hover:underline">
+                  Setează programul
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {WEEKDAYS_SHORT.map((label, i) => {
+                  const weekday = i + 1;
+                  const d = form.schedule.find((x) => x.weekday === weekday);
+                  return (
+                    <div key={weekday} className="flex items-center gap-2">
+                      <label className="flex w-12 shrink-0 items-center gap-1.5 text-sm text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!d}
+                          onChange={(e) => setDay(weekday, e.target.checked ? {} : null)}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                          aria-label={`Lucrează ${label}`}
+                        />
+                        {label}
+                      </label>
+                      {d ? (
+                        <>
+                          <TimeSelect value={d.start} onChange={(v) => setDay(weekday, { start: v })} label={`Început ${label}`} />
+                          <span className="text-slate-400">–</span>
+                          <TimeSelect value={d.end} onChange={(v) => setDay(weekday, { end: v })} label={`Sfârșit ${label}`} />
+                          {lineNames.length > 1 && (
+                            <select
+                              value={d.line ?? ''}
+                              onChange={(e) => setDay(weekday, { line: e.target.value ? Number(e.target.value) : null })}
+                              aria-label={`Linia ${label}`}
+                              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-sm"
+                            >
+                              <option value="">Linia obișnuită</option>
+                              {lineNames.map((_, j) => (
+                                <option key={j + 1} value={j + 1}>
+                                  {lineName(lineNames, j + 1)}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400">liber</span>
+                      )}
+                    </div>
+                  );
+                })}
+                <button type="button" onClick={() => set('schedule', [])} className="text-xs text-slate-500 hover:text-slate-700 hover:underline">
+                  Fără program fix
+                </button>
+              </div>
+            )}
+            {error?.field === 'schedule' && <p className="text-xs text-red-600 mt-1">{error.text}</p>}
+          </div>
+          {inspector && <AccountSection inspector={inspector} onChanged={onSaved} />}
           {inspector && (
             <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
               <input
@@ -168,7 +243,7 @@ export default function InspectorModal({ inspector, lineNames, usedColors, onClo
               </span>
             </label>
           )}
-          {error && error.field !== 'attestationUntil' && (
+          {error && error.field !== 'attestationUntil' && error.field !== 'schedule' && (
             <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error.text}</p>
           )}
         </form>
@@ -203,5 +278,123 @@ export default function InspectorModal({ inspector, lineNames, usedColors, onClo
         </div>
       </div>
     </div>
+  );
+}
+
+// Contul cu care inspectorul se logheaza (prenume.nume@statie); parola data aici se schimba la prima logare
+function AccountSection({ inspector, onChanged }: { inspector: Inspector; onChanged: () => void }) {
+  const [login, setLogin] = useState<string | null>(inspector.login);
+  const [loginDraft, setLoginDraft] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+
+  const save = async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const saved = await saveInspectorAccount(inspector.id, loginDraft.trim(), password);
+      setMessage({
+        text: login ? 'Parola a fost schimbată. La logare i se cere una nouă.' : `Cont creat: ${saved.login}. La prima logare își alege parola.`,
+        ok: true,
+      });
+      setLogin(saved.login);
+      setPassword('');
+      onChanged();
+    } catch (err) {
+      setMessage({ text: apiMessage(err, 'Contul nu a putut fi salvat.'), ok: false });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!confirm(`Ștergeți contul ${login}? ${inspector.name} nu se mai poate loga; datele rămân.`)) return;
+    setBusy(true);
+    try {
+      await deleteInspectorAccount(inspector.id);
+      setLogin(null);
+      setMessage(null);
+      onChanged();
+    } catch (err) {
+      setMessage({ text: apiMessage(err, 'Contul nu a putut fi șters.'), ok: false });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+      <p className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+        <KeyRound size={14} /> Cont în aplicație
+      </p>
+      {login ? (
+        <p className="text-xs text-slate-500">
+          Se loghează cu <b className="text-slate-700">{login}</b> și vede doar programările lui și programul.
+        </p>
+      ) : (
+        <>
+          <p className="text-xs text-slate-500">Cu un cont, inspectorul își vede pe telefon programările zilei și le marchează finalizate.</p>
+          <input
+            value={loginDraft}
+            onChange={(e) => setLoginDraft(e.target.value.toLowerCase())}
+            placeholder="Nume de logare (gol = prenume.nume@stație)"
+            aria-label="Nume de logare"
+            className={INPUT_CLS}
+          />
+        </>
+      )}
+      <div className="flex gap-2">
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={login ? 'Parolă nouă (minim 8 caractere)' : 'Parolă provizorie (minim 8 caractere)'}
+          aria-label="Parolă"
+          autoComplete="new-password"
+          className={INPUT_CLS}
+        />
+        <button
+          type="button"
+          onClick={save}
+          disabled={busy || password.length < 8}
+          className="shrink-0 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+        >
+          {login ? 'Resetează' : 'Creează'}
+        </button>
+      </div>
+      {login && (
+        <button type="button" onClick={remove} disabled={busy} className="text-xs text-red-600 hover:underline">
+          Șterge contul
+        </button>
+      )}
+      {message && <p className={`text-xs ${message.ok ? 'text-emerald-700' : 'text-red-600'}`}>{message.text}</p>}
+    </div>
+  );
+}
+
+// Ora din 15 in 15 minute (05:00 - 23:00), mereu in format 24h, oricare ar fi limba browserului
+const TIMES = Array.from({ length: (23 - 5) * 4 + 1 }, (_, i) => {
+  const m = 5 * 60 + i * 15;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+});
+
+function TimeSelect({ value, onChange, label }: { value: string | null; onChange: (v: string | null) => void; label: string }) {
+  const v = value ? value.slice(0, 5) : '';
+  return (
+    <select
+      value={v}
+      onChange={(e) => onChange(e.target.value || null)}
+      aria-label={label}
+      className="w-[4.75rem] rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-sm tabular-nums"
+    >
+      <option value="">--:--</option>
+      {v && !TIMES.includes(v) && <option value={v}>{v}</option>}
+      {TIMES.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+    </select>
   );
 }

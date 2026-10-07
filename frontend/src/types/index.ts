@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'MANAGER' | 'FLEET';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'FLEET' | 'INSPECTOR';
 
 export type ItpStatus = 'PASSED' | 'FAILED' | 'RECHECK';
 
@@ -625,6 +625,17 @@ export interface Inspector {
   // din termenele statiei (atestatul inspectorului)
   attestationUntil: string | null;
   attestationDaysLeft: number | null;
+  // programul saptamanal (gol = fara program fix) si contul propriu (null = fara cont)
+  schedule: InspectorDay[];
+  login: string | null;
+}
+
+// O zi de lucru: 1 = luni ... 7 = duminica; line null = linia lui obisnuita; orele "HH:mm[:ss]" optionale
+export interface InspectorDay {
+  weekday: number;
+  line: number | null;
+  start: string | null;
+  end: string | null;
 }
 
 export interface InspectorRequest {
@@ -634,6 +645,7 @@ export interface InspectorRequest {
   active: boolean;
   defaultLine: number | null;
   attestationUntil: string | null;
+  schedule: InspectorDay[];
 }
 
 export interface LineShift {
@@ -661,6 +673,8 @@ export interface InspectorStats {
   noShows: number;
   todayLine: number | null;
   todayAppointments: number;
+  // are program si azi nu lucreaza
+  offToday: boolean;
 }
 
 export interface InspectorDashboard {
@@ -670,4 +684,27 @@ export interface InspectorDashboard {
   inspectors: InspectorStats[];
   days: { date: string; total: number; byInspector: { key: string; count: number }[] }[];
   attestations: Inspector[];
+}
+
+// Contul propriu al inspectorului (rol INSPECTOR)
+export interface InspectorMe {
+  name: string;
+  color: InspectorColor | null;
+  stationName: string | null;
+  stationAddress: string | null;
+  stationPhone: string | null;
+  lineNames: string[];
+  defaultLine: number | null;
+  schedule: InspectorDay[];
+  itpsThisMonth: number;
+  failedThisMonth: number;
+}
+
+export interface InspectorPortalDay {
+  date: string;
+  works: boolean;
+  line: number | null;
+  start: string | null;
+  end: string | null;
+  appointments: Appointment[];
 }

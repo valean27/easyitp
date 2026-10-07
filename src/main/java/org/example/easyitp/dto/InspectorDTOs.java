@@ -1,6 +1,7 @@
 package org.example.easyitp.dto;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 // Echipa de inspectori a statiei: lista, liniile pe zi si dashboard-ul
@@ -10,13 +11,23 @@ public final class InspectorDTOs {
     }
 
     // attestationUntil: din termenele statiei (atestatul inspectorului), null daca nu e trecut
+    // schedule gol = fara program fix; login = contul propriu (null = fara cont)
     public record InspectorDTO(Long id, String name, String phone, String color, boolean active, Integer defaultLine,
-                               LocalDate attestationUntil, Long attestationDaysLeft) {
+                               LocalDate attestationUntil, Long attestationDaysLeft, List<DayDTO> schedule, String login) {
+    }
+
+    // O zi de lucru: 1 = luni ... 7 = duminica; line null = linia lui obisnuita; orele optionale
+    public record DayDTO(int weekday, Integer line, LocalTime start, LocalTime end) {
+    }
+
+    // login gol = cel propus (prenume.nume@statie); password gol = nu se schimba (obligatorie la un cont nou)
+    public record AccountRequest(String login, String password) {
     }
 
     // attestationUntil null = sterge atestatul (se schimba doar pe Pro, cu termenele statiei)
+    // schedule null = nu se schimba
     public record InspectorRequest(String name, String phone, String color, Boolean active, Integer defaultLine,
-                                   LocalDate attestationUntil) {
+                                   LocalDate attestationUntil, List<DayDTO> schedule) {
     }
 
     // Cine lucreaza pe linie in ziua aleasa; source: DAY (ales pentru ziua asta), DEFAULT (linia lui obisnuita), NONE
@@ -31,7 +42,7 @@ public final class InspectorDTOs {
     public record InspectorStats(String key, Long id, String name, String color, boolean active,
                                  long itps, long passed, long failed, long recheck, double revenue,
                                  long daysWorked, long appointments, long completed, long noShows,
-                                 Integer todayLine, long todayAppointments) {
+                                 Integer todayLine, long todayAppointments, boolean offToday) {
     }
 
     public record DayCount(String key, long count) {

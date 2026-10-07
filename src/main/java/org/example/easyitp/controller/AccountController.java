@@ -194,7 +194,11 @@ public class AccountController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Parola noua trebuie sa aiba minim " + MIN_PASSWORD_LENGTH + " caractere");
         }
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Alegeti o parola diferita de cea actuala");
+        }
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setPasswordChangeRequired(null);
         user.revokeTokens();
         appUserRepository.save(user);
         // Celelalte dispozitive sunt delogate; acesta continua cu un token nou

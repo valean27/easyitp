@@ -34,7 +34,7 @@ export default function LoginPage() {
       navigate('/');
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        setError('Email sau parolă incorecte.');
+        setError('Email / nume de logare sau parolă incorecte.');
       } else if (axios.isAxiosError(err) && err.response?.status === 429) {
         setError('Prea multe încercări greșite. Încercați din nou peste 15 minute.');
       } else if (axios.isAxiosError(err) && err.response?.status === 403) {
@@ -69,10 +69,15 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1">
-              Email
+              Email sau nume de logare
             </label>
+            {/* inspectorii se loghează cu prenume.nume@stație, care nu e un email real */}
             <input
-              type="email"
+              type="text"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              autoComplete="username"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

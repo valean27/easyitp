@@ -2,19 +2,25 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.config.FieldException;
+import org.example.easyitp.dto.InspectorDTOs.AccountRequest;
+import org.example.easyitp.dto.InspectorDTOs.DayDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorRequest;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftDTO;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftRequest;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Inspector;
+import org.example.easyitp.entity.InspectorDay;
 import org.example.easyitp.entity.LineShift;
+import org.example.easyitp.entity.Role;
 import org.example.easyitp.entity.StationDeadline;
 import org.example.easyitp.entity.StationDeadlineKind;
+import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.InspectorRepository;
 import org.example.easyitp.repository.LineShiftRepository;
 import org.example.easyitp.repository.StationDeadlineRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,7 +29,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -31,8 +39,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-// Echipa de inspectori a statiei: cine sunt, pe ce linie lucreaza (de obicei sau intr-o anumita zi)
+// Echipa de inspectori a statiei: cine sunt, cand si pe ce linie lucreaza (programul saptamanal sau o zi anume)
+// si contul lor propriu
 @Service
 @RequiredArgsConstructor
 public class InspectorService {
@@ -40,16 +50,21 @@ public class InspectorService {
     public static final List<String> COLORS = List.of("blue", "orange", "aqua", "yellow", "magenta", "green", "violet", "red");
     static final int MAX_INSPECTORS = 30;
     private static final int MAX_NAME = 80;
+    static final int MIN_PASSWORD_LENGTH = 8;
 
     private final InspectorRepository repository;
     private final LineShiftRepository shiftRepository;
     private final StationDeadlineRepository deadlineRepository;
+    private final AppUserRepository appUserRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<InspectorDTO> list(AppUser station) {
         List<StationDeadline> attestations = attestations(station.getId());
+        List<Inspector> team = all(station.getId());
+        Map<Long, String> logins = logins(team);
         LocalDate today = LocalDate.now();
-        return all(station.getId()).stream().map(i -> dto(i, attestation(attestations, i.getName()), today)).toList();
+        return team.stream().map(i -> dto(i, attestation(attestations, i.getName()), today, logins.get(i.getId()))).toList();
     }
 
     public List<Inspector> all(Long stationId) {
@@ -76,7 +91,7 @@ public class InspectorService {
         if (inspector.getColor() == null) inspector.setColor(freeColor(team));
         Inspector saved = repository.save(inspector);
         saveAttestation(station, null, saved.getName(), request.attestationUntil());
-        return dto(saved, attestation(attestations(station.getId()), saved.getName()), LocalDate.now());
+        return dto(station, saved);
     }
 
     @Transactional
@@ -84,24 +99,33 @@ public class InspectorService {
         Inspector inspector = find(station, id);
         String oldName = inspector.getName();
         apply(station, inspector, request, all(station.getId()));
-        if (request.active() != null) inspector.setActive(request.active());
+        if (request.active() != null && request.active() != inspector.isActive()) {
+            inspector.setActive(request.active());
+            // contul urmeaza inspectorul: inactiv = nu se mai poate loga
+            appUserRepository.findByInspectorId(id).ifPresent(account -> {
+                account.setActive(request.active());
+                if (!request.active()) account.revokeTokens();
+                appUserRepository.save(account);
+            });
+        }
         Inspector saved = repository.save(inspector);
         if (!oldName.equals(saved.getName())) repository.renameOnItps(station.getId(), oldName, saved.getName());
         saveAttestation(station, oldName, saved.getName(), request.attestationUntil());
-        return dto(saved, attestation(attestations(station.getId()), saved.getName()), LocalDate.now());
+        return dto(station, saved);
     }
 
-    // ITP-urile pastreaza numele; programarile si liniile raman fara inspector
+    // ITP-urile pastreaza numele; programarile si liniile raman fara inspector; contul lui dispare
     @Transactional
     public void delete(AppUser station, Long id) {
         Inspector inspector = find(station, id);
+        appUserRepository.findByInspectorId(id).ifPresent(appUserRepository::delete);
         repository.unlinkAppointments(id);
         shiftRepository.unlinkInspector(id);
         attestation(attestations(station.getId()), inspector.getName()).ifPresent(deadlineRepository::delete);
         repository.delete(inspector);
     }
 
-    // Lista simpla de nume (Contul meu, versiunile vechi): pastreaza inspectorii cu acelasi nume, adauga numele noi
+    // Lista simpla de nume (versiunile vechi): pastreaza inspectorii cu acelasi nume, adauga numele noi
     // si scoate inspectorii care nu mai sunt in lista
     @Transactional
     public List<String> replaceNames(AppUser station, List<String> names) {
@@ -138,7 +162,84 @@ public class InspectorService {
         return activeNames(station);
     }
 
-    // ---------- liniile ----------
+    // ---------- contul propriu ----------
+
+    // Creeaza contul inspectorului sau ii schimba numele de logare / parola. Parola data de manager se schimba
+    // la prima logare.
+    @Transactional
+    public InspectorDTO saveAccount(AppUser station, Long id, AccountRequest request) {
+        Inspector inspector = find(station, id);
+        AppUser account = appUserRepository.findByInspectorId(id).orElse(null);
+        String login = request.login() == null || request.login().isBlank()
+                ? (account != null ? account.getEmail() : suggestLogin(station, inspector))
+                : request.login().trim().toLowerCase(Locale.ROOT);
+        if (!InspectorLogins.valid(login)) {
+            throw new FieldException("login", "Numele de logare poate avea litere mici, cifre, punct și cratimă, cu un @ (ex. ana.marin@statie).");
+        }
+        boolean taken = appUserRepository.findByEmailIgnoreCase(login)
+                .filter(u -> account == null || !Objects.equals(u.getId(), account.getId()))
+                .isPresent();
+        if (taken) throw new FieldException("login", "Numele de logare este deja folosit.");
+        String password = request.password() == null ? "" : request.password();
+        if ((account == null || !password.isEmpty()) && password.length() < MIN_PASSWORD_LENGTH) {
+            throw new FieldException("password", "Parola trebuie să aibă cel puțin " + MIN_PASSWORD_LENGTH + " caractere.");
+        }
+        AppUser user = account != null ? account
+                : AppUser.builder().role(Role.INSPECTOR).inspectorId(id).active(inspector.isActive()).build();
+        user.setEmail(login);
+        user.setStationName(station.getStationName());
+        if (!password.isEmpty()) {
+            user.setPassword(passwordEncoder.encode(password));
+            user.setPasswordChangeRequired(true);
+            user.revokeTokens();
+        }
+        appUserRepository.save(user);
+        return dto(station, inspector);
+    }
+
+    @Transactional
+    public InspectorDTO deleteAccount(AppUser station, Long id) {
+        Inspector inspector = find(station, id);
+        appUserRepository.findByInspectorId(id).ifPresent(appUserRepository::delete);
+        return dto(station, inspector);
+    }
+
+    // Numele de logare propus pentru un inspector fara cont
+    public String suggestLogin(AppUser station, Inspector inspector) {
+        return InspectorLogins.suggest(inspector.getName(), station.getBookingSlug(), station.getId(),
+                login -> appUserRepository.existsByEmailIgnoreCase(login));
+    }
+
+    // Inspectorul si statia unui cont INSPECTOR (403 daca statia sau inspectorul nu mai sunt active)
+    @Transactional(readOnly = true)
+    public Inspector inspectorOf(AppUser account) {
+        if (account.getRole() != Role.INSPECTOR || account.getInspectorId() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Contul nu este de inspector");
+        }
+        Inspector inspector = repository.findById(account.getInspectorId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Inspectorul nu mai există"));
+        if (!inspector.isActive()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Contul este dezactivat");
+        return inspector;
+    }
+
+    // ---------- programul si liniile ----------
+
+    // In ziua respectiva lucreaza? Fara program fix: in fiecare zi
+    public static boolean worksOn(Inspector i, LocalDate date) {
+        return i.getSchedule().isEmpty() || dayOf(i, date).isPresent();
+    }
+
+    public static Optional<InspectorDay> dayOf(Inspector i, LocalDate date) {
+        int weekday = date.getDayOfWeek().getValue();
+        return i.getSchedule().stream().filter(d -> d.getWeekday() == weekday).findFirst();
+    }
+
+    // Linia lui in ziua respectiva, dupa program (null = nu lucreaza sau n-are linie)
+    public static Integer lineOn(Inspector i, LocalDate date) {
+        if (!i.isActive() || !worksOn(i, date)) return null;
+        Integer dayLine = dayOf(i, date).map(InspectorDay::getLine).orElse(null);
+        return dayLine != null ? dayLine : i.getDefaultLine();
+    }
 
     @Transactional(readOnly = true)
     public List<LineShiftDTO> shifts(AppUser station, LocalDate date) {
@@ -153,7 +254,7 @@ public class InspectorService {
             if (s != null) {
                 out.add(new LineShiftDTO(line, name, s.getInspectorId(), "DAY"));
             } else {
-                Long def = defaultFor(team, line);
+                Long def = defaultFor(team, line, date);
                 out.add(new LineShiftDTO(line, name, def, def == null ? "NONE" : "DEFAULT"));
             }
         }
@@ -183,15 +284,18 @@ public class InspectorService {
     @Transactional(readOnly = true)
     public Map<LocalDate, Map<Integer, Long>> lineInspectors(AppUser station, LocalDate from, LocalDate to) {
         List<Inspector> team = all(station.getId());
-        Map<Integer, Long> defaults = new HashMap<>();
-        for (int line = 1; line <= BookingService.lines(station); line++) {
-            Long def = defaultFor(team, line);
-            if (def != null) defaults.put(line, def);
-        }
+        int lines = BookingService.lines(station);
         Map<LocalDate, Map<Integer, Long>> out = new HashMap<>();
-        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) out.put(d, new HashMap<>(defaults));
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            Map<Integer, Long> day = new HashMap<>();
+            for (int line = 1; line <= lines; line++) {
+                Long def = defaultFor(team, line, d);
+                if (def != null) day.put(line, def);
+            }
+            out.put(d, day);
+        }
         for (LineShift s : shiftRepository.findByUserIdAndDayBetween(station.getId(), from, to)) {
-            Map<Integer, Long> day = out.computeIfAbsent(s.getDay(), k -> new HashMap<>(defaults));
+            Map<Integer, Long> day = out.computeIfAbsent(s.getDay(), k -> new HashMap<>());
             if (s.getInspectorId() == null) day.remove(s.getLine());
             else day.put(s.getLine(), s.getInspectorId());
         }
@@ -210,8 +314,8 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspectorul nu există"));
     }
 
-    private static Long defaultFor(List<Inspector> team, int line) {
-        return team.stream().filter(i -> i.isActive() && Objects.equals(i.getDefaultLine(), line)).map(Inspector::getId).findFirst().orElse(null);
+    private static Long defaultFor(List<Inspector> team, int line, LocalDate date) {
+        return team.stream().filter(i -> Objects.equals(lineOn(i, date), line)).map(Inspector::getId).findFirst().orElse(null);
     }
 
     private void apply(AppUser station, Inspector inspector, InspectorRequest r, List<Inspector> team) {
@@ -225,10 +329,26 @@ public class InspectorService {
             int digits = phone.replaceAll("\\D", "").length();
             if (digits < 9 || digits > 15 || phone.length() > 20) throw new FieldException("phone", "Numărul de telefon nu este valid.");
         }
-        if (r.defaultLine() != null && (r.defaultLine() < 1 || r.defaultLine() > BookingService.lines(station))) {
-            throw new FieldException("defaultLine", "Stația are " + BookingService.lines(station) + " linii.");
+        int lines = BookingService.lines(station);
+        if (r.defaultLine() != null && (r.defaultLine() < 1 || r.defaultLine() > lines)) {
+            throw new FieldException("defaultLine", "Stația are " + lines + " linii.");
         }
         if (r.color() != null && !COLORS.contains(r.color())) throw new FieldException("color", "Culoare necunoscută.");
+        if (r.schedule() != null) {
+            Set<Integer> seen = new HashSet<>();
+            List<InspectorDay> days = new ArrayList<>();
+            for (DayDTO d : r.schedule()) {
+                if (d.weekday() < 1 || d.weekday() > 7 || !seen.add(d.weekday())) throw new FieldException("schedule", "Zilele programului nu sunt valide.");
+                if (d.line() != null && (d.line() < 1 || d.line() > lines)) throw new FieldException("schedule", "Stația are " + lines + " linii.");
+                if ((d.start() == null) != (d.end() == null) || (d.start() != null && !d.start().isBefore(d.end()))) {
+                    throw new FieldException("schedule", "Ora de început trebuie să fie înaintea celei de sfârșit.");
+                }
+                days.add(new InspectorDay(d.weekday(), d.line(), d.start(), d.end()));
+            }
+            days.sort(Comparator.comparing(InspectorDay::getWeekday));
+            inspector.getSchedule().clear();
+            inspector.getSchedule().addAll(days);
+        }
         inspector.setName(name);
         inspector.setPhone(phone);
         inspector.setDefaultLine(r.defaultLine());
@@ -236,13 +356,19 @@ public class InspectorService {
     }
 
     private static String freeColor(List<Inspector> team) {
-        Set<String> used = new java.util.HashSet<>();
+        Set<String> used = new HashSet<>();
         team.forEach(i -> used.add(i.getColor()));
         return COLORS.stream().filter(c -> !used.contains(c)).findFirst().orElse(COLORS.get(team.size() % COLORS.size()));
     }
 
     private static String key(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private Map<Long, String> logins(List<Inspector> team) {
+        if (team.isEmpty()) return Map.of();
+        return appUserRepository.findByInspectorIdIn(team.stream().map(Inspector::getId).toList()).stream()
+                .collect(Collectors.toMap(AppUser::getInspectorId, AppUser::getEmail, (a, b) -> a));
     }
 
     // Atestatul inspectorului e un termen al statiei (tipul "Atestat inspector", cu numele lui), ca sa apara in
@@ -274,9 +400,16 @@ public class InspectorService {
         return all.stream().filter(d -> key(d.getTitle()).equals(key(name))).findFirst();
     }
 
-    static InspectorDTO dto(Inspector i, Optional<StationDeadline> attestation, LocalDate today) {
+    private InspectorDTO dto(AppUser station, Inspector i) {
+        return dto(i, attestation(attestations(station.getId()), i.getName()), LocalDate.now(),
+                appUserRepository.findByInspectorId(i.getId()).map(AppUser::getEmail).orElse(null));
+    }
+
+    static InspectorDTO dto(Inspector i, Optional<StationDeadline> attestation, LocalDate today, String login) {
         LocalDate until = attestation.map(StationDeadline::getDueDate).orElse(null);
+        List<DayDTO> schedule = i.getSchedule().stream()
+                .map(d -> new DayDTO(d.getWeekday(), d.getLine(), d.getStart(), d.getEnd())).toList();
         return new InspectorDTO(i.getId(), i.getName(), i.getPhone(), i.getColor(), i.isActive(), i.getDefaultLine(), until,
-                until == null ? null : ChronoUnit.DAYS.between(today, until));
+                until == null ? null : ChronoUnit.DAYS.between(today, until), schedule, login);
     }
 }

@@ -8,6 +8,7 @@ export interface AuthUser {
   token: string;
   role: UserRole;
   stationName?: string | null;
+  passwordChangeRequired?: boolean;
 }
 
 export interface AuthContextType {

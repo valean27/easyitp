@@ -211,6 +211,13 @@ public class AppUser {
     @Column(name = "fleet_id")
     private Long fleetId;
 
+    // Doar pentru conturile INSPECTOR: inspectorul (si prin el statia)
+    @Column(name = "inspector_id")
+    private Long inspectorId;
+
+    // Parola a fost data de altcineva (managerul sau contul creat automat): se schimba la prima logare
+    private Boolean passwordChangeRequired;
+
     // null pentru conturile vechi = activ
     private Boolean active;
 

@@ -55,6 +55,7 @@ public class InspectorDashboardService {
         long itps, passed, failed, recheck, appointments, completed, noShows, todayAppointments;
         double revenue;
         Integer todayLine;
+        boolean offToday;
         final Set<LocalDate> days = new HashSet<>();
 
         Acc(String key, Long id, String name, String color, boolean active) {
@@ -71,7 +72,7 @@ public class InspectorDashboardService {
 
         InspectorStats stats() {
             return new InspectorStats(key, id, name, color, active, itps, passed, failed, recheck, revenue, days.size(),
-                    appointments, completed, noShows, todayLine, todayAppointments);
+                    appointments, completed, noShows, todayLine, todayAppointments, offToday);
         }
     }
 
@@ -87,6 +88,7 @@ public class InspectorDashboardService {
         Map<String, Acc> byName = new HashMap<>();
         for (Inspector i : team) {
             Acc a = new Acc("id:" + i.getId(), i.getId(), i.getName(), i.getColor(), i.isActive());
+            a.offToday = i.isActive() && !InspectorService.worksOn(i, today);
             rows.put(a.key, a);
             byId.put(i.getId(), a);
             byName.put(key(i.getName()), a);

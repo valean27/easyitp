@@ -41,16 +41,19 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             String email = jwtUtil.extractEmail(token);
             // Cont sters/dezactivat sau parola schimbata dupa emiterea tokenului -> tokenul nu mai e acceptat (401)
             int tokenVersion = jwtUtil.extractTokenVersion(token);
-            boolean valid = appUserRepository.findByEmail(email)
+            AppUser user = appUserRepository.findByEmail(email)
                     .filter(AppUser::isEnabled)
                     .filter(u -> u.currentTokenVersion() == tokenVersion)
-                    .isPresent();
-            if (!valid) {
+                    .orElse(null);
+            if (user == null) {
                 filterChain.doFilter(request, response);
                 return;
             }
             String role = jwtUtil.extractRole(token);
-            String authority = "ROLE_" + (role != null ? role : "MANAGER");
+            // Parola data de altcineva (cont de inspector nou): pana o schimba, are acces doar la /api/account/me|password
+            String authority = Boolean.TRUE.equals(user.getPasswordChangeRequired())
+                    ? "ROLE_PASSWORD_CHANGE"
+                    : "ROLE_" + (role != null ? role : "MANAGER");
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             email, null,

@@ -24,12 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return parsed;
   });
 
-  const start = useCallback((data: { email: string; token: string; role: string; stationName: string | null }) => {
+  const start = useCallback((data: { email: string; token: string; role: string; stationName: string | null; passwordChangeRequired?: boolean }) => {
     const authUser: AuthUser = {
       email: data.email,
       token: data.token,
       role: data.role as UserRole,
       stationName: data.stationName,
+      ...(data.passwordChangeRequired ? { passwordChangeRequired: true } : {}),
     };
     setUser(authUser);
     localStorage.setItem('auth_user', JSON.stringify(authUser));

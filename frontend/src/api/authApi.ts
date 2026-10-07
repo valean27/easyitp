@@ -5,6 +5,8 @@ interface AuthResponse {
   email: string;
   role: string;
   stationName: string | null;
+  // cont de inspector cu parola data de altcineva: se schimba inainte de orice
+  passwordChangeRequired?: boolean;
 }
 
 export interface SignupData {

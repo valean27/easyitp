@@ -198,13 +198,16 @@ export const GUIDE: GuideGroup[] = [
         intro: 'Echipa stației într-o pagină: cine sunt, pe ce linie lucrează și, în Pro, cât a lucrat fiecare.',
         steps: [
           'În meniu → Inspectori apăsați „+ Inspector”: nume, telefon, culoare, linia pe care lucrează de obicei și data atestatului.',
+          'În fereastra inspectorului setați programul săptămânal: zilele în care lucrează, orele și, dacă vreți, altă linie într-o anumită zi. În zilele libere nu mai e trecut pe nicio linie.',
           'Programările de pe o linie îi revin inspectorului liniei. O zi anume (concediu, înlocuire) o schimbați în „Cine e pe linii” sau direct în Calendar → „Pe linii”, din capul coloanei.',
+          'Tot acolo îi faceți cont în aplicație: se loghează cu prenume.nume@stație și o parolă provizorie, pe care o schimbă la prima logare. Pe telefon își vede ziua (linia, orele, programările lui, cu telefonul clientului) și marchează „Finalizat” sau „Nu a venit”.',
           'Pe o programare puteți alege alt inspector decât cel al liniei; în vederea pe linii apare cu inițialele lui.',
           'La „Începe ITP” dintr-o programare, inspectorul ei se completează singur în formular.',
           'Dashboard-ul (Pro) arată, pe perioada aleasă, ITP-urile, încasările, respingerile, zilele lucrate, programările și neprezentările fiecăruia, plus graficul pe zile și cine e azi pe ce linie.',
         ],
         tips: [
-          'Un inspector care a plecat îl marcați inactiv: nu mai apare la alegere, dar ITP-urile lui rămân în rapoarte.',
+          'Un inspector care a plecat îl marcați inactiv: nu mai apare la alegere, contul lui nu se mai poate loga, iar ITP-urile lui rămân în rapoarte.',
+          'Inspectorul și-a uitat parola? Din fereastra lui îi dați una provizorie nouă; „Am uitat parola” e doar pentru conturile cu email.',
           'Dacă îi schimbați numele, se schimbă și pe ITP-urile făcute de el.',
           'Atestatul intră în termenele stației (Pro): primiți alertă pe dashboard și în rezumatul de dimineață înainte să expire.',
         ],

@@ -10,4 +10,6 @@ public class AuthResponse {
     private String email;
     private String role;
     private String stationName;
+    // parola trebuie schimbata inainte de orice altceva (cont de inspector creat cu parola data)
+    private boolean passwordChangeRequired;
 }

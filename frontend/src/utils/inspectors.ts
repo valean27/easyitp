@@ -1,4 +1,4 @@
-import type { Appointment, Inspector, InspectorColor, InspectorDashboard, InspectorStats } from '../types';
+import type { Appointment, Inspector, InspectorColor, InspectorDashboard, InspectorDay, InspectorStats } from '../types';
 
 // Culorile inspectorilor: paleta categoriala validata (aceeasi ordine ca InspectorService.COLORS), cate o nuanta
 // pentru tema luminoasa si una pentru cea intunecata. Culoarea tine de om, nu de locul din clasament.
@@ -98,4 +98,23 @@ export function chartBars(days: InspectorDashboard['days'], keys: string[]): Bar
     const segments = [...keys, 'other'].filter((k) => g.counts.get(k)).map((key) => ({ key, count: g.counts.get(key)! }));
     return { label: g.label, title: g.title, total: segments.reduce((s, x) => s + x.count, 0), segments };
   });
+}
+
+export const WEEKDAYS = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică'];
+export const WEEKDAYS_SHORT = ['Lu', 'Ma', 'Mi', 'Jo', 'Vi', 'Sâ', 'Du'];
+
+export const hm = (t: string | null) => (t ? t.slice(0, 5) : '');
+
+// "Lu–Vi 08:00–16:00", "Lu, Mi, Vi · 08:00–16:00", "Lu–Vi" (fara ore) sau "Fără program fix"
+export function scheduleSummary(schedule: InspectorDay[]): string {
+  if (schedule.length === 0) return 'Fără program fix';
+  const days = [...schedule].sort((a, b) => a.weekday - b.weekday);
+  const consecutive = days.every((d, i) => i === 0 || d.weekday === days[i - 1].weekday + 1);
+  const label =
+    consecutive && days.length > 2
+      ? `${WEEKDAYS_SHORT[days[0].weekday - 1]}–${WEEKDAYS_SHORT[days[days.length - 1].weekday - 1]}`
+      : days.map((d) => WEEKDAYS_SHORT[d.weekday - 1]).join(', ');
+  const hours = new Set(days.map((d) => (d.start && d.end ? `${hm(d.start)}–${hm(d.end)}` : '')));
+  const only = hours.size === 1 ? [...hours][0] : null;
+  return only ? `${label} ${only}` : hours.size > 1 ? `${label} · ore diferite` : label;
 }

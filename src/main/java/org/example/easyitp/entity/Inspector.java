@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
-// Un inspector al statiei (fara cont de logare): apare in formularul ITP, pe programari, pe linii si in dashboard
+// Un inspector al statiei (contul propriu, optional, e un AppUser cu rolul INSPECTOR): apare in formularul ITP, pe programari, pe linii si in dashboard
 @Entity
 @Table(name = "inspectors")
 @Data
@@ -41,6 +43,15 @@ public class Inspector {
 
     @Column(nullable = false)
     private int position;
+
+    // Programul saptamanal; gol = fara program fix (e pe linia lui in fiecare zi)
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "inspector_days", joinColumns = @JoinColumn(name = "inspector_id"))
+    @OrderBy("weekday")
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<InspectorDay> schedule = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
