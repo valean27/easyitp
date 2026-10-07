@@ -25,14 +25,14 @@ public class AppointmentController {
             @RequestParam String end) {
         LocalDateTime startDt = LocalDateTime.parse(start);
         LocalDateTime endDt = LocalDateTime.parse(end);
-        return appointmentService.getAppointments(currentUser.get().getId(), startDt, endDt);
+        return appointmentService.getAppointments(currentUser.get(), startDt, endDt);
     }
 
     @GetMapping("/conflicts")
     public List<AppointmentDTO> getConflicts(@RequestParam String date,
                                              @RequestParam(defaultValue = "30") int minutes,
                                              @RequestParam(required = false) Long excludeId) {
-        return appointmentService.getConflicts(currentUser.get().getId(), LocalDateTime.parse(date), minutes, excludeId);
+        return appointmentService.getConflicts(currentUser.get(), LocalDateTime.parse(date), minutes, excludeId);
     }
 
     @PostMapping
@@ -43,7 +43,7 @@ public class AppointmentController {
 
     @PutMapping("/{id}")
     public AppointmentDTO update(@PathVariable Long id, @RequestBody AppointmentDTO dto) {
-        return appointmentService.update(id, dto, currentUser.get().getId());
+        return appointmentService.update(id, dto, currentUser.get());
     }
 
     @DeleteMapping("/{id}")

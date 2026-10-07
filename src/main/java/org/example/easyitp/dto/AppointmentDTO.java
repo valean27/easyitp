@@ -20,6 +20,8 @@ public class AppointmentDTO {
     private AppointmentSource source;
     private VehicleCategory vehicleCategory;
     private Integer durationMinutes;
+    // Linia ITP (1..numarul de linii); null la salvare = prima linie libera; null la citire = peste capacitate
+    private Integer line;
     private Boolean reminderConsent;
     // Ce a facut clientul din link-ul din SMS: CANCELLED / RESCHEDULED (null = nimic)
     private String clientAction;

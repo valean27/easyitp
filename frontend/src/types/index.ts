@@ -177,6 +177,8 @@ export interface BookingSettings {
   vehicleTypes: VehicleType[];
   // statia apare in lista publica /statii
   publicListing: boolean;
+  // numele liniilor, cate unul pe linie ("" = "Linia N")
+  lineNames: string[];
 }
 
 export interface PublicStation {
@@ -249,6 +251,8 @@ export interface Appointment {
   vehicleCategory?: VehicleCategory | null;
   // cat ocupa linia; programarile vechi au 30 de minute
   durationMinutes?: number | null;
+  // linia ITP (1..numarul de linii); null la salvare = prima libera, la citire = nu mai incape pe nicio linie
+  line?: number | null;
   // bifa de acord pentru remindere din programarea online
   reminderConsent?: boolean | null;
   // ce a facut clientul din link-ul din SMS

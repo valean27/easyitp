@@ -49,6 +49,7 @@ public class BookingService {
     private static final String DEFAULT_DAYS = "1,2,3,4,5";
     private static final int DEFAULT_CAPACITY = 1;
     private static final int MAX_CAPACITY = 10;
+    private static final int MAX_LINE_NAME = 40;
 
     private static final Pattern SLUG = Pattern.compile("^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$");
 
@@ -66,7 +67,8 @@ public class BookingService {
                 days(user),
                 capacity(user),
                 InspectionDurations.allTypes(user),
-                !Boolean.FALSE.equals(user.getPublicListing()));
+                !Boolean.FALSE.equals(user.getPublicListing()),
+                lineNames(user));
     }
 
     // Statiile active cu programarea online pornita care accepta sa apara in lista publica, dupa nume
@@ -95,6 +97,9 @@ public class BookingService {
             throw badRequest("Numarul de linii trebuie sa fie intre 1 si " + MAX_CAPACITY);
         }
         Map<VehicleCategory, Integer> durations = durations(dto.getVehicleTypes());
+        if (dto.getLineNames() != null && dto.getLineNames().stream().anyMatch(n -> n != null && n.trim().length() > MAX_LINE_NAME)) {
+            throw badRequest("Numele unei linii poate avea cel mult " + MAX_LINE_NAME + " de caractere");
+        }
 
         String slug = dto.getSlug() == null ? "" : dto.getSlug().trim().toLowerCase();
         if (slug.isEmpty()) {
@@ -112,6 +117,7 @@ public class BookingService {
         user.setBookingDays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
         user.setBookingCapacity(dto.getCapacity());
         if (dto.getPublicListing() != null) user.setPublicListing(dto.getPublicListing());
+        if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), dto.getCapacity()));
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
         return getSettings(appUserRepository.save(user));
@@ -193,12 +199,9 @@ public class BookingService {
         int duration = InspectionDurations.minutesFor(station, category);
         LocalDateTime dayOpen = date.atTime(open(station));
         LocalDateTime dayClose = date.atTime(close(station));
-        List<Interval> taken = appointmentRepository
-                .findActiveBetween(station.getId(), dayOpen.minusMinutes(InspectionDurations.MAX_MINUTES), dayClose)
-                .stream()
-                .filter(a -> excludeId == null || !excludeId.equals(a.getId()))
-                .map(a -> new Interval(a.getAppointmentDate(),
-                        a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a))))
+        List<LinePlanner.Booked> booked = dayBooked(station, date, excludeId);
+        List<Interval> taken = booked.stream()
+                .map(b -> new Interval(b.start(), b.end()))
                 .filter(i -> i.end().isAfter(dayOpen))
                 .toList();
 
@@ -214,12 +217,37 @@ public class BookingService {
         for (LocalDateTime start : candidates) {
             LocalDateTime end = start.plusMinutes(duration);
             if (start.isBefore(dayOpen) || end.isAfter(dayClose) || start.isBefore(earliest)) continue;
-            if (maxConcurrent(taken, start, end) < capacity) slots.add(start.toLocalTime());
+            // o linie trebuie sa fie libera tot intervalul (nu doar numarul de masini sub capacitate)
+            if (maxConcurrent(taken, start, end) < capacity && LinePlanner.freeLine(booked, capacity, start, end, null) != null) {
+                slots.add(start.toLocalTime());
+            }
         }
         return slots;
     }
 
     record Interval(LocalDateTime start, LocalDateTime end) {
+    }
+
+    // Programarile active din ziua respectiva (plus cele incepute inainte care inca ruleaza), fara excludeId
+    public List<LinePlanner.Booked> dayBooked(AppUser station, LocalDate date, Long excludeId) {
+        return appointmentRepository
+                .findActiveBetween(station.getId(), date.atStartOfDay().minusMinutes(InspectionDurations.MAX_MINUTES),
+                        date.plusDays(1).atStartOfDay())
+                .stream()
+                .filter(a -> excludeId == null || !excludeId.equals(a.getId()))
+                .map(BookingService::booked)
+                .toList();
+    }
+
+    public static LinePlanner.Booked booked(Appointment a) {
+        return new LinePlanner.Booked(a.getId(), a.getAppointmentDate(),
+                a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a)), a.getLine());
+    }
+
+    // Linia pentru o programare: cea preferata daca e libera, altfel prima libera; null = toate ocupate
+    public Integer pickLine(AppUser station, LocalDateTime start, int minutes, Long excludeId, Integer preferred) {
+        return LinePlanner.freeLine(dayBooked(station, start.toLocalDate(), excludeId), lines(station), start,
+                start.plusMinutes(minutes), preferred);
     }
 
     // Cate programari ruleaza simultan, cel mult, in [start, end). Maximul se atinge
@@ -283,6 +311,7 @@ public class BookingService {
                 .source(AppointmentSource.ONLINE)
                 .vehicleCategory(category)
                 .durationMinutes(InspectionDurations.minutesFor(station, category))
+                .line(pickLine(station, when, InspectionDurations.minutesFor(station, category), null, null))
                 .reminderConsent(Boolean.TRUE.equals(req.getReminderConsent()))
                 .user(station)
                 .build());
@@ -310,6 +339,24 @@ public class BookingService {
 
     private static int capacity(AppUser u) {
         return u.getBookingCapacity() != null ? u.getBookingCapacity() : DEFAULT_CAPACITY;
+    }
+
+    // Numarul de linii ITP ale statiei
+    public static int lines(AppUser u) {
+        return capacity(u);
+    }
+
+    // Cate un nume pentru fiecare linie ("" = numele implicit "Linia N", pus de interfata)
+    public static List<String> lineNames(AppUser u) {
+        List<String> saved = u.getBookingLineNames() == null ? List.of() : List.of(u.getBookingLineNames().split("\n", -1));
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < capacity(u); i++) names.add(i < saved.size() ? saved.get(i).trim() : "");
+        return names;
+    }
+
+    private static String formatLineNames(List<String> names, int capacity) {
+        List<String> kept = names.stream().limit(capacity).map(n -> n == null ? "" : n.trim().replaceAll("\\s+", " ")).toList();
+        return kept.stream().allMatch(String::isEmpty) ? null : String.join("\n", kept);
     }
 
     private static ResponseStatusException badRequest(String message) {

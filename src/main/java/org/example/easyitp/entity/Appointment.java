@@ -46,6 +46,10 @@ public class Appointment {
     @Column(name = "duration_minutes")
     private Integer durationMinutes;
 
+    // Linia ITP (1..numarul de linii al statiei); null = programare veche, linia se alege la afisare
+    @Column(name = "line_no")
+    private Integer line;
+
     // Bifa de acord pentru remindere din programarea online; trece la client cand se face ITP-ul
     @Column(name = "reminder_consent")
     private Boolean reminderConsent;

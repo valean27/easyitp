@@ -184,6 +184,42 @@ class BookingIntegrationTest {
     }
 
     @Test
+    void appointmentsGetALineAndTheManagerCanPickOne() throws Exception {
+        enableBooking("trei-linii", 3);
+        putSettings(settingsJson(true, "trei-linii", 3).replace("}", ",\"lineNames\":[\"Autoturisme\",\"\",\" Camioane  mari \"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lineNames[0]").value("Autoturisme"))
+                .andExpect(jsonPath("$.lineNames[1]").value(""))
+                .andExpect(jsonPath("$.lineNames[2]").value("Camioane mari"));
+
+        book("trei-linii", "10:00", "Ion", "0722111222").andExpect(status().isCreated());
+        book("trei-linii", "10:00", "Ana", "0733111222").andExpect(status().isCreated());
+        JsonNode calendar = calendar();
+        assertThat(calendar.get(0).get("line").asInt()).isEqualTo(1);
+        assertThat(calendar.get(1).get("line").asInt()).isEqualTo(2);
+
+        // managerul fara linie -> prima libera (3); cu linie -> exact aceea, chiar daca e ocupata
+        long free = createAppointment("{\"clientName\":\"Dan\",\"appointmentDate\":\"" + day + "T10:05:00\",\"durationMinutes\":20}", 3);
+        createAppointment("{\"clientName\":\"Eva\",\"appointmentDate\":\"" + day + "T10:05:00\",\"durationMinutes\":20,\"line\":1}", 1);
+        mvc.perform(post("/api/appointments").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientName\":\"Rau\",\"appointmentDate\":\"" + day + "T10:05:00\",\"line\":4}"))
+                .andExpect(status().isBadRequest());
+        assertThat(conflicts("10:10", 20).findValues("line").stream().map(JsonNode::asInt).sorted().toList())
+                .containsExactly(1, 1, 2, 3);
+
+        // mutata la 12:00 fara linie: ramane pe linia ei, fiindca e libera
+        mvc.perform(put("/api/appointments/" + free).header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientName\":\"Dan\",\"appointmentDate\":\"" + day + "T12:00:00\",\"durationMinutes\":20}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.line").value(3));
+        // si inapoi la 10:00, unde linia 3 e libera, dar mutata pe linia 2 (ocupata de Ana) ramane cum a cerut managerul
+        mvc.perform(put("/api/appointments/" + free).header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"clientName\":\"Dan\",\"appointmentDate\":\"" + day + "T10:00:00\",\"durationMinutes\":20,\"line\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.line").value(2));
+    }
+
+    @Test
     void rejectsInvalidRequests() throws Exception {
         enableBooking("validari", 1);
         book("validari", "10:00", "I", "0722111222").andExpect(status().isBadRequest());
@@ -248,6 +284,20 @@ class BookingIntegrationTest {
         return mvc.perform(post("/api/public/stations/" + slug + "/appointments").header("CF-Connecting-IP", ip)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(bookingJson(time, name, phone, null, category)));
+    }
+
+    private JsonNode calendar() throws Exception {
+        return json.readTree(mvc.perform(get("/api/appointments?start=" + day + "T00:00:00&end=" + day.plusDays(1) + "T00:00:00")
+                        .header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString());
+    }
+
+    private long createAppointment(String body, int expectedLine) throws Exception {
+        return json.readTree(mvc.perform(post("/api/appointments").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.line").value(expectedLine))
+                .andReturn().getResponse().getContentAsString()).get("id").asLong();
     }
 
     private JsonNode conflicts(String time, int minutes) throws Exception {

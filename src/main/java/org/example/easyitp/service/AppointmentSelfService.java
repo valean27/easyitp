@@ -64,6 +64,7 @@ public class AppointmentSelfService {
         if (!free.contains(start.toLocalTime())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ora aleasă nu mai este liberă. Alegeți alta.");
         }
+        appt.setLine(bookingService.pickLine(appt.getUser(), start, InspectionDurations.minutesOf(appt), appt.getId(), appt.getLine()));
         appt.setAppointmentDate(start);
         appt.setClientAction("RESCHEDULED");
         appt.setClientActionAt(LocalDateTime.now());

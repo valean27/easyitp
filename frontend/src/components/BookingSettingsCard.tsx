@@ -54,6 +54,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         ...settings,
         open: settings.open.length === 5 ? `${settings.open}:00` : settings.open,
         close: settings.close.length === 5 ? `${settings.close}:00` : settings.close,
+        lineNames: Array.from({ length: settings.capacity }, (_, i) => settings.lineNames?.[i] ?? ''),
       });
       setSettings(saved);
       onChange?.(saved);
@@ -165,7 +166,29 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
             onChange={(e) => update({ capacity: Number(e.target.value) })}
             className={INPUT_CLS + ' w-24'}
           />
-          <p className="text-xs text-slate-400 mt-1">Câte vehicule pot fi verificate în același timp.</p>
+          <p className="text-xs text-slate-400 mt-1">
+            Câte vehicule pot fi verificate în același timp. Clienții se pot programa la aceeași oră cât timp o linie e liberă,
+            iar în Calendar → „Pe linii” fiecare linie are coloana ei.
+          </p>
+          {settings.capacity > 1 && settings.capacity <= 10 && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {Array.from({ length: settings.capacity }, (_, i) => (
+                <input
+                  key={i}
+                  value={settings.lineNames?.[i] ?? ''}
+                  maxLength={40}
+                  onChange={(e) => {
+                    const names = Array.from({ length: settings.capacity }, (_, j) => settings.lineNames?.[j] ?? '');
+                    names[i] = e.target.value;
+                    update({ lineNames: names });
+                  }}
+                  placeholder={`Linia ${i + 1} (ex. autoturisme, sau numele inspectorului)`}
+                  aria-label={`Numele liniei ${i + 1}`}
+                  className={INPUT_CLS}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">

@@ -21,4 +21,6 @@ public class BookingSettingsDTO {
     private List<VehicleTypeDTO> vehicleTypes;
     // Statia apare in lista publica de statii (/statii); null la salvare = nu se schimba
     private Boolean publicListing;
+    // Numele liniilor (cate unul pentru fiecare linie; gol = "Linia N"); null la salvare = nu se schimba
+    private List<String> lineNames;
 }

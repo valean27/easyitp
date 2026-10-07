@@ -85,11 +85,18 @@ export const GUIDE: GuideGroup[] = [
         intro: 'Programările făcute la telefon sau la ghișeu, plus cele venite online, într-un singur calendar.',
         steps: [
           'Apăsați pe o zi și o oră libere ca să adăugați o programare.',
+          'Mutați o programare prin drag & drop: o apucați cu mouse-ul și o trageți la altă oră sau în altă zi; durata rămâne aceeași. Pe telefon, apăsați pe ea și schimbați ora în fereastră.',
+          'Stația are mai multe linii? Apăsați „Pe linii”: ziua apare cu câte o coloană pentru fiecare linie, cu numărul de programări și cât e de ocupată. Trageți o programare în altă coloană ca s-o mutați pe altă linie.',
+          'O programare nouă merge automat pe prima linie liberă; în fereastra programării puteți alege linia și vedeți care sunt libere la ora aleasă.',
           'Programările online apar singure, marcate; dacă un client și-a mutat sau anulat programarea din link, vedeți asta pe programare.',
           'La sosirea clientului, din programare apăsați „Începe ITP”: datele clientului se completează în formular.',
           'Dacă clientul nu a venit, marcați „Neprezentat”; rata de neprezentare apare în Rapoarte.',
         ],
-        links: [{ to: '/calendar', label: 'Calendar' }],
+        tips: [
+          'Numele liniilor (ex. „Autoturisme”, „Camioane” sau numele inspectorului) le dați în Contul meu → Programare online.',
+          'Programările finalizate sau anulate nu se mai pot trage; le schimbați din fereastra lor.',
+        ],
+        links: [{ to: '/calendar', label: 'Calendar' }, { to: '/account#programare', label: 'Liniile stației' }],
       },
       {
         id: 'clienti',
@@ -124,7 +131,7 @@ export const GUIDE: GuideGroup[] = [
         intro: 'Stația primește o pagină publică de programare. Clientul vede doar orele libere, după durata inspecției și numărul de linii.',
         steps: [
           'În Contul meu → Programare online, porniți programarea și alegeți adresa paginii (ex. /programare/itp-exemplu).',
-          'Setați programul, zilele lucrătoare, câte mașini pot fi inspectate deodată (liniile) și durata pe tip de vehicul.',
+          'Setați programul, zilele lucrătoare, câte mașini pot fi inspectate deodată (liniile, cu nume dacă vreți) și durata pe tip de vehicul. Cu mai multe linii, clienții se pot programa la aceeași oră cât timp una e liberă; fiecare programare primește linia ei.',
           'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',
         ],

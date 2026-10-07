@@ -5,6 +5,7 @@ import { getBookingSettings } from '../api/accountApi';
 import type { Appointment, AppointmentStatus, VehicleCategory, VehicleType } from '../types';
 import { formatTime } from '../utils/dates';
 import { APPOINTMENT_STATUS_LABELS, LEGACY_DURATION_MINUTES, appointmentMinutes } from '../utils/appointments';
+import { lineName } from '../utils/lines';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -17,6 +18,7 @@ interface AppointmentFormValues {
   status: AppointmentStatus;
   vehicleCategory: VehicleCategory | '';
   durationMinutes: number;
+  line?: number | null; // null = prima linie libera
 }
 
 interface Props {
@@ -40,6 +42,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
       status: appointment.status,
       vehicleCategory: appointment.vehicleCategory ?? '',
       durationMinutes: appointmentMinutes(appointment),
+      line: appointment.line ?? null,
     };
   }
   return {
@@ -50,6 +53,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
     status: 'SCHEDULED',
     vehicleCategory: '',
     durationMinutes: LEGACY_DURATION_MINUTES,
+    line: null,
     ...initial,
   };
 }
@@ -62,12 +66,16 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
+  const [lineNames, setLineNames] = useState<string[]>([]);
 
   // Duratele statiei pe tip de vehicul; o programare noua porneste ca autoturism
   useEffect(() => {
     getBookingSettings()
       .then((s) => {
         setVehicleTypes(s.vehicleTypes);
+        setLineNames(s.lineNames ?? []);
+        // o linie scoasa intre timp (statia are acum mai putine linii) devine "automat"
+        setForm((f) => (f.line && f.line > (s.lineNames?.length ?? 1) ? { ...f, line: null } : f));
         if (!appointment) {
           const car = s.vehicleTypes.find((t) => t.category === 'CAR');
           if (car) setForm((f) => ({ ...f, vehicleCategory: 'CAR', durationMinutes: car.minutes }));
@@ -116,6 +124,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       status: form.status,
       vehicleCategory: form.vehicleCategory || null,
       durationMinutes: Number(form.durationMinutes),
+      line: form.line ?? null,
     };
     try {
       const saved = appointment
@@ -147,6 +156,13 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       setDeleting(false);
     }
   };
+
+  // Liniile ocupate in intervalul ales (din programarile care se suprapun)
+  const multiLine = lineNames.length > 1;
+  const busyLines = new Set(conflicts.map((c) => c.line).filter((l): l is number => l != null));
+  const freeLines = lineNames.map((_, i) => i + 1).filter((l) => !busyLines.has(l));
+  const lineBusy = form.line != null && busyLines.has(form.line);
+  const showConflicts = conflicts.length > 0 && (!multiLine || lineBusy || freeLines.length === 0);
 
   const canStartItp = isEdit && onStartItp && !appointment.itpRecordId && appointment.status !== 'CANCELLED';
 
@@ -242,20 +258,58 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
               </div>
             </div>
           </div>
-          {conflicts.length > 0 && (
+          {multiLine && (
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Linia</label>
+              <select
+                value={form.line ?? ''}
+                onChange={(e) => setForm((p) => ({ ...p, line: e.target.value ? Number(e.target.value) : null }))}
+                className={INPUT_CLS + ' bg-white'}
+              >
+                <option value="">Automat (prima linie liberă)</option>
+                {lineNames.map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {lineName(lineNames, i + 1)}
+                    {busyLines.has(i + 1) ? ' · ocupată' : ' · liberă'}
+                  </option>
+                ))}
+              </select>
+              {conflicts.length > 0 && freeLines.length > 0 && !lineBusy && (
+                <p className="text-xs text-emerald-700 mt-1">
+                  Libere la ora asta: {freeLines.map((l) => lineName(lineNames, l)).join(', ')}.
+                </p>
+              )}
+            </div>
+          )}
+          {showConflicts && (
             <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               <AlertTriangle size={14} className="shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium">Intervalul e deja ocupat:</p>
+                <p className="font-medium">
+                  {!multiLine
+                    ? 'Intervalul e deja ocupat:'
+                    : lineBusy
+                      ? `${lineName(lineNames, form.line!)} e ocupată la ora asta:`
+                      : 'Toate liniile sunt ocupate la ora asta:'}
+                </p>
                 <ul className="text-xs mt-0.5 space-y-0.5">
-                  {conflicts.map((c) => (
-                    <li key={c.id}>
-                      {formatTime(c.appointmentDate)} ({appointmentMinutes(c)} min) · {c.clientName}
-                      {c.licensePlate ? ` · ${c.licensePlate}` : ''}
-                    </li>
-                  ))}
+                  {conflicts
+                    .filter((c) => !lineBusy || c.line === form.line)
+                    .map((c) => (
+                      <li key={c.id}>
+                        {formatTime(c.appointmentDate)} ({appointmentMinutes(c)} min) · {c.clientName}
+                        {c.licensePlate ? ` · ${c.licensePlate}` : ''}
+                        {multiLine && c.line ? ` · ${lineName(lineNames, c.line)}` : ''}
+                      </li>
+                    ))}
                 </ul>
-                <p className="text-xs mt-1 text-amber-700">Poți salva oricum, dacă stația are mai multe linii.</p>
+                <p className="text-xs mt-1 text-amber-700">
+                  {multiLine && lineBusy && freeLines.length > 0
+                    ? `Alege o linie liberă (${freeLines.map((l) => lineName(lineNames, l)).join(', ')}) sau salvează oricum.`
+                    : multiLine
+                      ? 'Poți salva oricum (ex. dacă o inspecție se termină mai repede).'
+                      : 'Poți salva oricum. Dacă stația are mai multe linii, setează-le în Contul meu → Programare online.'}
+                </p>
               </div>
             </div>
           )}

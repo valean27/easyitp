@@ -105,6 +105,10 @@ public class AppUser {
     // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
     private Integer bookingCapacity;
 
+    // Numele liniilor, unul pe rand (ex. "Linia 1 - autoturisme"); null = "Linia 1", "Linia 2" ...
+    @Column(length = 500)
+    private String bookingLineNames;
+
     // Durata inspectiei per tip de vehicul (vezi InspectionDurations); null = valorile implicite
     @Column(length = 200)
     private String bookingDurations;

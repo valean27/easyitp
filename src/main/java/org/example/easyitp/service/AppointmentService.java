@@ -12,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -21,30 +23,50 @@ import java.util.stream.Collectors;
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final BookingService bookingService;
 
-    public List<AppointmentDTO> getAppointments(Long userId, LocalDateTime start, LocalDateTime end) {
-        return appointmentRepository
-                .findByUserIdAndAppointmentDateBetweenOrderByAppointmentDateAsc(userId, start, end)
-                .stream()
-                .map(this::toDto)
+    // Programarile din interval; cele vechi, fara linie, primesc linia pe care incap in ziua lor (doar la afisare)
+    public List<AppointmentDTO> getAppointments(AppUser station, LocalDateTime start, LocalDateTime end) {
+        List<Appointment> appts = appointmentRepository
+                .findByUserIdAndAppointmentDateBetweenOrderByAppointmentDateAsc(station.getId(), start, end);
+        Map<Long, Integer> lines = new HashMap<>();
+        appts.stream()
+                .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED)
+                .collect(Collectors.groupingBy(a -> a.getAppointmentDate().toLocalDate()))
+                .values()
+                .forEach(day -> lines.putAll(LinePlanner.assign(day.stream().map(BookingService::booked).toList(),
+                        BookingService.lines(station))));
+        return appts.stream()
+                .map(a -> {
+                    AppointmentDTO dto = toDto(a);
+                    if (a.getLine() == null) dto.setLine(lines.get(a.getId()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
-    // Programarile active care se suprapun cu intervalul [date, date + minutes)
-    public List<AppointmentDTO> getConflicts(Long userId, LocalDateTime date, int minutes, Long excludeId) {
+    // Programarile active care se suprapun cu intervalul [date, date + minutes), cu linia lor
+    public List<AppointmentDTO> getConflicts(AppUser station, LocalDateTime date, int minutes, Long excludeId) {
         LocalDateTime end = date.plusMinutes(minutes);
+        List<LinePlanner.Booked> day = bookingService.dayBooked(station, date.toLocalDate(), excludeId);
+        Map<Long, Integer> lines = LinePlanner.assign(day, BookingService.lines(station));
         return appointmentRepository
-                .findActiveBetween(userId, date.minusMinutes(InspectionDurations.MAX_MINUTES), end)
+                .findActiveBetween(station.getId(), date.minusMinutes(InspectionDurations.MAX_MINUTES), end)
                 .stream()
                 .filter(a -> !Objects.equals(a.getId(), excludeId))
                 .filter(a -> a.getAppointmentDate().plusMinutes(InspectionDurations.minutesOf(a)).isAfter(date))
-                .map(this::toDto)
+                .map(a -> {
+                    AppointmentDTO dto = toDto(a);
+                    if (lines.containsKey(a.getId())) dto.setLine(lines.get(a.getId()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
     @Transactional
     public AppointmentDTO create(AppointmentDTO dto, AppUser user) {
         validate(dto);
+        validateLine(dto.getLine(), user);
         Appointment appt = Appointment.builder()
                 .clientName(dto.getClientName().trim())
                 .phone(dto.getPhone())
@@ -55,13 +77,17 @@ public class AppointmentService {
                 .durationMinutes(duration(dto, user))
                 .user(user)
                 .build();
+        // Linia aleasa de manager (chiar daca e ocupata, ca pana acum); fara linie = prima libera
+        appt.setLine(dto.getLine() != null ? dto.getLine()
+                : bookingService.pickLine(user, appt.getAppointmentDate(), InspectionDurations.minutesOf(appt), null, null));
         return toDto(appointmentRepository.save(appt));
     }
 
     @Transactional
-    public AppointmentDTO update(Long id, AppointmentDTO dto, Long userId) {
+    public AppointmentDTO update(Long id, AppointmentDTO dto, AppUser station) {
         validate(dto);
-        Appointment appt = find(id, userId);
+        validateLine(dto.getLine(), station);
+        Appointment appt = find(id, station.getId());
         appt.setClientName(dto.getClientName().trim());
         appt.setPhone(dto.getPhone());
         appt.setLicensePlate(dto.getLicensePlate());
@@ -71,6 +97,14 @@ public class AppointmentService {
         if (dto.getVehicleCategory() != null || dto.getDurationMinutes() != null) {
             appt.setVehicleCategory(dto.getVehicleCategory());
             appt.setDurationMinutes(duration(dto, appt.getUser()));
+        }
+        // Fara linie (ex. mutata prin drag & drop in saptamana): ramane pe linia ei daca e libera, altfel prima libera
+        if (dto.getLine() != null) {
+            appt.setLine(dto.getLine());
+        } else {
+            Integer free = bookingService.pickLine(station, appt.getAppointmentDate(), InspectionDurations.minutesOf(appt),
+                    appt.getId(), appt.getLine());
+            if (free != null) appt.setLine(free);
         }
         return toDto(appointmentRepository.save(appt));
     }
@@ -104,6 +138,12 @@ public class AppointmentService {
         }
     }
 
+    private static void validateLine(Integer line, AppUser station) {
+        if (line != null && (line < 1 || line > BookingService.lines(station))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Linia trebuie sa fie intre 1 si " + BookingService.lines(station));
+        }
+    }
+
     // Durata aleasa de manager sau, daca lipseste, cea a statiei pentru tipul vehiculului
     private static int duration(AppointmentDTO dto, AppUser station) {
         return dto.getDurationMinutes() != null
@@ -123,6 +163,7 @@ public class AppointmentService {
         dto.setSource(appt.getSource());
         dto.setVehicleCategory(appt.getVehicleCategory());
         dto.setDurationMinutes(InspectionDurations.minutesOf(appt));
+        dto.setLine(appt.getLine());
         dto.setReminderConsent(appt.getReminderConsent());
         dto.setClientAction(appt.getClientAction());
         dto.setClientActionAt(appt.getClientActionAt());

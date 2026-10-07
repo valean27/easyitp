@@ -1,18 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { EventCalendar } from '@mui/x-scheduler/event-calendar';
 import { roRO } from '@mui/x-scheduler/locales';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { ro } from 'date-fns/locale';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, CalendarDays, Columns3 } from 'lucide-react';
 import { getAppointments, updateAppointment } from '../api/appointmentApi';
-import type { Appointment, AppointmentStatus } from '../types';
+import { getBookingSettings } from '../api/accountApi';
+import type { Appointment, AppointmentStatus, BookingSettings } from '../types';
 import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
-import { toLocalIso } from '../utils/dates';
+import LinesDayView from './LinesDayView';
+import { toLocalIso, todayIso } from '../utils/dates';
 import { VEHICLE_SHORT_LABELS, appointmentMinutes, itpPrefillFromAppointment } from '../utils/appointments';
 import { useTheme } from '../context/theme';
 
 const SLOT_MINUTES = 30;
+const MODE_KEY = 'calendarMode';
+
+type Mode = 'calendar' | 'lines';
+
+// Vederea aleasa ramane pe dispozitiv
+function savedMode(): Mode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'lines' ? 'lines' : 'calendar';
+  } catch {
+    return 'calendar';
+  }
+}
 
 // Campurile folosite din modelul de eveniment al calendarului MUI (SchedulerEvent)
 type SchedulerEventColor = 'red' | 'pink' | 'purple' | 'indigo' | 'blue' | 'teal' | 'green' | 'lime' | 'amber' | 'orange' | 'grey';
@@ -68,11 +83,13 @@ function rangeAround(date: Date): { start: Date; end: Date; key: string } {
   return { start, end, key: `${date.getFullYear()}-${date.getMonth()}` };
 }
 
-function toEvent(a: Appointment): SchedulerEvent {
+// multiLine: statia are mai multe linii, deci titlul incepe cu linia (L1, L2 ...)
+function toEvent(a: Appointment, multiLine: boolean): SchedulerEvent {
   const start = a.appointmentDate.slice(0, 19);
+  const line = multiLine && a.status !== 'CANCELLED' ? (a.line ? `L${a.line} · ` : '⚠ ') : '';
   return {
     id: a.id,
-    title: `${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
+    title: `${line}${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
     description:
       [
         a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null,
@@ -108,7 +125,10 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useState(() => rangeAround(new Date()));
-  const [createDate, setCreateDate] = useState<string | null>(null);
+  const [createAt, setCreateAt] = useState<{ appointmentDate: string; line?: number | null } | null>(null);
+  const [mode, setMode] = useState<Mode>(savedMode);
+  const [linesDate, setLinesDate] = useState(todayIso);
+  const [settings, setSettings] = useState<BookingSettings | null>(null);
   const [editAppt, setEditAppt] = useState<Appointment | null>(null);
   const [itpFor, setItpFor] = useState<Appointment | null>(null);
 
@@ -128,23 +148,39 @@ export default function CalendarPage() {
     fetchRange();
   }, [fetchRange]);
 
-  const events = useMemo(() => appointments.map(toEvent), [appointments]);
+  // Liniile statiei (numar si nume) si programul, pentru vederea "Pe linii"
+  useEffect(() => {
+    getBookingSettings().then(setSettings).catch(() => setSettings(null));
+  }, []);
+
+  const lineNames = settings?.lineNames ?? [''];
+  const multiLine = lineNames.length > 1;
+  const events = useMemo(() => appointments.map((a) => toEvent(a, multiLine)), [appointments, multiLine]);
+
+  const changeMode = (next: Mode) => {
+    setMode(next);
+    try {
+      localStorage.setItem(MODE_KEY, next);
+    } catch {
+      // fara stocare locala vederea nu se mai tine minte
+    }
+  };
+
+  const changeLinesDate = (date: string) => {
+    setLinesDate(date);
+    const next = rangeAround(new Date(`${date}T12:00:00`));
+    if (next.key !== range.key) setRange(next);
+  };
 
   const handleSaved = (saved: Appointment) =>
     setAppointments((prev) =>
       prev.some((a) => a.id === saved.id) ? prev.map((a) => (a.id === saved.id ? saved : a)) : [...prev, saved]
     );
 
-  // Drag & drop: mutam programarea la noua ora (durata ramane aceeasi)
-  const handleEventsChange = async (next: SchedulerEvent[]) => {
-    const moved = next.find((e) => {
-      const old = appointments.find((a) => a.id === e.id);
-      return old && old.appointmentDate.slice(0, 16) !== toLocalIso(new Date(e.start)).slice(0, 16);
-    });
-    if (!moved) return;
-    const old = appointments.find((a) => a.id === moved.id)!;
-    const newDate = toLocalIso(new Date(moved.start)).slice(0, 16) + ':00';
-    setAppointments((prev) => prev.map((a) => (a.id === old.id ? { ...a, appointmentDate: newDate } : a)));
+  // Drag & drop: mutam programarea la noua ora (durata ramane aceeasi). Linia null = serverul o pastreaza
+  // daca e libera la noua ora, altfel alege prima linie libera
+  const moveAppointment = async (old: Appointment, newDate: string, line: number | null) => {
+    setAppointments((prev) => prev.map((a) => (a.id === old.id ? { ...a, appointmentDate: newDate, line: line ?? a.line } : a)));
     try {
       const saved = await updateAppointment(old.id, {
         clientName: old.clientName,
@@ -154,6 +190,7 @@ export default function CalendarPage() {
         status: old.status,
         vehicleCategory: old.vehicleCategory,
         durationMinutes: old.durationMinutes,
+        line,
       });
       handleSaved(saved);
       setError(null);
@@ -163,22 +200,51 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventsChange = (next: SchedulerEvent[]) => {
+    const moved = next.find((e) => {
+      const old = appointments.find((a) => a.id === e.id);
+      return old && old.appointmentDate.slice(0, 16) !== toLocalIso(new Date(e.start)).slice(0, 16);
+    });
+    if (!moved) return;
+    const old = appointments.find((a) => a.id === moved.id)!;
+    moveAppointment(old, toLocalIso(new Date(moved.start)).slice(0, 16) + ':00', null);
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-50">
       <header className="shrink-0 bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-slate-800">Calendar Programări</h1>
+            <h1 className="text-base sm:text-lg font-bold text-slate-800">Calendar<span className="hidden sm:inline"> Programări</span></h1>
             <p className="text-xs text-slate-400 hidden md:block">
-              Click pe un interval liber pentru o programare nouă · trage o programare ca s-o muți · 🌐 = făcută online
+              Click pe un loc liber pentru o programare nouă · trage o programare ca s-o muți
+              {mode === 'lines' ? ' pe altă oră sau altă linie' : ''} · 🌐 = făcută online
             </p>
           </div>
-          {loading && (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <Loader2 size={15} className="animate-spin" />
-              Se încarcă...
+          <div className="flex items-center gap-3">
+            {loading && <Loader2 size={15} className="animate-spin text-slate-400" aria-label="Se încarcă" />}
+            <div role="radiogroup" aria-label="Vederea calendarului" className="flex rounded-lg border border-slate-200 p-0.5 text-sm">
+              {(
+                [
+                  ['calendar', 'Calendar', <CalendarDays key="c" size={15} />],
+                  ['lines', 'Pe linii', <Columns3 key="l" size={15} />],
+                ] as const
+              ).map(([value, label, icon]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={mode === value}
+                  onClick={() => changeMode(value)}
+                  className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-colors ${
+                    mode === value ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {icon} {value === 'lines' ? <><span className="sm:hidden">Linii</span><span className="hidden sm:inline">{label}</span></> : label}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
         </div>
       </header>
 
@@ -189,7 +255,27 @@ export default function CalendarPage() {
             {error}
           </div>
         )}
+        {mode === 'lines' && !multiLine && settings && (
+          <div className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
+            Stația are o singură linie. Dacă aveți mai multe, setați-le în{' '}
+            <Link to="/account#programare" className="font-semibold underline">Contul meu → Programare online</Link>: fiecare linie primește coloana ei, iar
+            clienții se pot programa la aceeași oră cât timp o linie e liberă.
+          </div>
+        )}
         <div ref={calendarRef} className="flex-1 min-h-[28rem] bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          {mode === 'lines' ? (
+            <LinesDayView
+              date={linesDate}
+              onDateChange={changeLinesDate}
+              appointments={appointments}
+              lineNames={lineNames}
+              open={settings?.open}
+              close={settings?.close}
+              onCreate={(appointmentDate, line) => setCreateAt({ appointmentDate, line })}
+              onOpen={setEditAppt}
+              onMove={moveAppointment}
+            />
+          ) : (
           <ThemeProvider theme={theme}>
             <EventCalendar
               events={events}
@@ -219,7 +305,7 @@ export default function CalendarPage() {
                 details.cancel();
                 const start = new Date(occurrence.displayTimezone.start.value as Date);
                 if (details.reason === 'creation') {
-                  setCreateDate(toLocalIso(start).slice(0, 16));
+                  setCreateAt({ appointmentDate: toLocalIso(start).slice(0, 16) });
                 } else {
                   const appt = appointments.find((a) => a.id === occurrence.id);
                   if (appt) setEditAppt(appt);
@@ -227,6 +313,7 @@ export default function CalendarPage() {
               }}
             />
           </ThemeProvider>
+          )}
         </div>
         <ul className="shrink-0 flex flex-wrap gap-x-4 gap-y-1 px-1 text-xs text-slate-500" aria-label="Legenda culorilor">
           {LEGEND.map(([cls, label]) => (
@@ -237,8 +324,8 @@ export default function CalendarPage() {
         </ul>
       </main>
 
-      {createDate && (
-        <AppointmentModal initial={{ appointmentDate: createDate }} onClose={() => setCreateDate(null)} onSaved={handleSaved} />
+      {createAt && (
+        <AppointmentModal initial={createAt} onClose={() => setCreateAt(null)} onSaved={handleSaved} />
       )}
 
       {editAppt && (
