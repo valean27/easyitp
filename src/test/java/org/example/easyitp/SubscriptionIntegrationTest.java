@@ -200,8 +200,8 @@ class SubscriptionIntegrationTest {
         assertThat(started.get("paymentUrl").asText()).isEqualTo("https://pay.test/abc");
         JsonNode sent = json.readTree(STARTS.get(STARTS.size() - 1).substring("cheie-netopia ".length()));
         assertThat(sent.get("order").get("posSignature").asText()).isEqualTo("POS-1");
-        // (59 + 129) * 1,21
-        assertThat(sent.get("order").get("amount").decimalValue()).isEqualByComparingTo("227.48");
+        // 59 + 119, cu TVA inclus
+        assertThat(sent.get("order").get("amount").decimalValue()).isEqualByComparingTo("178");
         assertThat(sent.get("order").get("currency").asText()).isEqualTo("RON");
         assertThat(sent.get("config").get("redirectUrl").asText()).endsWith("/plata?order=" + orderId);
 
@@ -230,7 +230,8 @@ class SubscriptionIntegrationTest {
         assertThat(invoice.get("client").get("cif").asText()).isEqualTo("RO123456");
         assertThat(invoice.get("products")).hasSize(2);
         assertThat(invoice.get("products").get(0).get("price").asInt()).isEqualTo(59);
-        assertThat(invoice.get("products").get(1).get("price").asInt()).isEqualTo(129);
+        assertThat(invoice.get("products").get(1).get("price").asInt()).isEqualTo(119);
+        assertThat(invoice.get("products").get(0).get("vatIncluded").asBoolean()).isTrue();
 
         // plata altei statii nu se poate citi
         String other = manager("alta@itp.ro", null, null, false);

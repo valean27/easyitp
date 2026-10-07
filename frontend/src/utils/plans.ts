@@ -1,6 +1,6 @@
 import { SMS_PLANS } from './smsPlans';
 
-// Pachetele aplicatiei (E1); aceleasi preturi si functii ca Plans.java (pe luna, fara TVA)
+// Pachetele aplicatiei (E1); aceleasi preturi si functii ca Plans.java (pe luna, cu TVA inclus)
 export type PlanName = 'FREE' | 'PRO' | 'PREMIUM';
 
 export type Feature =
@@ -87,7 +87,7 @@ export function smsPrice(sms: number): number {
   return SMS_PLANS.find((p) => p.sms === sms)?.price ?? 0;
 }
 
-// Pret pe luna fara TVA (SMS-urile doar peste Pro / Premium)
+// Pret pe luna cu TVA (SMS-urile doar peste Pro / Premium)
 export function monthlyPrice(plan: PlanName, sms: number): number {
   return plan === 'FREE' ? 0 : planPrice(plan) + smsPrice(sms);
 }
@@ -97,10 +97,14 @@ export function billedMonths(months: number): number {
   return months === 12 ? 10 : months;
 }
 
-// Suma de plata cu TVA, la fel ca Plans.amount
+// Suma de plata (preturile includ TVA), la fel ca Plans.amount
 export function amountWithVat(plan: PlanName, sms: number, months: number): number {
-  const net = monthlyPrice(plan, sms) * billedMonths(months);
-  return Math.round(net * (100 + VAT_PERCENT)) / 100;
+  return monthlyPrice(plan, sms) * billedMonths(months);
+}
+
+// TVA-ul cuprins intr-o suma cu TVA inclus
+export function vatIncluded(total: number): number {
+  return Math.round((total * VAT_PERCENT * 100) / (100 + VAT_PERCENT)) / 100;
 }
 
 export function formatRon(value: number): string {

@@ -271,7 +271,7 @@ public class BillingService {
         m.put("currency", "RON");
         m.put("vatName", "Normala");
         m.put("vatPercentage", Plans.VAT_PERCENT.intValue());
-        m.put("vatIncluded", false);
+        m.put("vatIncluded", true);
         m.put("quantity", 1);
         m.put("productType", "Serviciu");
         return m;

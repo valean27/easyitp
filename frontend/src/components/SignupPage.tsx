@@ -83,7 +83,7 @@ export default function SignupPage() {
                 'Fără card la înscriere',
                 'Importați clienții din Excel sau din aplicația veche',
                 'SMS-uri automate de pe telefonul stației',
-                'Programare online pe care o puneți pe Google Maps',
+                'Programare online: linkul îl dați clienților și, dacă vreți, îl puneți pe Google Maps sau Facebook',
               ].map((t) => (
                 <li key={t} className="flex gap-2">
                   <CheckCircle2 size={17} className="text-emerald-600 shrink-0" /> {t}

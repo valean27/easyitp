@@ -33,7 +33,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Cât costă și cum plătesc?',
-    a: `Pachetul Gratuit e gratuit pentru totdeauna. Pro costă ${planPrice('PRO')} RON și Premium ${planPrice('PREMIUM')} RON pe lună, fără TVA, iar SMS-urile incluse se adaugă opțional. Plătiți cu cardul din aplicație, pentru 1 lună sau 12 luni (12 la prețul a 10). Abonamentul nu se reînnoiește singur.`,
+    a: `Pachetul Gratuit e gratuit pentru totdeauna. Pro costă ${planPrice('PRO')} RON și Premium ${planPrice('PREMIUM')} RON pe lună, cu TVA inclus, iar SMS-urile incluse se adaugă opțional. Plătiți cu cardul din aplicație, pentru 1 lună sau 12 luni (12 la prețul a 10). Abonamentul nu se reînnoiește singur.`,
   },
   {
     q: `Ce se întâmplă după cele ${TRIAL_DAYS} zile de probă?`,

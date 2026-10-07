@@ -1,8 +1,8 @@
-// Pachetele de SMS incluse in abonament (pe luna, fara TVA); aceleasi valori ca SmsQuotaService.PLANS
+// Pachetele de SMS incluse in abonament (pe luna, cu TVA inclus); aceleasi valori ca SmsQuotaService.PLANS
 export const SMS_PLANS: { sms: number; price: number }[] = [
-  { sms: 300, price: 129 },
-  { sms: 600, price: 219 },
-  { sms: 1000, price: 349 },
+  { sms: 300, price: 119 },
+  { sms: 600, price: 229 },
+  { sms: 1000, price: 369 },
 ];
 
 export function planLabel(sms: number): string {

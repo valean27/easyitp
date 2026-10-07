@@ -22,10 +22,10 @@ class PlansTest {
 
     @Test
     void amountsIncludeVatAndTheYearlyDiscount() {
-        assertThat(Plans.amount(Plan.PRO, 0, 1)).isEqualByComparingTo("71.39");
-        assertThat(Plans.amount(Plan.PREMIUM, 600, 1)).isEqualByComparingTo("384.78");
-        // 12 luni la pret de 10
-        assertThat(Plans.amount(Plan.PRO, 0, 12)).isEqualByComparingTo("713.90");
+        assertThat(Plans.amount(Plan.PRO, 0, 1)).isEqualByComparingTo("59");
+        assertThat(Plans.amount(Plan.PREMIUM, 600, 1)).isEqualByComparingTo("328");
+        // preturile includ TVA; 12 luni la pret de 10
+        assertThat(Plans.amount(Plan.PRO, 0, 12)).isEqualByComparingTo("590");
     }
 
     @Test

@@ -227,7 +227,7 @@ export default function AutoSmsCard() {
             ) : (
               <p className="text-sm text-slate-600">
                 Stația nu are încă un pachet de SMS. Pachete: {SMS_PLANS.map((p) => `${p.sms} SMS / ${p.price} RON`).join(' · ')} pe
-                lună (fără TVA). Scrieți-ne și îl activăm.
+                lună (TVA inclus). Scrieți-ne și îl activăm.
               </p>
             )}
           </div>

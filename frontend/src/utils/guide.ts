@@ -29,7 +29,7 @@ export const FIRST_STEPS: { id: string; text: string; link: GuideLink }[] = [
   { id: 'inspectori', text: 'Adăugați inspectorii stației', link: { to: '/account#inspectori', label: 'Inspectori' } },
   { id: 'sms', text: 'Alegeți cum pleacă SMS-urile și porniți reminderele automate', link: { to: '/account#sms', label: 'SMS automate' } },
   { id: 'rezumat', text: 'Primiți rezumatul de dimineață pe email sau WhatsApp', link: { to: '/account#rezumat', label: 'Rezumat zilnic' } },
-  { id: 'afis', text: 'Tipăriți afișul cu QR și puneți linkul de programare pe Google Maps', link: { to: '/afis', label: 'Afiș cu QR' } },
+  { id: 'afis', text: 'Tipăriți afișul cu QR și, dacă vreți, puneți linkul de programare pe Google Maps sau Facebook', link: { to: '/afis', label: 'Afiș cu QR' } },
 ];
 
 export const GUIDE: GuideGroup[] = [
@@ -125,7 +125,7 @@ export const GUIDE: GuideGroup[] = [
         steps: [
           'În Contul meu → Programare online, porniți programarea și alegeți adresa paginii (ex. /programare/itp-exemplu).',
           'Setați programul, zilele lucrătoare, câte mașini pot fi inspectate deodată (liniile) și durata pe tip de vehicul.',
-          'Copiați linkul și puneți-l pe Google Maps (Google Business Profile → Programări), pe Facebook și în semnătura mesajelor.',
+          'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',
         ],
         tips: ['Linkul de programare intră automat în mesajele de reamintire.'],

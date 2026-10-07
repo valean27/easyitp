@@ -13,12 +13,12 @@ import {
   PLAN_LABELS,
   VAT_PERCENT,
   amountWithVat,
-  billedMonths,
   formatRon,
   monthlyPrice,
   paidUntil,
   planPrice,
   smsPrice,
+  vatIncluded,
   type PlanName,
 } from '../utils/plans';
 
@@ -116,7 +116,6 @@ export default function SubscriptionCard() {
   };
 
   const total = amountWithVat(plan, sms, months);
-  const net = monthlyPrice(plan, sms) * billedMonths(months);
   const until = paidUntil(status, plan, sms, months, new Date().toLocaleDateString('sv-SE'));
   const changing = !status.trial && status.plan !== 'FREE' && status.planUntil && (status.paidPlan !== plan || status.smsPlan !== sms);
 
@@ -178,7 +177,7 @@ export default function SubscriptionCard() {
                       </span>
                     </>
                   )}
-                  <span className="block text-[11px] text-slate-400">fără TVA</span>
+                  <span className="block text-[11px] text-slate-400">TVA inclus</span>
                 </span>
                 <ul className="mt-2 space-y-1 text-xs text-slate-600">
                   {p.points.slice(1).map((pt) => (
@@ -258,8 +257,8 @@ export default function SubscriptionCard() {
               </div>
             )}
             <div className="flex justify-between gap-3">
-              <dt className="text-slate-600">TVA {VAT_PERCENT}%</dt>
-              <dd className="tabular-nums text-slate-800">{formatRon(Math.round((total - net) * 100) / 100)}</dd>
+              <dt className="text-slate-600">din care TVA {VAT_PERCENT}%</dt>
+              <dd className="tabular-nums text-slate-800">{formatRon(vatIncluded(total))}</dd>
             </div>
             <div className="flex items-baseline justify-between gap-3 border-t border-slate-100 pt-2">
               <dt className="font-semibold text-slate-800">Total</dt>

@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import { ANPC_SAL_URL, COMPANY } from '../utils/company';
-import { PLANS, PLAN_LABELS, VAT_PERCENT, amountWithVat, formatRon } from '../utils/plans';
+import { PLANS, PLAN_LABELS, VAT_PERCENT } from '../utils/plans';
 import { SMS_PLANS } from '../utils/smsPlans';
 import { usePageTitle } from '../utils/pageTitle';
 
@@ -166,17 +166,17 @@ function Terms() {
       </Section>
 
       <Section id="pachete" title="Pachete și prețuri">
-        <p>Prețurile sunt în lei (RON), pe lună. Firma este plătitoare de TVA; la prețurile de mai jos se adaugă TVA {VAT_PERCENT}%.</p>
+        <p>Prețurile sunt în lei (RON), pe lună. Firma este plătitoare de TVA; prețurile de mai jos includ TVA {VAT_PERCENT}%.</p>
         <ul className="list-disc pl-5 space-y-1">
           {PLANS.map((p) => (
             <li key={p.name}>
-              <b>{PLAN_LABELS[p.name]}</b>: {p.price === 0 ? 'gratuit' : `${p.price} RON + TVA (${formatRon(amountWithVat(p.name, 0, 1))} cu TVA)`}{' '}
+              <b>{PLAN_LABELS[p.name]}</b>: {p.price === 0 ? 'gratuit' : `${p.price} RON cu TVA inclus`}{' '}
               – {p.points.join('; ')}.
             </li>
           ))}
           <li>
             SMS-uri incluse, opțional, peste Pro sau Premium:{' '}
-            {SMS_PLANS.map((p) => `${p.sms} SMS / lună cu ${p.price} RON + TVA`).join(', ')}.
+            {SMS_PLANS.map((p) => `${p.sms} SMS / lună cu ${p.price} RON cu TVA inclus`).join(', ')}.
           </li>
           <li>Plata pentru 12 luni costă cât 10 luni.</li>
           <li>

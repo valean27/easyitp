@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-// Pachetele (E1): ce include fiecare, cat costa si pachetul care se aplica azi. Preturile sunt pe luna, fara TVA,
+// Pachetele (E1): ce include fiecare, cat costa si pachetul care se aplica azi. Preturile sunt pe luna, cu TVA inclus,
 // aceleasi ca in frontend (utils/plans.ts).
 public final class Plans {
 
@@ -22,7 +22,7 @@ public final class Plans {
 
     private static final Map<Plan, Integer> PRICES = Map.of(Plan.FREE, 0, Plan.PRO, 59, Plan.PREMIUM, 99);
     // Supliment pentru SMS-urile incluse (doar peste Pro sau Premium); aceleasi pachete ca SmsQuotaService.PLANS
-    private static final Map<Integer, Integer> SMS_PRICES = Map.of(0, 0, 300, 129, 600, 219, 1000, 349);
+    private static final Map<Integer, Integer> SMS_PRICES = Map.of(0, 0, 300, 119, 600, 229, 1000, 369);
 
     public enum Feature {
         AUTO_SMS(Plan.PRO, "SMS-urile automate"),
@@ -102,9 +102,8 @@ public final class Plans {
         return months == 12 ? 10 : months;
     }
 
-    // Suma de plata cu TVA, in RON
+    // Suma de plata in RON (preturile includ deja TVA)
     public static BigDecimal amount(Plan plan, int smsPlan, int months) {
-        BigDecimal net = BigDecimal.valueOf((long) monthlyPrice(plan, smsPlan) * billedMonths(months));
-        return net.add(net.multiply(VAT_PERCENT).divide(BigDecimal.valueOf(100))).setScale(2, java.math.RoundingMode.HALF_UP);
+        return BigDecimal.valueOf((long) monthlyPrice(plan, smsPlan) * billedMonths(months)).setScale(2);
     }
 }

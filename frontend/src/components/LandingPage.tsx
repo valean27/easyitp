@@ -29,7 +29,7 @@ import RoiCalculator from './landing/RoiCalculator';
 import DemoForm from './landing/DemoForm';
 import Faq from './landing/Faq';
 import { SMS_PLANS } from '../utils/smsPlans';
-import { PLANS, PLAN_LABELS, TRIAL_DAYS, amountWithVat, formatRon } from '../utils/plans';
+import { PLANS, PLAN_LABELS, TRIAL_DAYS } from '../utils/plans';
 import { usePageTitle } from '../utils/pageTitle';
 
 const NAV = [
@@ -51,7 +51,7 @@ const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string; points: strin
   {
     icon: CalendarClock,
     title: 'Programare online 24/7',
-    text: 'O pagină de programare a stației, pe care o puneți pe Google Maps, Facebook sau în SMS.',
+    text: 'O pagină de programare a stației: trimiteți linkul clienților și, dacă vreți, îl puneți pe Google Maps sau Facebook.',
     points: ['Doar intervalele libere', 'Durată diferită pe tip de vehicul', 'Ține cont de câte linii are stația'],
   },
   {
@@ -228,7 +228,7 @@ export default function LandingPage() {
             <SectionTitle
               eyebrow="Prețuri"
               title="Începeți gratuit, plătiți doar ce folosiți"
-              text={`${TRIAL_DAYS} zile de probă cu tot inclus, fără card. Prețuri pe lună, fără TVA; 12 luni la prețul a 10.`}
+              text={`${TRIAL_DAYS} zile de probă cu tot inclus, fără card. Prețuri pe lună, cu TVA inclus; 12 luni la prețul a 10.`}
             />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {PLANS.map((p) => {
@@ -246,7 +246,7 @@ export default function LandingPage() {
                     <p className="mt-4 text-3xl font-extrabold text-slate-900">
                       {p.price} RON<span className="text-base font-semibold text-slate-500"> / lună</span>
                     </p>
-                    <p className="text-xs text-slate-500">{p.price ? `+ TVA · ${formatRon(amountWithVat(p.name, 0, 1))} cu TVA` : 'fără card, fără limită de timp'}</p>
+                    <p className="text-xs text-slate-500">{p.price ? 'TVA inclus' : 'fără card, fără limită de timp'}</p>
                     <ul className="mt-5 space-y-2 text-sm text-slate-700 flex-1">
                       {p.points.map((pt) => (
                         <li key={pt} className="flex gap-2">
@@ -283,7 +283,7 @@ export default function LandingPage() {
                   <div key={p.sms} className="rounded-xl bg-white border border-slate-200 p-4">
                     <p className="font-semibold text-slate-800">{p.sms} SMS / lună</p>
                     <p className="mt-1 text-xl font-extrabold text-slate-900">+{p.price} RON</p>
-                    <p className="text-xs text-slate-500">≈ {(p.price / p.sms).toFixed(2).replace('.', ',')} RON / SMS</p>
+                    <p className="text-xs text-slate-500">≈ {(p.price / p.sms).toFixed(2).replace('.', ',')} RON / SMS, TVA inclus</p>
                   </div>
                 ))}
               </div>
@@ -323,7 +323,7 @@ export default function LandingPage() {
               <ul className="mt-6 space-y-2 text-sm text-slate-700">
                 <li className="flex gap-2"><ClipboardCheck size={17} className="text-blue-600 shrink-0" /> Import din Excel făcut împreună</li>
                 <li className="flex gap-2"><MessageSquareText size={17} className="text-blue-600 shrink-0" /> SMS-urile configurate de pe telefonul stației</li>
-                <li className="flex gap-2"><CalendarClock size={17} className="text-blue-600 shrink-0" /> Pagina de programare gata de pus pe Google Maps</li>
+                <li className="flex gap-2"><CalendarClock size={17} className="text-blue-600 shrink-0" /> Programare online, cu link de pus (opțional) pe Google Maps sau Facebook</li>
               </ul>
             </div>
             <DemoForm />
