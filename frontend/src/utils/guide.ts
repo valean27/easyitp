@@ -26,7 +26,7 @@ export const FIRST_STEPS: { id: string; text: string; link: GuideLink }[] = [
   { id: 'statie', text: 'Completați numele, adresa și telefonul stației', link: { to: '/account#statie', label: 'Date stație' } },
   { id: 'import', text: 'Aduceți clienții existenți din Excel sau din aplicația veche', link: { to: '/', label: 'Import' } },
   { id: 'programare', text: 'Porniți programarea online și alegeți programul', link: { to: '/account#programare', label: 'Programare online' } },
-  { id: 'inspectori', text: 'Adăugați inspectorii stației', link: { to: '/account#inspectori', label: 'Inspectori' } },
+  { id: 'inspectori', text: 'Adăugați inspectorii stației, cu linia pe care lucrează fiecare', link: { to: '/inspectori', label: 'Inspectori' } },
   { id: 'sms', text: 'Alegeți cum pleacă SMS-urile și porniți reminderele automate', link: { to: '/account#sms', label: 'SMS automate' } },
   { id: 'rezumat', text: 'Primiți rezumatul de dimineață pe email sau WhatsApp', link: { to: '/account#rezumat', label: 'Rezumat zilnic' } },
   { id: 'afis', text: 'Tipăriți afișul cu QR și, dacă vreți, puneți linkul de programare pe Google Maps sau Facebook', link: { to: '/afis', label: 'Afiș cu QR' } },
@@ -192,6 +192,24 @@ export const GUIDE: GuideGroup[] = [
   {
     title: 'Pentru patron',
     sections: [
+      {
+        id: 'inspectori',
+        title: 'Inspectorii și dashboard-ul echipei',
+        intro: 'Echipa stației într-o pagină: cine sunt, pe ce linie lucrează și, în Pro, cât a lucrat fiecare.',
+        steps: [
+          'În meniu → Inspectori apăsați „+ Inspector”: nume, telefon, culoare, linia pe care lucrează de obicei și data atestatului.',
+          'Programările de pe o linie îi revin inspectorului liniei. O zi anume (concediu, înlocuire) o schimbați în „Cine e pe linii” sau direct în Calendar → „Pe linii”, din capul coloanei.',
+          'Pe o programare puteți alege alt inspector decât cel al liniei; în vederea pe linii apare cu inițialele lui.',
+          'La „Începe ITP” dintr-o programare, inspectorul ei se completează singur în formular.',
+          'Dashboard-ul (Pro) arată, pe perioada aleasă, ITP-urile, încasările, respingerile, zilele lucrate, programările și neprezentările fiecăruia, plus graficul pe zile și cine e azi pe ce linie.',
+        ],
+        tips: [
+          'Un inspector care a plecat îl marcați inactiv: nu mai apare la alegere, dar ITP-urile lui rămân în rapoarte.',
+          'Dacă îi schimbați numele, se schimbă și pe ITP-urile făcute de el.',
+          'Atestatul intră în termenele stației (Pro): primiți alertă pe dashboard și în rezumatul de dimineață înainte să expire.',
+        ],
+        links: [{ to: '/inspectori', label: 'Inspectori' }, { to: '/calendar', label: 'Calendar' }],
+      },
       {
         id: 'rapoarte',
         title: 'Rapoarte',

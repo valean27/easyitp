@@ -56,7 +56,7 @@ export const PLANS: PlanInfo[] = [
       'SMS automate de pe telefonul stației (nelimitat)',
       'Confirmare și reminder la programări',
       'Remindere RCA, rovinietă, tahograf',
-      'Rapoarte pentru patron, termenele stației',
+      'Rapoarte pentru patron, dashboard inspectori, termenele stației',
     ],
   },
   {

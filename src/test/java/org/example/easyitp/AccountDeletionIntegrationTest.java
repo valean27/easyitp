@@ -98,7 +98,7 @@ class AccountDeletionIntegrationTest {
 
         assertThat(deletionService.purgeDue(LocalDateTime.now().plusDays(31))).isEqualTo(1);
         assertThat(users.existsById(id)).isFalse();
-        for (String table : List.of("clients", "appointments", "fleets", "station_deadlines", "audit_events", "station_inspectors")) {
+        for (String table : List.of("clients", "appointments", "fleets", "station_deadlines", "audit_events", "inspectors")) {
             assertThat(count(table, "user_id", id)).as(table).isZero();
         }
         assertThat(jdbc.queryForObject("select count(*) from vehicles where license_plate = 'CJ01DEL'", Integer.class)).isZero();

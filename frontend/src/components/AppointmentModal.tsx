@@ -6,6 +6,8 @@ import type { Appointment, AppointmentStatus, VehicleCategory, VehicleType } fro
 import { formatTime } from '../utils/dates';
 import { APPOINTMENT_STATUS_LABELS, LEGACY_DURATION_MINUTES, appointmentMinutes } from '../utils/appointments';
 import { lineName } from '../utils/lines';
+import { getInspectorTeam } from '../api/inspectorApi';
+import type { Inspector } from '../types';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -19,6 +21,7 @@ interface AppointmentFormValues {
   vehicleCategory: VehicleCategory | '';
   durationMinutes: number;
   line?: number | null; // null = prima linie libera
+  inspectorId?: number | null; // null = cel de pe linie
 }
 
 interface Props {
@@ -43,6 +46,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
       vehicleCategory: appointment.vehicleCategory ?? '',
       durationMinutes: appointmentMinutes(appointment),
       line: appointment.line ?? null,
+      inspectorId: appointment.inspectorId ?? null,
     };
   }
   return {
@@ -54,6 +58,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
     vehicleCategory: '',
     durationMinutes: LEGACY_DURATION_MINUTES,
     line: null,
+    inspectorId: null,
     ...initial,
   };
 }
@@ -67,6 +72,13 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
   const [error, setError] = useState<string | null>(null);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [lineNames, setLineNames] = useState<string[]>([]);
+  const [team, setTeam] = useState<Inspector[]>([]);
+
+  useEffect(() => {
+    getInspectorTeam()
+      .then(setTeam)
+      .catch(() => setTeam([]));
+  }, []);
 
   // Duratele statiei pe tip de vehicul; o programare noua porneste ca autoturism
   useEffect(() => {
@@ -125,6 +137,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       vehicleCategory: form.vehicleCategory || null,
       durationMinutes: Number(form.durationMinutes),
       line: form.line ?? null,
+      inspectorId: form.inspectorId ?? null,
     };
     try {
       const saved = appointment
@@ -279,6 +292,30 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
                   Libere la ora asta: {freeLines.map((l) => lineName(lineNames, l)).join(', ')}.
                 </p>
               )}
+            </div>
+          )}
+          {team.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">Inspector</label>
+              <select
+                value={form.inspectorId ?? ''}
+                onChange={(e) => setForm((p) => ({ ...p, inspectorId: e.target.value ? Number(e.target.value) : null }))}
+                className={INPUT_CLS + ' bg-white'}
+              >
+                <option value="">
+                  {(() => {
+                    const onLine = team.find((i) => i.id === appointment?.lineInspectorId);
+                    return onLine && (form.line ?? appointment?.line) === appointment?.line ? `Cel de pe linie (${onLine.name})` : 'Cel de pe linie';
+                  })()}
+                </option>
+                {team
+                  .filter((i) => i.active || i.id === form.inspectorId)
+                  .map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.name}
+                    </option>
+                  ))}
+              </select>
             </div>
           )}
           {showConflicts && (

@@ -253,6 +253,9 @@ export interface Appointment {
   durationMinutes?: number | null;
   // linia ITP (1..numarul de linii); null la salvare = prima libera, la citire = nu mai incape pe nicio linie
   line?: number | null;
+  // inspectorul ales anume (null = cel de pe linie) si, doar la citire, cel care lucreaza pe linia programarii
+  inspectorId?: number | null;
+  lineInspectorId?: number | null;
   // bifa de acord pentru remindere din programarea online
   reminderConsent?: boolean | null;
   // ce a facut clientul din link-ul din SMS
@@ -607,4 +610,64 @@ export interface Invoice {
   clientName: string | null;
   einvoiceStatus: string | null;
   createdAt: string;
+}
+
+// Echipa de inspectori (pagina /inspectori)
+export type InspectorColor = 'blue' | 'orange' | 'aqua' | 'yellow' | 'magenta' | 'green' | 'violet' | 'red';
+
+export interface Inspector {
+  id: number;
+  name: string;
+  phone: string | null;
+  color: InspectorColor | null;
+  active: boolean;
+  defaultLine: number | null;
+  // din termenele statiei (atestatul inspectorului)
+  attestationUntil: string | null;
+  attestationDaysLeft: number | null;
+}
+
+export interface InspectorRequest {
+  name: string;
+  phone: string | null;
+  color: InspectorColor | null;
+  active: boolean;
+  defaultLine: number | null;
+  attestationUntil: string | null;
+}
+
+export interface LineShift {
+  line: number;
+  lineName: string;
+  inspectorId: number | null;
+  // DAY = ales pentru ziua asta, DEFAULT = linia obisnuita a inspectorului, NONE = nimeni
+  source: 'DAY' | 'DEFAULT' | 'NONE';
+}
+
+export interface InspectorStats {
+  key: string; // "id:<id>", "name:<nume vechi>" sau "none"
+  id: number | null;
+  name: string;
+  color: InspectorColor | null;
+  active: boolean;
+  itps: number;
+  passed: number;
+  failed: number;
+  recheck: number;
+  revenue: number;
+  daysWorked: number;
+  appointments: number;
+  completed: number;
+  noShows: number;
+  todayLine: number | null;
+  todayAppointments: number;
+}
+
+export interface InspectorDashboard {
+  from: string;
+  to: string;
+  totals: { itps: number; revenue: number; failed: number; appointments: number; noShows: number; activeInspectors: number };
+  inspectors: InspectorStats[];
+  days: { date: string; total: number; byInspector: { key: string; count: number }[] }[];
+  attestations: Inspector[];
 }

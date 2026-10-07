@@ -22,6 +22,7 @@ import {
   Star,
   ClipboardList,
   Printer,
+  HardHat,
 } from 'lucide-react';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import PhoneMockup from './landing/PhoneMockup';
@@ -68,6 +69,7 @@ const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: ShieldAlert, title: 'RCA, rovinietă, tahograf', text: 'Notați și celelalte scadențe ale mașinii; clientul e anunțat și pentru ele.' },
   { icon: Users, title: 'Clienți și istoric', text: 'Un client cu toate mașinile lui și istoricul ITP al fiecăreia; dublurile se unesc ușor.' },
   { icon: BarChart3, title: 'Rapoarte pentru patron', text: 'Încasări pe lună, rata de respingere pe inspector, clienții care nu s-au mai întors, neprezentări.' },
+  { icon: HardHat, title: 'Echipa și liniile', text: 'Fiecare inspector cu linia lui și culoarea lui în calendar; dashboard cu ITP-urile, încasările și respingerile fiecăruia.' },
   { icon: Truck, title: 'Flote și facturare', text: 'Firmele își văd mașinile și centralizatorul lunar; facturați prin Oblio, cu e-Factura.' },
   { icon: Star, title: 'Recenzii Google', text: 'După ITP, clientul primește linkul de recenzie; nota stației apare în lista publică de stații.' },
   { icon: ClipboardList, title: 'Termenele stației', text: 'Autorizația RAR, metrologia și atestatele inspectorilor, cu alertă înainte de expirare.' },

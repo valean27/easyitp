@@ -31,8 +31,9 @@ export function appointmentMinutes(a: Pick<Appointment, 'durationMinutes'>): num
 }
 
 // Datele pentru formularul de ITP pornit dintr-o programare
-export function itpPrefillFromAppointment(a: Appointment) {
+export function itpPrefillFromAppointment(a: Appointment, inspectorName?: string) {
   return {
+    ...(inspectorName ? { inspector: inspectorName } : {}),
     name: a.clientName,
     phone: a.phone ?? '',
     licensePlate: a.licensePlate ?? '',

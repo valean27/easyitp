@@ -22,6 +22,10 @@ public class AppointmentDTO {
     private Integer durationMinutes;
     // Linia ITP (1..numarul de linii); null la salvare = prima linie libera; null la citire = peste capacitate
     private Integer line;
+    // Inspectorul ales anume pe programare (null = al liniei)
+    private Long inspectorId;
+    // Doar la citire: inspectorul care lucreaza pe linia programarii in ziua ei
+    private Long lineInspectorId;
     private Boolean reminderConsent;
     // Ce a facut clientul din link-ul din SMS: CANCELLED / RESCHEDULED (null = nimic)
     private String clientAction;

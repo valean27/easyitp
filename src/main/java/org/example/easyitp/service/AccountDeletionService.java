@@ -53,7 +53,7 @@ public class AccountDeletionService {
         station.put("billingCity", u.getBillingCity());
         station.put("billingCounty", u.getBillingCounty());
         station.put("bookingSlug", u.getBookingSlug());
-        station.put("inspectors", List.copyOf(u.getInspectors()));
+        station.put("inspectors", jdbc.queryForList("select name, phone, active, default_line from inspectors where user_id = ? order by position", u.getId()));
 
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("exportedAt", LocalDateTime.now());
@@ -146,7 +146,8 @@ public class AccountDeletionService {
         jdbc.update("delete from payments where user_id = ?", id);
         jdbc.update("delete from sms_usage where user_id = ?", id);
         jdbc.update("delete from auth_tokens where user_id = ?", id);
-        jdbc.update("delete from station_inspectors where user_id = ?", id);
+        jdbc.update("delete from line_shifts where user_id = ?", id);
+        jdbc.update("delete from inspectors where user_id = ?", id);
         // cererea de retragere ramane (dovada primirii), fara legatura cu contul sters
         jdbc.update("update withdrawals set user_id = null where user_id = ?", id);
         jdbc.update("delete from app_users where id = ? and role = 'MANAGER'", id);

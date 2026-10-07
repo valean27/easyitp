@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen, HardHat } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -15,6 +15,8 @@ interface NavItem {
   short: string; // eticheta din bara de jos pe telefon
   icon: LucideIcon;
   end?: boolean;
+  // nu apare in bara de jos de pe telefon (e plina); pagina se deschide din Contul meu
+  desktopOnly?: boolean;
 }
 
 // Adminul nu are statie proprie: vede doar managerii si rapoartele
@@ -25,6 +27,7 @@ const MANAGER_NAV: NavItem[] = [
   { to: '/calendar', label: 'Calendar', short: 'Calendar', icon: CalendarDays },
   { to: '/fleets', label: 'Flote', short: 'Flote', icon: Truck },
   { to: '/reports', label: 'Rapoarte', short: 'Rapoarte', icon: BarChart3 },
+  { to: '/inspectori', label: 'Inspectori', short: 'Inspectori', icon: HardHat, desktopOnly: true },
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];
 
@@ -144,7 +147,7 @@ export default function Layout() {
             className="md:hidden shrink-0 flex bg-white border-t border-slate-200"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            {items.map(({ to, short, icon: Icon, end }) => (
+            {items.filter((i) => !i.desktopOnly).map(({ to, short, icon: Icon, end }) => (
               <NavLink key={to} to={to} end={end} className={tabCls}>
                 <Icon size={20} />
                 {short}

@@ -35,12 +35,11 @@ import java.util.Map;
 public class AccountController {
 
     private static final int MIN_PASSWORD_LENGTH = 6;
-    private static final int MAX_INSPECTORS = 30;
-    private static final int MAX_INSPECTOR_NAME = 80;
 
     private final AppUserRepository appUserRepository;
     private final CurrentUser currentUser;
     private final BookingService bookingService;
+    private final org.example.easyitp.service.InspectorService inspectorService;
     private final DigestService digestService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -212,30 +211,15 @@ public class AccountController {
         return bookingService.updateSettings(currentUser.get(), request);
     }
 
-    // Inspectorii statiei, pentru formularul ITP si rapoarte
+    // Numele inspectorilor activi, pentru formularul ITP si termenele statiei (echipa se gestioneaza in /api/inspectors)
     @GetMapping("/inspectors")
     public List<String> getInspectors() {
-        return List.copyOf(currentUser.get().getInspectors());
+        return inspectorService.activeNames(currentUser.get());
     }
 
     @PutMapping("/inspectors")
     public List<String> updateInspectors(@RequestBody List<String> names) {
-        Map<String, String> unique = new LinkedHashMap<>();
-        for (String name : names == null ? List.<String>of() : names) {
-            String trimmed = trimToNull(name);
-            if (trimmed == null) continue;
-            if (trimmed.length() > MAX_INSPECTOR_NAME) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Numele inspectorului este prea lung");
-            }
-            unique.putIfAbsent(trimmed.toLowerCase(Locale.ROOT), trimmed);
-        }
-        if (unique.size() > MAX_INSPECTORS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Maxim " + MAX_INSPECTORS + " inspectori");
-        }
-        AppUser user = currentUser.get();
-        user.getInspectors().clear();
-        user.getInspectors().addAll(unique.values());
-        return List.copyOf(appUserRepository.save(user).getInspectors());
+        return inspectorService.replaceNames(currentUser.get(), names);
     }
 
     @GetMapping("/digest")

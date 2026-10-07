@@ -24,6 +24,7 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final BookingService bookingService;
+    private final InspectorService inspectorService;
 
     // Programarile din interval; cele vechi, fara linie, primesc linia pe care incap in ziua lor (doar la afisare)
     public List<AppointmentDTO> getAppointments(AppUser station, LocalDateTime start, LocalDateTime end) {
@@ -36,10 +37,17 @@ public class AppointmentService {
                 .values()
                 .forEach(day -> lines.putAll(LinePlanner.assign(day.stream().map(BookingService::booked).toList(),
                         BookingService.lines(station))));
+        // doar zilele cu programari (intervalul cerut poate fi oricat de lung)
+        Map<java.time.LocalDate, Map<Integer, Long>> onLines = appts.isEmpty() ? Map.of()
+                : inspectorService.lineInspectors(station, appts.get(0).getAppointmentDate().toLocalDate(),
+                        appts.get(appts.size() - 1).getAppointmentDate().toLocalDate());
         return appts.stream()
                 .map(a -> {
                     AppointmentDTO dto = toDto(a);
                     if (a.getLine() == null) dto.setLine(lines.get(a.getId()));
+                    if (dto.getLine() != null) {
+                        dto.setLineInspectorId(onLines.getOrDefault(a.getAppointmentDate().toLocalDate(), Map.of()).get(dto.getLine()));
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -67,6 +75,7 @@ public class AppointmentService {
     public AppointmentDTO create(AppointmentDTO dto, AppUser user) {
         validate(dto);
         validateLine(dto.getLine(), user);
+        inspectorService.requireOwn(user, dto.getInspectorId());
         Appointment appt = Appointment.builder()
                 .clientName(dto.getClientName().trim())
                 .phone(dto.getPhone())
@@ -75,6 +84,7 @@ public class AppointmentService {
                 .status(dto.getStatus() != null ? dto.getStatus() : AppointmentStatus.SCHEDULED)
                 .vehicleCategory(dto.getVehicleCategory())
                 .durationMinutes(duration(dto, user))
+                .inspectorId(dto.getInspectorId())
                 .user(user)
                 .build();
         // Linia aleasa de manager (chiar daca e ocupata, ca pana acum); fara linie = prima libera
@@ -87,7 +97,9 @@ public class AppointmentService {
     public AppointmentDTO update(Long id, AppointmentDTO dto, AppUser station) {
         validate(dto);
         validateLine(dto.getLine(), station);
+        inspectorService.requireOwn(station, dto.getInspectorId());
         Appointment appt = find(id, station.getId());
+        appt.setInspectorId(dto.getInspectorId());
         appt.setClientName(dto.getClientName().trim());
         appt.setPhone(dto.getPhone());
         appt.setLicensePlate(dto.getLicensePlate());
@@ -164,6 +176,7 @@ public class AppointmentService {
         dto.setVehicleCategory(appt.getVehicleCategory());
         dto.setDurationMinutes(InspectionDurations.minutesOf(appt));
         dto.setLine(appt.getLine());
+        dto.setInspectorId(appt.getInspectorId());
         dto.setReminderConsent(appt.getReminderConsent());
         dto.setClientAction(appt.getClientAction());
         dto.setClientActionAt(appt.getClientActionAt());

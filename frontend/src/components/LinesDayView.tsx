@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Globe, CheckCircle2 } from 'lucide-react';
-import type { Appointment, AppointmentStatus } from '../types';
+import type { Appointment, AppointmentStatus, Inspector, LineShift } from '../types';
+import { colorHex, initials } from '../utils/inspectors';
+import { useTheme } from '../context/theme';
 import DateField from './DateField';
 import { todayIso } from '../utils/dates';
 import { VEHICLE_SHORT_LABELS, appointmentMinutes } from '../utils/appointments';
@@ -43,6 +45,9 @@ interface Props {
   lineNames: string[];
   open?: string; // HH:mm:ss, programul statiei
   close?: string;
+  team: Inspector[];
+  shifts: LineShift[];
+  onShiftChange: (line: number, inspectorId: number | null, reset: boolean) => void;
   onCreate: (dateTime: string, line: number | null) => void;
   onOpen: (appointment: Appointment) => void;
   onMove: (appointment: Appointment, dateTime: string, line: number | null) => void;
@@ -61,7 +66,21 @@ function dayLabel(iso: string): string {
 
 const clampMinute = (m: number, minutes: number) => Math.min(Math.max(m, START_HOUR * 60), END_HOUR * 60 - minutes);
 
-export default function LinesDayView({ date, onDateChange, appointments, lineNames, open, close, onCreate, onOpen, onMove }: Props) {
+export default function LinesDayView({
+  date,
+  onDateChange,
+  appointments,
+  lineNames,
+  open,
+  close,
+  team,
+  shifts,
+  onShiftChange,
+  onCreate,
+  onOpen,
+  onMove,
+}: Props) {
+  const { resolved } = useTheme();
   const columnsRef = useRef<(HTMLDivElement | null)[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
@@ -148,7 +167,7 @@ export default function LinesDayView({ date, onDateChange, appointments, lineNam
         <div className="flex min-w-max">
           {/* Orele */}
           <div className="sticky left-0 z-20 w-12 shrink-0 bg-white">
-            <div className="sticky top-0 z-10 h-14 bg-white border-b border-slate-200" />
+            <div className={`sticky top-0 z-10 ${team.length ? 'h-[5.25rem]' : 'h-14'} bg-white border-b border-slate-200`} />
             {hours.map((h) => (
               <div key={h} style={{ height: HOUR_PX }} className="relative border-r border-slate-100">
                 <span className="absolute -top-2 right-1.5 text-[11px] tabular-nums text-slate-400">{h}:00</span>
@@ -161,7 +180,7 @@ export default function LinesDayView({ date, onDateChange, appointments, lineNam
             const busy = line === null ? null : occupancy(list, openMinute, closeMinute);
             return (
               <div key={line ?? 'none'} className="flex-1 min-w-[9.5rem] border-r border-slate-100 last:border-r-0">
-                <div className="sticky top-0 z-10 h-14 px-2 flex flex-col justify-center bg-white border-b border-slate-200">
+                <div className={`sticky top-0 z-10 ${team.length ? 'h-[5.25rem]' : 'h-14'} px-2 flex flex-col justify-center bg-white border-b border-slate-200`}>
                   <p className={`truncate text-sm font-semibold ${line === null ? 'text-amber-700' : 'text-slate-800'}`}>
                     {line === null ? 'Fără linie liberă' : lineName(lineNames, line)}
                     {line !== null && line > lineNames.length && <span className="font-normal text-slate-400"> (scoasă)</span>}
@@ -170,6 +189,14 @@ export default function LinesDayView({ date, onDateChange, appointments, lineNam
                     {list.length} {list.length === 1 ? 'programare' : 'programări'}
                     {busy !== null && ` · ${busy}% ocupat`}
                   </p>
+                  {team.length > 0 && line !== null && line <= lineNames.length && (
+                    <LineInspector
+                      shift={shifts.find((s) => s.line === line)}
+                      team={team}
+                      mode={resolved}
+                      onChange={(id, reset) => onShiftChange(line, id, reset)}
+                    />
+                  )}
                 </div>
                 <div
                   ref={(el) => {
@@ -254,6 +281,18 @@ export default function LinesDayView({ date, onDateChange, appointments, lineNam
                           {a.source === 'ONLINE' && <Globe size={11} className="shrink-0" />}
                           {a.itpRecordId && <CheckCircle2 size={11} className="shrink-0" />}
                           <span className="truncate">{a.clientName}</span>
+                          {a.inspectorId != null && a.inspectorId !== a.lineInspectorId && (() => {
+                            const who = team.find((i) => i.id === a.inspectorId);
+                            return who ? (
+                              <span
+                                className="ml-auto flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
+                                style={{ background: colorHex(who.color, resolved) }}
+                                title={`Inspector: ${who.name}`}
+                              >
+                                {initials(who.name)}
+                              </span>
+                            ) : null;
+                          })()}
                         </span>
                         {minutes >= 20 && (
                           <span className="block truncate opacity-80">
@@ -270,6 +309,46 @@ export default function LinesDayView({ date, onDateChange, appointments, lineNam
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Inspectorul liniei in ziua afisata: cel ales pentru ziua asta, cel care lucreaza de obicei pe linie sau nimeni
+function LineInspector({
+  shift,
+  team,
+  mode,
+  onChange,
+}: {
+  shift: LineShift | undefined;
+  team: Inspector[];
+  mode: 'light' | 'dark';
+  onChange: (inspectorId: number | null, reset: boolean) => void;
+}) {
+  const who = team.find((i) => i.id === shift?.inspectorId);
+  return (
+    <div className="mt-1 flex items-center gap-1.5">
+      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: who ? colorHex(who.color, mode) : 'var(--color-slate-300)' }} />
+      <select
+        value={shift?.source === 'DAY' ? (shift.inspectorId ?? 'none') : ''}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === '') onChange(null, true);
+          else onChange(v === 'none' ? null : Number(v), false);
+        }}
+        aria-label="Inspectorul liniei în ziua asta"
+        className="min-w-0 flex-1 truncate rounded border border-slate-200 bg-white px-1 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        <option value="">{shift?.source === 'DEFAULT' && who ? `${who.name} (de obicei)` : 'Nimeni (de obicei)'}</option>
+        <option value="none">Nimeni azi</option>
+        {team
+          .filter((i) => i.active)
+          .map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
+            </option>
+          ))}
+      </select>
     </div>
   );
 }

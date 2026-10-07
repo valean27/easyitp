@@ -15,6 +15,7 @@ const CalendarPage = lazy(() => import('./components/CalendarPage'));
 const AccountPage = lazy(() => import('./components/AccountPage'));
 const RemindersPage = lazy(() => import('./components/RemindersPage'));
 const ReportsPage = lazy(() => import('./components/ReportsPage'));
+const InspectorsPage = lazy(() => import('./components/InspectorsPage'));
 const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const StopPage = lazy(() => import('./components/StopPage'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
@@ -172,6 +173,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole={['ADMIN', 'MANAGER']}>
                   <ReportsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="inspectori"
+              element={
+                <ProtectedRoute requiredRole="MANAGER">
+                  <InspectorsPage />
                 </ProtectedRoute>
               }
             />

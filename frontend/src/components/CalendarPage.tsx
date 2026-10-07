@@ -7,7 +7,9 @@ import { ro } from 'date-fns/locale';
 import { Loader2, AlertTriangle, CalendarDays, Columns3 } from 'lucide-react';
 import { getAppointments, updateAppointment } from '../api/appointmentApi';
 import { getBookingSettings } from '../api/accountApi';
-import type { Appointment, AppointmentStatus, BookingSettings } from '../types';
+import { getInspectorTeam, getLineShifts, setLineShift } from '../api/inspectorApi';
+import type { Appointment, AppointmentStatus, BookingSettings, Inspector, LineShift } from '../types';
+import { appointmentInspector } from '../utils/inspectors';
 import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
 import LinesDayView from './LinesDayView';
@@ -84,7 +86,7 @@ function rangeAround(date: Date): { start: Date; end: Date; key: string } {
 }
 
 // multiLine: statia are mai multe linii, deci titlul incepe cu linia (L1, L2 ...)
-function toEvent(a: Appointment, multiLine: boolean): SchedulerEvent {
+function toEvent(a: Appointment, multiLine: boolean, team: Inspector[]): SchedulerEvent {
   const start = a.appointmentDate.slice(0, 19);
   const line = multiLine && a.status !== 'CANCELLED' ? (a.line ? `L${a.line} · ` : '⚠ ') : '';
   return {
@@ -94,6 +96,7 @@ function toEvent(a: Appointment, multiLine: boolean): SchedulerEvent {
       [
         a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null,
         a.phone,
+        appointmentInspector(a, team)?.name ?? null,
         a.clientAction === 'CANCELLED' ? 'Anulat de client' : a.status === 'CANCELLED' ? 'Anulat' : null,
         a.clientAction === 'RESCHEDULED' ? 'Mutat de client' : null,
         a.status === 'NO_SHOW' ? 'Neprezentat' : null,
@@ -129,6 +132,8 @@ export default function CalendarPage() {
   const [mode, setMode] = useState<Mode>(savedMode);
   const [linesDate, setLinesDate] = useState(todayIso);
   const [settings, setSettings] = useState<BookingSettings | null>(null);
+  const [team, setTeam] = useState<Inspector[]>([]);
+  const [shifts, setShifts] = useState<LineShift[]>([]);
   const [editAppt, setEditAppt] = useState<Appointment | null>(null);
   const [itpFor, setItpFor] = useState<Appointment | null>(null);
 
@@ -151,11 +156,27 @@ export default function CalendarPage() {
   // Liniile statiei (numar si nume) si programul, pentru vederea "Pe linii"
   useEffect(() => {
     getBookingSettings().then(setSettings).catch(() => setSettings(null));
+    getInspectorTeam().then(setTeam).catch(() => setTeam([]));
   }, []);
+
+  // Cine e pe fiecare linie in ziua din vederea "Pe linii"
+  useEffect(() => {
+    if (mode !== 'lines') return;
+    getLineShifts(linesDate).then(setShifts).catch(() => setShifts([]));
+  }, [mode, linesDate]);
+
+  const changeShift = async (line: number, inspectorId: number | null, reset: boolean) => {
+    try {
+      setShifts(await setLineShift(linesDate, line, inspectorId, reset));
+      fetchRange();
+    } catch {
+      setError('Inspectorul liniei nu a putut fi schimbat.');
+    }
+  };
 
   const lineNames = settings?.lineNames ?? [''];
   const multiLine = lineNames.length > 1;
-  const events = useMemo(() => appointments.map((a) => toEvent(a, multiLine)), [appointments, multiLine]);
+  const events = useMemo(() => appointments.map((a) => toEvent(a, multiLine, team)), [appointments, multiLine, team]);
 
   const changeMode = (next: Mode) => {
     setMode(next);
@@ -191,6 +212,7 @@ export default function CalendarPage() {
         vehicleCategory: old.vehicleCategory,
         durationMinutes: old.durationMinutes,
         line,
+        inspectorId: old.inspectorId ?? null,
       });
       handleSaved(saved);
       setError(null);
@@ -271,6 +293,9 @@ export default function CalendarPage() {
               lineNames={lineNames}
               open={settings?.open}
               close={settings?.close}
+              team={team}
+              shifts={shifts}
+              onShiftChange={changeShift}
               onCreate={(appointmentDate, line) => setCreateAt({ appointmentDate, line })}
               onOpen={setEditAppt}
               onMove={moveAppointment}
@@ -340,7 +365,7 @@ export default function CalendarPage() {
 
       {itpFor && (
         <AddItpModal
-          prefill={itpPrefillFromAppointment(itpFor)}
+          prefill={itpPrefillFromAppointment(itpFor, appointmentInspector(itpFor, team)?.name)}
           appointmentId={itpFor.id}
           onClose={() => setItpFor(null)}
           onSuccess={fetchRange}

@@ -48,7 +48,7 @@ public class SecurityConfig {
                 // Conturile de flota vad doar portalul lor si isi pot schimba parola
                 .requestMatchers("/api/fleet-portal/**").hasRole("FLEET")
                 .requestMatchers("/api/account/me", "/api/account/password").authenticated()
-                .requestMatchers("/api/fleets/**", "/api/clients/**", "/api/history/**", "/api/station-deadlines/**", "/api/invoicing/**", "/api/billing/**").hasRole("MANAGER")
+                .requestMatchers("/api/fleets/**", "/api/clients/**", "/api/history/**", "/api/station-deadlines/**", "/api/inspectors/**", "/api/invoicing/**", "/api/billing/**").hasRole("MANAGER")
                 .anyRequest().hasAnyRole("ADMIN", "MANAGER")
             )
             // Token lipsa/expirat -> 401, ca frontend-ul sa poata deloga utilizatorul

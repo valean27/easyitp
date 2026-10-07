@@ -448,6 +448,86 @@ class ApiIntegrationTest {
         return "Bearer " + token;
     }
 
+    @Test
+    void inspectorsTeamLinesAppointmentsAndDashboard() throws Exception {
+        mvc.perform(put("/api/account/booking").header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"open\":\"08:00\",\"close\":\"17:00\",\"days\":[1,2,3,4,5,6,7],\"capacity\":2}"))
+                .andExpect(status().isOk());
+        long ana = json.readTree(sendJson(post("/api/inspectors"), "{\"name\":\" Ana  Marin \",\"phone\":\"0722 111 222\",\"defaultLine\":1}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Ana Marin"))
+                .andExpect(jsonPath("$.color").value("blue"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+        long ion = json.readTree(sendJson(post("/api/inspectors"), "{\"name\":\"Ion Pop\"}")
+                .andExpect(jsonPath("$.color").value("orange"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+        sendJson(post("/api/inspectors"), "{\"name\":\"ana marin\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.field").value("name"));
+        sendJson(post("/api/inspectors"), "{\"name\":\"Dan\",\"defaultLine\":3}").andExpect(jsonPath("$.field").value("defaultLine"));
+        assertThat(getJson("/api/account/inspectors", manager).toString()).isEqualTo("[\"Ana Marin\",\"Ion Pop\"]");
+
+        // azi: Ana pe linia 1 (linia ei), linia 2 libera; Ion e pus pe linia 2 doar azi
+        LocalDate today = LocalDate.now();
+        JsonNode shifts = getJson("/api/inspectors/shifts?date=" + today, manager);
+        assertThat(shifts.get(0).get("inspectorId").asLong()).isEqualTo(ana);
+        assertThat(shifts.get(0).get("source").asText()).isEqualTo("DEFAULT");
+        assertThat(shifts.get(1).get("source").asText()).isEqualTo("NONE");
+        shifts = json.readTree(sendJson(put("/api/inspectors/shifts"), "{\"date\":\"" + today + "\",\"line\":2,\"inspectorId\":" + ion + "}")
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8));
+        assertThat(shifts.get(1).get("inspectorId").asLong()).isEqualTo(ion);
+        assertThat(shifts.get(1).get("source").asText()).isEqualTo("DAY");
+
+        // programarile: inspectorul liniei sau cel ales anume
+        String at = today + "T23:00:00";
+        sendJson(post("/api/appointments"), "{\"clientName\":\"Client L2\",\"appointmentDate\":\"" + at + "\",\"durationMinutes\":20,\"line\":2}")
+                .andExpect(status().isCreated());
+        sendJson(post("/api/appointments"), "{\"clientName\":\"Client Ana\",\"appointmentDate\":\"" + at + "\",\"durationMinutes\":20,\"line\":2,\"inspectorId\":" + ana + "}")
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.inspectorId").value(ana));
+        sendJson(post("/api/appointments"), "{\"clientName\":\"Strain\",\"appointmentDate\":\"" + at + "\",\"inspectorId\":999999}")
+                .andExpect(status().isNotFound());
+        JsonNode calendar = getJson("/api/appointments?start=" + today + "T00:00:00&end=" + today + "T23:59:59", manager);
+        assertThat(calendar).hasSize(2);
+        assertThat(calendar.findValues("lineInspectorId").stream().map(JsonNode::asLong).toList()).containsOnly(ion);
+
+        // ITP-urile, dupa nume; la redenumire numele se schimba si pe ITP-uri
+        createItp(manager, "Client A", "CJ20INS", today, Map.of("inspector", "Ana Marin", "price", 150));
+        createItp(manager, "Client B", "CJ21INS", today, Map.of("inspector", "Ana Marin", "status", "FAILED", "price", 150));
+        createItp(manager, "Client C", "CJ22INS", today, Map.of("inspector", "Ion Pop", "price", 100));
+        sendJson(put("/api/inspectors/" + ana), "{\"name\":\"Ana Pop\",\"defaultLine\":1,\"active\":true}").andExpect(status().isOk());
+        assertThat(getJson("/api/itp/dashboard", manager).toString()).contains("\"inspector\":\"Ana Pop\"").doesNotContain("Ana Marin");
+
+        JsonNode dash = getJson("/api/inspectors/dashboard?from=" + today.withDayOfMonth(1) + "&to=" + today, manager);
+        assertThat(dash.get("totals").get("itps").asLong()).isEqualTo(3);
+        assertThat(dash.get("totals").get("activeInspectors").asInt()).isEqualTo(2);
+        JsonNode first = dash.get("inspectors").get(0);
+        assertThat(first.get("name").asText()).isEqualTo("Ana Pop");
+        assertThat(first.get("itps").asLong()).isEqualTo(2);
+        assertThat(first.get("failed").asLong()).isEqualTo(1);
+        assertThat(first.get("revenue").asDouble()).isEqualTo(300.0);
+        assertThat(first.get("appointments").asLong()).isEqualTo(1);
+        assertThat(first.get("todayLine").asInt()).isEqualTo(1);
+        JsonNode second = dash.get("inspectors").get(1);
+        assertThat(second.get("name").asText()).isEqualTo("Ion Pop");
+        assertThat(second.get("appointments").asLong()).isEqualTo(1);
+        assertThat(second.get("todayLine").asInt()).isEqualTo(2);
+        assertThat(dash.get("days").get(dash.get("days").size() - 1).get("total").asLong()).isEqualTo(3);
+
+        // stergerea pastreaza numele pe ITP-uri si scoate inspectorul de pe programari
+        mvc.perform(delete("/api/inspectors/" + ana).header("Authorization", bearer(manager))).andExpect(status().isNoContent());
+        assertThat(getJson("/api/itp/dashboard", manager).toString()).contains("\"inspector\":\"Ana Pop\"");
+        assertThat(getJson("/api/appointments?start=" + today + "T00:00:00&end=" + today + "T23:59:59", manager)
+                .findValues("inspectorId").stream().filter(n -> !n.isNull()).toList()).isEmpty();
+        // alta statie nu vede si nu poate folosi inspectorii
+        mvc.perform(put("/api/inspectors/" + ion).header("Authorization", bearer(otherManager)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"X\"}")).andExpect(status().isNotFound());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions sendJson(
+            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, String body) throws Exception {
+        return mvc.perform(request.header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON).content(body));
+    }
+
     private JsonNode getJson(String url, String token) throws Exception {
         String body = mvc.perform(get(url).header("Authorization", bearer(token)))
                 .andExpect(status().isOk())

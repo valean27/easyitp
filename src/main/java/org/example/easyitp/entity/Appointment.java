@@ -50,6 +50,10 @@ public class Appointment {
     @Column(name = "line_no")
     private Integer line;
 
+    // Inspectorul ales anume (null = cel care lucreaza pe linia programarii in ziua ei)
+    @Column(name = "inspector_id")
+    private Long inspectorId;
+
     // Bifa de acord pentru remindere din programarea online; trece la client cand se face ITP-ul
     @Column(name = "reminder_consent")
     private Boolean reminderConsent;
