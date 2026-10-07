@@ -105,7 +105,8 @@ function Privacy() {
           <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește;</li>
           <li>emiterea facturilor în contul de facturare al stației (Oblio) și, de acolo, în e-Factura (ANAF), dacă stația le folosește;</li>
           <li>plata abonamentului cu cardul (NETOPIA Payments) și factura abonamentului (Oblio, e-Factura);</li>
-          <li>nota și recenziile stației de pe Google (Google Places), doar date publice ale stației, fără date despre clienți.</li>
+          <li>nota și recenziile stației de pe Google (Google Places), doar date publice ale stației, fără date despre clienți;</li>
+          <li>harta Google Maps de pe pagina Stații ITP: se încarcă doar după ce scrieți un oraș, iar Google primește orașul căutat și adresa IP a dispozitivului (conform politicii Google).</li>
         </ul>
         <p>
           Unii furnizori pot prelucra date în afara Uniunii Europene; în aceste cazuri transferul se face pe baza garanțiilor prevăzute de

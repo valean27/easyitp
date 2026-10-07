@@ -131,24 +131,6 @@ class GoogleRatingIntegrationTest {
         rating = 4.6;
     }
 
-    @Test
-    void driversSearchItpStationsInTheirCityAndOurStationsGetABookingLink() throws Exception {
-        users.save(AppUser.builder().email("g2@itp.ro").password(encoder.encode(PASSWORD)).role(Role.MANAGER)
-                .stationName("ITP Exemplu").bookingEnabled(true).bookingSlug("itp-exemplu-2")
-                .googlePlaceId("ChIJplaceIdExemplu").build());
-
-        mvc.perform(get("/api/public/nearby-stations/available")).andExpect(jsonPath("$.available").value(true));
-        mvc.perform(get("/api/public/nearby-stations").param("city", "x")).andExpect(status().isBadRequest());
-        mvc.perform(get("/api/public/nearby-stations").param("city", "Cluj<script>")).andExpect(status().isBadRequest());
-
-        mvc.perform(get("/api/public/nearby-stations").param("city", "Cluj-Napoca"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("ITP Exemplu"))
-                .andExpect(jsonPath("$[0].rating").value(4.6))
-                .andExpect(jsonPath("$[0].mapsUrl").value("https://maps.google.com/?cid=123"))
-                .andExpect(jsonPath("$[0].slug").value("itp-exemplu-2"));
-    }
-
     private String login() throws Exception {
         String body = mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"g1@itp.ro\",\"password\":\"" + PASSWORD + "\"}"))

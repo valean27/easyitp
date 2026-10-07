@@ -101,21 +101,3 @@ export const submitLead = (data: LeadData): Promise<void> =>
 // Functia de retragere din contract (pagina /retragere); intoarce mesajul de confirmare
 export const submitWithdrawal = (data: { name: string; email: string; contract: string; message: string; website: string }): Promise<string> =>
   publicApi.post('/api/public/withdrawal', data).then((r) => r.data.message);
-
-// "Caută stație ITP în zona ta": stațiile de pe Google dintr-un oraș (căutare live, nimic păstrat)
-export interface NearbyStation {
-  name: string;
-  address: string | null;
-  phone: string | null;
-  rating: number | null;
-  ratingCount: number | null;
-  mapsUrl: string | null;
-  // pagina de programare, când stația e în Easy ITP
-  slug: string | null;
-}
-
-export const getNearbyAvailable = (): Promise<boolean> =>
-  publicApi.get('/api/public/nearby-stations/available').then((r) => !!r.data?.available);
-
-export const searchNearbyStations = (city: string): Promise<NearbyStation[]> =>
-  publicApi.get('/api/public/nearby-stations', { params: { city } }).then((r) => r.data);
