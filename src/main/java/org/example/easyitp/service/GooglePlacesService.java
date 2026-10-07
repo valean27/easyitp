@@ -32,7 +32,8 @@ public class GooglePlacesService {
     private final AppUserRepository appUserRepository;
     private final RestClient client;
 
-    public record Place(String id, String name, String address, Double rating, Integer ratingCount, String mapsUrl) {
+    public record Place(String id, String name, String address, Double rating, Integer ratingCount, String mapsUrl,
+                        String phone) {
     }
 
     public GooglePlacesService(@Value("${google.places.api-key:}") String apiKey,
@@ -59,6 +60,20 @@ public class GooglePlacesService {
                         + "places.userRatingCount,places.googleMapsUri")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("textQuery", query, "languageCode", "ro", "regionCode", "RO", "pageSize", 5))
+                .retrieve().body(JsonNode.class));
+        List<Place> places = new ArrayList<>();
+        for (JsonNode p : body.path("places")) places.add(place(p));
+        return places;
+    }
+
+    // Statiile ITP dintr-un oras, pentru soferi (pagina /statii): cautare live, nimic nu se pastreaza
+    public List<Place> searchItpStations(String city) {
+        JsonNode body = call(() -> client.post().uri("/places:searchText")
+                .header("X-Goog-Api-Key", apiKey)
+                .header("X-Goog-FieldMask", "places.id,places.displayName,places.formattedAddress,places.rating,"
+                        + "places.userRatingCount,places.googleMapsUri,places.nationalPhoneNumber")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("textQuery", "stație ITP " + city, "languageCode", "ro", "regionCode", "RO", "pageSize", 20))
                 .retrieve().body(JsonNode.class));
         List<Place> places = new ArrayList<>();
         for (JsonNode p : body.path("places")) places.add(place(p));
@@ -121,7 +136,7 @@ public class GooglePlacesService {
                 p.path("formattedAddress").asText(null),
                 p.hasNonNull("rating") ? p.get("rating").asDouble() : null,
                 p.hasNonNull("userRatingCount") ? p.get("userRatingCount").asInt() : null,
-                p.path("googleMapsUri").asText(null));
+                p.path("googleMapsUri").asText(null), p.path("nationalPhoneNumber").asText(null));
     }
 
     private JsonNode call(java.util.function.Supplier<JsonNode> request) {

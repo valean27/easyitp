@@ -5,6 +5,7 @@ import { getPublicStations, type PublicStationSummary } from '../api/publicApi';
 import { WEEKDAYS_SHORT } from '../utils/booking';
 import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import StarRating from './StarRating';
+import NearbyStationsSearch from './NearbyStationsSearch';
 import { usePageTitle } from '../utils/pageTitle';
 
 // Linkul stației pe Google Maps, altfel o căutare după nume + adresă
@@ -138,6 +139,7 @@ export default function StationsPage() {
               </ul>
             </>
           )}
+          <NearbyStationsSearch />
           <p className="mt-10 text-center text-sm text-slate-500">
             Ai o stație ITP și vrei să apari aici?{' '}
             <Link to="/#demo" className="font-semibold text-blue-600 hover:underline">Cere o demonstrație</Link>
