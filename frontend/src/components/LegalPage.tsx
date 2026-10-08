@@ -298,7 +298,8 @@ function Terms() {
           <li>
             <b>Confidențialitate și securitate.</b> Accesul la date îl au doar persoanele care întrețin serviciul, obligate la
             confidențialitate. Folosim conexiuni criptate (https), parole criptate, separarea datelor pe stație, limitarea încercărilor
-            de logare, copii de siguranță și jurnalul modificărilor.
+            de logare, copii de siguranță și jurnalul modificărilor. Conturile de inspector le creează stația pentru oamenii ei; ele văd
+            doar programările inspectorului respectiv, iar stația răspunde de cine le primește și le poate închide oricând.
           </li>
           <li>
             <b>Împuterniciți secundari.</b> Stația autorizează folosirea furnizorilor enumerați în politica de confidențialitate

@@ -28,6 +28,10 @@ const QUESTIONS: { q: string; a: string }[] = [
     a: 'Da. Formularul ITP, calendarul și lista „De contactat” sunt gândite pentru telefon. Puteți scana talonul cu camera, iar datele mașinii se completează singure.',
   },
   {
+    q: 'Avem mai mulți inspectori și mai multe linii.',
+    a: 'Fiecare linie are coloana ei în calendar, iar clienții se pot programa la aceeași oră cât timp o linie e liberă. Inspectorii au linia și programul lor; concediile le bifați pe zile, iar în zilele acelea linia rămâne liberă pentru un înlocuitor. Fiecare inspector poate avea cont propriu, ca să-și vadă ziua pe telefon.',
+  },
+  {
     q: 'Am clienți firme, cu flote de mașini.',
     a: 'Fiecare firmă poate primi un cont propriu, în care își vede mașinile, scadențele ITP și centralizatorul lunar.',
   },
@@ -41,7 +45,7 @@ const QUESTIONS: { q: string; a: string }[] = [
   },
   {
     q: 'Cine vede datele stației?',
-    a: 'Doar contul stației. Fiecare stație își vede numai clienții ei, iar orice modificare sau ștergere rămâne în istoric și poate fi anulată.',
+    a: 'Contul stației vede tot; inspectorii cărora le faceți cont văd doar programările lor (cu numele și telefonul clientului) și programul lor. Fiecare stație își vede numai clienții ei, iar orice modificare sau ștergere rămâne în istoric și poate fi anulată.',
   },
 ];
 
