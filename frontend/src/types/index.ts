@@ -179,6 +179,8 @@ export interface BookingSettings {
   publicListing: boolean;
   // numele liniilor, cate unul pe linie ("" = "Linia N")
   lineNames: string[];
+  // managerul primeste email la fiecare programare online
+  emailNotify: boolean;
 }
 
 export interface PublicStation {
@@ -244,6 +246,8 @@ export interface Appointment {
   clientName: string;
   phone: string | null;
   licensePlate: string | null;
+  // emailul optional al clientului (confirmarea cu link de calendar)
+  email?: string | null;
   appointmentDate: string;
   status: AppointmentStatus;
   itpRecordId?: number | null;

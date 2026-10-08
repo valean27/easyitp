@@ -71,9 +71,10 @@ function Privacy() {
             confirmarea (obligație legală).
           </li>
           <li>
-            <b>Programarea online la o stație:</b> nume, telefon, număr de înmatriculare, tipul vehiculului, data și ora, ca stația să vă
-            poată primi; dacă stația le folosește, primiți un SMS de confirmare și unul cu o zi înainte, cu un link din care vă
-            puteți anula sau muta programarea.
+            <b>Programarea online la o stație:</b> nume, telefon, număr de înmatriculare, tipul vehiculului, data și ora și, dacă îl
+            completați, emailul, ca stația să vă poată primi; dacă stația le folosește, primiți un SMS de confirmare și unul cu o zi
+            înainte, cu un link din care vă puteți anula sau muta programarea. Dacă ați lăsat emailul, primiți confirmarea și
+            schimbările și pe email (prin Resend), cu link pentru calendar; emailul nu e folosit pentru reclame.
           </li>
           <li>
             <b>Reminderele (SMS / WhatsApp):</b> nume, telefon, numărul mașinii și data expirării ITP-ului și, dacă stația le

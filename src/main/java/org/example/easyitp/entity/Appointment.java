@@ -26,6 +26,10 @@ public class Appointment {
     @Column(name = "license_plate")
     private String licensePlate;
 
+    // Emailul optional al clientului (confirmarea cu link de calendar)
+    @Column(length = 150)
+    private String email;
+
     @Column(name = "appointment_date", nullable = false)
     private LocalDateTime appointmentDate;
 

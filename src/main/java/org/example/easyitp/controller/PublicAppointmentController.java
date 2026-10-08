@@ -28,6 +28,15 @@ public class PublicAppointmentController {
         return selfService.cancel(token);
     }
 
+    // Programarea ca fisier de calendar (telefon, Outlook, Apple), din linkul din email
+    @GetMapping(value = "/calendar.ics", produces = "text/calendar")
+    public org.springframework.http.ResponseEntity<String> calendar(@PathVariable String token) {
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"programare-itp.ics\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/calendar; charset=UTF-8"))
+                .body(selfService.calendar(token));
+    }
+
     @GetMapping("/slots")
     public List<LocalTime> slots(@PathVariable String token, @RequestParam String date) {
         return selfService.slots(token, LocalDate.parse(date));

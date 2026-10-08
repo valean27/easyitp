@@ -23,4 +23,6 @@ public class BookingSettingsDTO {
     private Boolean publicListing;
     // Numele liniilor (cate unul pentru fiecare linie; gol = "Linia N"); null la salvare = nu se schimba
     private List<String> lineNames;
+    // Email la fiecare programare online; null la salvare = nu se schimba
+    private Boolean emailNotify;
 }

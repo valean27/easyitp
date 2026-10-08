@@ -79,6 +79,7 @@ public class AppointmentService {
         Appointment appt = Appointment.builder()
                 .clientName(dto.getClientName().trim())
                 .phone(PhoneNumbers.optionalValid(dto.getPhone()))
+                .email(BookingEvents.optionalEmail(dto.getEmail()))
                 .licensePlate(dto.getLicensePlate())
                 .appointmentDate(dto.getAppointmentDate())
                 .status(dto.getStatus() != null ? dto.getStatus() : AppointmentStatus.SCHEDULED)
@@ -107,6 +108,7 @@ public class AppointmentService {
             appt.setPhone(PhoneNumbers.optionalValid(phone));
         }
         appt.setLicensePlate(dto.getLicensePlate());
+        appt.setEmail(BookingEvents.optionalEmail(dto.getEmail()));
         appt.setAppointmentDate(dto.getAppointmentDate());
         appt.setStatus(dto.getStatus() != null ? dto.getStatus() : appt.getStatus());
         // Clientii vechi (fara tip) trimit null: pastram ce era salvat
@@ -172,6 +174,7 @@ public class AppointmentService {
         dto.setId(appt.getId());
         dto.setClientName(appt.getClientName());
         dto.setPhone(appt.getPhone());
+        dto.setEmail(appt.getEmail());
         dto.setLicensePlate(appt.getLicensePlate());
         dto.setAppointmentDate(appt.getAppointmentDate());
         dto.setStatus(appt.getStatus());

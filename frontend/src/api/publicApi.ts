@@ -46,6 +46,8 @@ export interface PublicBookingData {
   clientName: string;
   phone: string;
   licensePlate: string;
+  // optional: confirmarea pe email, cu link de calendar
+  email?: string;
   appointmentDate: string; // yyyy-MM-ddTHH:mm:ss
   vehicleCategory: VehicleCategory;
   // clientul vrea remindere de la statie (bifa optionala)
@@ -54,8 +56,19 @@ export interface PublicBookingData {
 }
 
 // Intoarce token-ul link-ului de anulare / mutare (/p/{token})
-export const createPublicBooking = (slug: string, data: PublicBookingData): Promise<string | null> =>
-  publicApi.post(`${base(slug)}/appointments`, data).then((r) => r.data?.manageToken ?? null);
+// Programarea facuta: linkul clientului (anulare / mutare) si linkurile de calendar
+export interface BookingResult {
+  manageToken: string | null;
+  googleCalendarUrl: string | null;
+  icsUrl: string | null;
+}
+
+export const createPublicBooking = (slug: string, data: PublicBookingData): Promise<BookingResult> =>
+  publicApi.post(`${base(slug)}/appointments`, data).then((r) => ({
+    manageToken: r.data?.manageToken ?? null,
+    googleCalendarUrl: r.data?.googleCalendarUrl ?? null,
+    icsUrl: r.data?.icsUrl ?? null,
+  }));
 
 // Link-ul clientului din SMS: programarea, anulare, mutare
 export interface ManagedAppointment {
@@ -67,6 +80,9 @@ export interface ManagedAppointment {
   licensePlate: string | null;
   vehicleLabel: string;
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+  // pentru calendarul clientului; null cand programarea nu mai e activa
+  googleCalendarUrl: string | null;
+  icsUrl: string | null;
   canChange: boolean;
   clientAction: string | null;
 }

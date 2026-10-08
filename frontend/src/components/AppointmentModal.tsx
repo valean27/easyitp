@@ -6,6 +6,7 @@ import type { Appointment, AppointmentStatus, VehicleCategory, VehicleType } fro
 import { formatTime } from '../utils/dates';
 import { APPOINTMENT_STATUS_LABELS, LEGACY_DURATION_MINUTES, appointmentMinutes } from '../utils/appointments';
 import { lineName } from '../utils/lines';
+import { apiMessage } from '../utils/errors';
 import { getInspectorTeam } from '../api/inspectorApi';
 import type { Inspector } from '../types';
 
@@ -16,6 +17,7 @@ interface AppointmentFormValues {
   clientName: string;
   phone: string;
   licensePlate: string;
+  email: string;
   appointmentDate: string; // yyyy-MM-ddTHH:mm
   status: AppointmentStatus;
   vehicleCategory: VehicleCategory | '';
@@ -41,6 +43,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
       clientName: appointment.clientName,
       phone: appointment.phone ?? '',
       licensePlate: appointment.licensePlate ?? '',
+      email: appointment.email ?? '',
       appointmentDate: appointment.appointmentDate.slice(0, 16),
       status: appointment.status,
       vehicleCategory: appointment.vehicleCategory ?? '',
@@ -53,6 +56,7 @@ function initialValues(appointment?: Appointment, initial?: Partial<AppointmentF
     clientName: '',
     phone: '',
     licensePlate: '',
+    email: '',
     appointmentDate: '',
     status: 'SCHEDULED',
     vehicleCategory: '',
@@ -132,6 +136,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       clientName: form.clientName,
       phone: form.phone || null,
       licensePlate: form.licensePlate || null,
+      email: form.email.trim() || null,
       appointmentDate: form.appointmentDate + ':00',
       status: form.status,
       vehicleCategory: form.vehicleCategory || null,
@@ -149,8 +154,8 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       if (onStartItp && saved.status === 'COMPLETED' && appointment?.status !== 'COMPLETED' && !saved.itpRecordId) {
         onStartItp(saved);
       }
-    } catch {
-      setError('Programarea nu a putut fi salvată.');
+    } catch (err) {
+      setError(apiMessage(err, 'Programarea nu a putut fi salvată.'));
     } finally {
       setSaving(false);
     }
@@ -226,6 +231,10 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
                 className={INPUT_CLS + ' uppercase'}
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1">Email</label>
+            <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="opțional" maxLength={150} className={INPUT_CLS} />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1">

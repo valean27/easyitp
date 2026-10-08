@@ -105,6 +105,9 @@ public class AppUser {
     // Cate masini pot fi programate in acelasi interval (numarul de linii ITP)
     private Integer bookingCapacity;
 
+    // Managerul primeste email la fiecare programare online (null = da)
+    private Boolean bookingEmailNotify;
+
     // Numele liniilor, unul pe rand (ex. "Linia 1 - autoturisme"); null = "Linia 1", "Linia 2" ...
     @Column(length = 500)
     private String bookingLineNames;

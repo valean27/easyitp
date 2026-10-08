@@ -10,6 +10,8 @@ public class PublicBookingRequest {
     private String clientName;
     private String phone;
     private String licensePlate;
+    // optional: confirmarea pe email, cu link de calendar
+    private String email;
     // Clientul a bifat ca vrea remindere ITP de la statie
     private Boolean reminderConsent;
     private LocalDateTime appointmentDate;

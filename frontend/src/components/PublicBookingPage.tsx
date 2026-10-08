@@ -23,6 +23,7 @@ import StarRating from './StarRating';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
 import { usePageTitle } from '../utils/pageTitle';
 import { checkMobile } from '../utils/phone';
+import AddToCalendar from './AddToCalendar';
 import { apiMessage } from '../utils/errors';
 
 const INPUT_CLS =
@@ -113,7 +114,19 @@ export default function PublicBookingPage() {
   const [consent, setConsent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmed, setConfirmed] = useState<{ date: string; time: string; vehicle: string; token: string | null } | null>(null);
+  const [confirmed, setConfirmed] = useState<{
+    date: string;
+    time: string;
+    vehicle: string;
+    token: string | null;
+    googleUrl: string | null;
+    icsUrl: string | null;
+    email: string | null;
+  } | null>(null);
+  const [email, setEmail] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
+  // optional; daca e scris trebuie sa arate a email
+  const emailOk = !email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 
   useEffect(() => {
     getPublicStation(slug)
@@ -174,18 +187,32 @@ export default function PublicBookingPage() {
       document.getElementById('booking-phone')?.focus();
       return;
     }
+    if (!emailOk) {
+      setEmailTouched(true);
+      document.getElementById('booking-email')?.focus();
+      return;
+    }
     setSubmitting(true);
     try {
-      const token = await createPublicBooking(slug, {
+      const result = await createPublicBooking(slug, {
         clientName: name,
         phone: phoneCheck.formatted ?? phone,
+        email: email.trim() || undefined,
         licensePlate: plate,
         appointmentDate: `${date}T${time}`,
         vehicleCategory: category,
         reminderConsent: consent,
         website,
       });
-      setConfirmed({ date, time, vehicle: vehicle?.label ?? '', token });
+      setConfirmed({
+        date,
+        time,
+        vehicle: vehicle?.label ?? '',
+        token: result.manageToken,
+        googleUrl: result.googleCalendarUrl,
+        icsUrl: result.icsUrl,
+        email: email.trim() || null,
+      });
     } catch (err) {
       const status = errorStatus(err);
       if (status === 409) {
@@ -242,6 +269,15 @@ export default function PublicBookingPage() {
               Aveți la dumneavoastră talonul și cartea de identitate a vehiculului.
               {station.phone && ` Dacă nu mai puteți ajunge, sunați la ${station.phone}.`}
             </p>
+            {confirmed.email && (
+              <p className="text-sm text-slate-500">
+                V-am trimis confirmarea pe <span className="font-medium text-slate-700">{confirmed.email}</span>.
+              </p>
+            )}
+            <div className="pt-1">
+              <p className="mb-2 text-sm font-medium text-slate-600">Puneți programarea în calendar:</p>
+              <AddToCalendar googleUrl={confirmed.googleUrl} icsUrl={confirmed.icsUrl} />
+            </div>
             {confirmed.token && (
               <Link to={`/p/${confirmed.token}`} className="inline-block text-sm font-semibold text-blue-600 hover:underline">
                 Anulați sau alegeți altă oră
@@ -374,6 +410,30 @@ export default function PublicBookingPage() {
                   : phoneCheck.ok
                     ? `✓ ${phoneCheck.formatted}${phoneCheck.country ? ` · ${phoneCheck.country}` : ''}`
                     : 'Număr de mobil; din altă țară, cu prefixul țării (ex. +49 ...).'}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">
+                Email <span className="text-slate-400 font-normal">(opțional)</span>
+              </label>
+              <input
+                id="booking-email"
+                type="email"
+                inputMode="email"
+                value={email}
+                maxLength={150}
+                onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setEmailTouched(true)}
+                placeholder="nume@exemplu.ro"
+                autoComplete="email"
+                aria-invalid={emailTouched && !emailOk}
+                aria-describedby="booking-email-hint"
+                className={INPUT_CLS + (emailTouched && !emailOk ? ' border-red-400 ring-1 ring-red-300' : '')}
+              />
+              <p id="booking-email-hint" className={`text-xs mt-1 ${emailTouched && !emailOk ? 'text-red-600' : 'text-slate-400'}`}>
+                {emailTouched && !emailOk
+                  ? 'Adresa de email nu este validă (ex. nume@exemplu.ro).'
+                  : 'Primiți confirmarea pe email, cu buton de adăugat în calendar.'}
               </p>
             </div>
             <div>

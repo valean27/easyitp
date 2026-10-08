@@ -68,7 +68,8 @@ public class BookingService {
                 capacity(user),
                 InspectionDurations.allTypes(user),
                 !Boolean.FALSE.equals(user.getPublicListing()),
-                lineNames(user));
+                lineNames(user),
+                !Boolean.FALSE.equals(user.getBookingEmailNotify()));
     }
 
     // Statiile active cu programarea online pornita care accepta sa apara in lista publica, dupa nume
@@ -117,6 +118,7 @@ public class BookingService {
         user.setBookingDays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
         user.setBookingCapacity(dto.getCapacity());
         if (dto.getPublicListing() != null) user.setPublicListing(dto.getPublicListing());
+        if (dto.getEmailNotify() != null) user.setBookingEmailNotify(dto.getEmailNotify());
         if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), dto.getCapacity()));
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
@@ -292,6 +294,7 @@ public class BookingService {
         if (name.length() < 2 || name.length() > 80) throw badRequest("Introduceti numele");
         // numar real de mobil, din Romania sau (cu prefixul tarii) din alta tara
         String phone = PhoneNumbers.requireMobile(req.getPhone());
+        String email = BookingEvents.optionalEmail(req.getEmail());
         String plate = req.getLicensePlate() == null ? "" : req.getLicensePlate().trim().toUpperCase();
         if (plate.length() > 15) throw badRequest("Numar de inmatriculare invalid");
         if (req.getAppointmentDate() == null) throw badRequest("Alegeti data si ora");
@@ -305,6 +308,7 @@ public class BookingService {
         return appointmentRepository.save(Appointment.builder()
                 .clientName(name)
                 .phone(phone)
+                .email(email)
                 .licensePlate(plate.isEmpty() ? null : plate)
                 .appointmentDate(when)
                 .status(AppointmentStatus.SCHEDULED)

@@ -194,6 +194,21 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
           <input
             type="checkbox"
+            checked={settings.emailNotify}
+            onChange={(e) => update({ emailNotify: e.target.checked })}
+            className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span>
+            Primesc email la fiecare programare online
+            <span className="block text-xs text-slate-400">
+              Și când un client își anulează sau mută programarea din link. În aplicație le vedeți oricum la clopoțel.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
             checked={settings.publicListing}
             onChange={(e) => update({ publicListing: e.target.checked })}
             className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"

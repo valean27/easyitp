@@ -28,7 +28,9 @@ public class PublicBookingController {
 
     private final BookingService bookingService;
     private final BookingRateLimiter rateLimiter;
+    private final org.example.easyitp.service.BookingEvents bookingEvents;
     private final AppointmentSmsService appointmentSmsService;
+    private final org.example.easyitp.service.AppointmentMailService appointmentMailService;
 
     @GetMapping
     public PublicStationDTO station(@PathVariable String slug) {
@@ -53,9 +55,11 @@ public class PublicBookingController {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Prea multe programari. Incercati mai tarziu.");
         }
         Appointment saved = bookingService.book(slug, request);
-        appointmentSmsService.sendConfirmation(saved);
+        bookingEvents.booked(saved);
         // manageToken: link-ul clientului pentru anulare / mutare
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("appointmentDate", saved.getAppointmentDate(),
-                "manageToken", saved.getManageToken()));
+                "manageToken", saved.getManageToken(),
+                "googleCalendarUrl", org.example.easyitp.service.CalendarLinks.google(saved, saved.getUser(), appointmentSmsService.manageLink(saved)),
+                "icsUrl", appointmentMailService.icsLink(saved)));
     }
 }

@@ -65,7 +65,7 @@ const HIGHLIGHTS: { icon: LucideIcon; title: string; text: string; points: strin
 
 const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: BellRing, title: 'Listă „De contactat”', text: 'Cine expiră săptămâna asta, cu WhatsApp, SMS și apel dintr-o atingere.' },
-  { icon: CalendarCheck, title: 'Programări fără neprezentări', text: 'SMS de confirmare și reminder cu o zi înainte, cu link din care clientul anulează sau mută singur.' },
+  { icon: CalendarCheck, title: 'Programări fără neprezentări', text: 'SMS (și email, dacă clientul îl lasă) de confirmare, cu buton de pus în Google Calendar, reminder cu o zi înainte și link din care clientul anulează sau mută singur.' },
   { icon: ShieldAlert, title: 'RCA, rovinietă, tahograf', text: 'Notați și celelalte scadențe ale mașinii; clientul e anunțat și pentru ele.' },
   { icon: Users, title: 'Clienți și istoric', text: 'Un client cu toate mașinile lui și istoricul ITP al fiecăreia; dublurile se unesc ușor.' },
   { icon: BarChart3, title: 'Rapoarte pentru patron', text: 'Încasări pe lună, dashboard pe inspector (ITP-uri, încasări, respingeri), clienții care nu s-au mai întors, neprezentări.' },

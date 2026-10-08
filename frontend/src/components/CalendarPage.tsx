@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { EventCalendar } from '@mui/x-scheduler/event-calendar';
 import { roRO } from '@mui/x-scheduler/locales';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -120,17 +120,26 @@ function closeCompactDrawer(container: HTMLElement | null) {
   }, 150);
 }
 
-export default function CalendarPage() {
+// ?date=yyyy-mm-dd (din notificari): calendarul se deschide pe ziua aceea; alta zi = calendarul porneste din nou
+export default function CalendarRoute() {
+  const [searchParams] = useSearchParams();
+  const raw = searchParams.get('date') ?? '';
+  const linkDate = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+  return <CalendarPage key={linkDate ?? ''} linkDate={linkDate} />;
+}
+
+function CalendarPage({ linkDate }: { linkDate: string | null }) {
   const calendarRef = useRef<HTMLDivElement>(null);
   const { resolved } = useTheme();
   const theme = useMemo(() => muiTheme(resolved), [resolved]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [range, setRange] = useState(() => rangeAround(new Date()));
+  const [range, setRange] = useState(() => rangeAround(linkDate ? new Date(`${linkDate}T12:00:00`) : new Date()));
+
   const [createAt, setCreateAt] = useState<{ appointmentDate: string; line?: number | null } | null>(null);
   const [mode, setMode] = useState<Mode>(savedMode);
-  const [linesDate, setLinesDate] = useState(todayIso);
+  const [linesDate, setLinesDate] = useState(() => linkDate ?? todayIso());
   const [settings, setSettings] = useState<BookingSettings | null>(null);
   const [team, setTeam] = useState<Inspector[]>([]);
   const [shifts, setShifts] = useState<LineShift[]>([]);
@@ -207,6 +216,7 @@ export default function CalendarPage() {
         clientName: old.clientName,
         phone: old.phone,
         licensePlate: old.licensePlate,
+        email: old.email ?? null,
         appointmentDate: newDate,
         status: old.status,
         vehicleCategory: old.vehicleCategory,
@@ -309,6 +319,7 @@ export default function CalendarPage() {
               dateLocale={ro}
               // Pe telefon o saptamana intreaga nu incape: pornim pe ziua curenta
               defaultView={window.innerWidth < 768 ? 'day' : 'week'}
+              defaultVisibleDate={linkDate ? new Date(`${linkDate}T12:00:00`) : undefined}
               views={['day', 'week', 'month', 'agenda']}
               viewConfig={{
                 day: { startTime: 7, endTime: 21, initialScrollTime: 8 },

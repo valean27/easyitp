@@ -13,6 +13,7 @@ import type { PublicStation } from '../types';
 import { apiMessage } from '../utils/errors';
 import { isoWeekday, WEEKDAYS_SHORT, MONTHS_SHORT } from '../utils/booking';
 import { toLocalIso } from '../utils/dates';
+import AddToCalendar from './AddToCalendar';
 
 const LONG_DAYS = ['luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă', 'duminică'];
 
@@ -149,6 +150,11 @@ export default function ManageAppointmentPage() {
           )}
           {cancelled && <p className="text-sm font-medium text-red-600">Programarea este anulată.</p>}
           {appt.status === 'COMPLETED' && <p className="text-sm font-medium text-emerald-600">ITP-ul a fost efectuat. Drum bun!</p>}
+          {appt.status === 'SCHEDULED' && (
+            <div className="pt-1">
+              <AddToCalendar googleUrl={appt.googleCalendarUrl} icsUrl={appt.icsUrl} />
+            </div>
+          )}
         </div>
 
         {notice && (

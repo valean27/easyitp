@@ -26,11 +26,15 @@ public class AppointmentSelfService {
 
     private final AppointmentRepository appointmentRepository;
     private final BookingService bookingService;
+    private final BookingEvents bookingEvents;
+    private final AppointmentMailService appointmentMailService;
     private final AppointmentSmsService appointmentSmsService;
 
     public record ManageView(String stationName, String address, String phone, String slug, LocalDateTime appointmentDate,
                              String licensePlate, String vehicleLabel, VehicleCategory vehicleCategory,
-                             AppointmentStatus status, boolean canChange, String clientAction) {
+                             AppointmentStatus status, boolean canChange, String clientAction,
+                             // pentru calendarul clientului; null cand programarea nu mai e activa
+                             String googleCalendarUrl, String icsUrl) {
     }
 
     @Transactional(readOnly = true)
@@ -44,7 +48,9 @@ public class AppointmentSelfService {
         appt.setStatus(AppointmentStatus.CANCELLED);
         appt.setClientAction("CANCELLED");
         appt.setClientActionAt(LocalDateTime.now());
-        return toView(appointmentRepository.save(appt));
+        Appointment saved = appointmentRepository.save(appt);
+        bookingEvents.cancelled(saved);
+        return toView(saved);
     }
 
     @Transactional(readOnly = true)
@@ -71,8 +77,15 @@ public class AppointmentSelfService {
         // reminderul de dinainte se trimite din nou pentru noua data, iar confirmarea pleaca acum
         appt.setReminderSentAt(null);
         Appointment saved = appointmentRepository.save(appt);
-        appointmentSmsService.sendConfirmation(saved);
+        bookingEvents.moved(saved);
         return toView(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public String calendar(String token) {
+        Appointment appt = find(token);
+        if (appt.getStatus() == AppointmentStatus.CANCELLED) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Programarea este anulată");
+        return CalendarLinks.ics(appt, appt.getUser(), appointmentSmsService.manageLink(appt));
     }
 
     private Appointment find(String token) {
@@ -106,6 +119,8 @@ public class AppointmentSelfService {
         String slug = Boolean.TRUE.equals(s.getBookingEnabled()) ? s.getBookingSlug() : null;
         return new ManageView(s.getStationName() != null ? s.getStationName() : "Stație ITP", s.getAddress(), s.getPhone(),
                 slug, appt.getAppointmentDate(), appt.getLicensePlate(), category.label(), category,
-                appt.getStatus(), canChange(appt), appt.getClientAction());
+                appt.getStatus(), canChange(appt), appt.getClientAction(),
+                appt.getStatus() == AppointmentStatus.SCHEDULED ? CalendarLinks.google(appt, s, appointmentSmsService.manageLink(appt)) : null,
+                appt.getStatus() == AppointmentStatus.SCHEDULED ? appointmentMailService.icsLink(appt) : null);
     }
 }

@@ -80,6 +80,18 @@ export const GUIDE: GuideGroup[] = [
         links: [{ to: '/reminders', label: 'De contactat' }, { to: '/account#statie', label: 'Textul mesajului' }],
       },
       {
+        id: 'notificari',
+        title: 'Notificări (clopoțelul)',
+        intro: 'Ce s-a întâmplat cât nu ați fost cu ochii pe aplicație, cu numărul de necitite pe clopoțel.',
+        steps: [
+          'Clopoțelul e lângă logo-ul din meniu (pe telefon, în bara de sus). Cifra roșie arată câte notificări nu ați citit.',
+          'Apar: programările noi făcute online, programările anulate sau mutate de clienți din link, ITP-urile făcute de inspectori din contul lor și clienții marcați „Nu a venit” de inspectori.',
+          'Un click pe notificare deschide calendarul pe ziua programării; „Toate citite” le marchează pe toate.',
+        ],
+        tips: ['Notificările se păstrează 90 de zile.'],
+        links: [{ to: '/calendar', label: 'Calendar' }],
+      },
+      {
         id: 'calendar',
         title: 'Calendarul și programările',
         intro: 'Programările făcute la telefon sau la ghișeu, plus cele venite online, într-un singur calendar.',
@@ -135,7 +147,11 @@ export const GUIDE: GuideGroup[] = [
           'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',
         ],
-        tips: ['Linkul de programare intră automat în mesajele de reamintire.'],
+        tips: [
+          'Linkul de programare intră automat în mesajele de reamintire.',
+          'Clientul își poate lăsa și emailul (opțional): primește confirmarea cu butoane „Google Calendar” și „Calendar telefon (.ics)”, iar dacă își mută sau anulează programarea, un email nou. Butoanele de calendar le are și pe ecranul de confirmare și în linkul de anulare / mutare.',
+          'Dumneavoastră primiți email la fiecare programare online (și când un client o anulează sau o mută); îl opriți din Contul meu → Programare online. Telefonul trebuie să fie un mobil valid; din altă țară, cu prefixul țării.',
+        ],
         links: [{ to: '/account#programare', label: 'Programare online' }, { to: '/afis', label: 'Afiș cu QR' }],
       },
       {

@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen, HardHat } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -9,6 +9,7 @@ import PlanBanner from './PlanBanner';
 import EmailVerifyBanner from './EmailVerifyBanner';
 import { PlanProvider } from '../context/PlanContext';
 import ForcePasswordChange from './ForcePasswordChange';
+import NotificationBell from './NotificationBell';
 
 interface NavItem {
   to: string;
@@ -54,8 +55,23 @@ const ADMIN_NAV: NavItem[] = [
 // Titlul tabului pentru paginile din aplicatie (dupa meniu; restul paginilor au titlul implicit)
 const EXTRA_TITLES: Record<string, string> = { '/ghid': 'Ghid de utilizare', '/plata': 'Plata abonamentului' };
 
+// true pe tableta / desktop (meniul lateral), false pe telefon (bara de jos)
+function useDesktop(): boolean {
+  const query = '(min-width: 768px)';
+  const [desktop, setDesktop] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = () => setDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return desktop;
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
+  // un singur clopotel montat (cel vizibil), ca numarul sa nu fie cerut de doua ori
+  const desktop = useDesktop();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const items =
@@ -91,10 +107,11 @@ export default function Layout() {
             <div className="bg-blue-600 p-2 rounded-lg">
               <Car size={18} className="text-white" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-slate-800 leading-tight">EasyITP</p>
               <p className="text-xs text-slate-400 leading-tight">Inspecții Tehnice</p>
             </div>
+            {user?.role === 'MANAGER' && desktop && <NotificationBell placement="sidebar" />}
           </div>
 
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -139,6 +156,16 @@ export default function Layout() {
         </aside>
 
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Pe telefon: bara de sus cu clopotelul (meniul lateral nu exista) */}
+          {user?.role === 'MANAGER' && !desktop && (
+            <div className="md:hidden shrink-0 flex items-center gap-2 h-11 px-3 bg-white border-b border-slate-200">
+              <div className="bg-blue-600 p-1.5 rounded-md">
+                <Car size={14} className="text-white" />
+              </div>
+              <p className="flex-1 truncate text-sm font-bold text-slate-800">{user.stationName || 'EasyITP'}</p>
+              <NotificationBell placement="top" />
+            </div>
+          )}
           <EmailVerifyBanner />
           <PlanBanner />
           <div className="flex-1 overflow-y-auto">

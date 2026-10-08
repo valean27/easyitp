@@ -147,6 +147,7 @@ public class AccountDeletionService {
         jdbc.update("delete from sms_usage where user_id = ?", id);
         jdbc.update("delete from auth_tokens where user_id = ?", id);
         jdbc.update("delete from line_shifts where user_id = ?", id);
+        jdbc.update("delete from notifications where user_id = ?", id);
         jdbc.update("delete from inspector_leaves where user_id = ?", id);
         jdbc.update("delete from app_users where inspector_id in (select i.id from inspectors i where i.user_id = ?)", id);
         jdbc.update("delete from inspector_days where inspector_id in (select i.id from inspectors i where i.user_id = ?)", id);

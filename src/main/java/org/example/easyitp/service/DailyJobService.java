@@ -23,6 +23,7 @@ public class DailyJobService {
 
     private final DigestService digestService;
     private final HistoryService historyService;
+    private final NotificationService notificationService;
     private final AutoReminderService autoReminderService;
     private final AppointmentSmsService appointmentSmsService;
     private final ReviewRequestService reviewRequestService;
@@ -55,6 +56,7 @@ public class DailyJobService {
         step("Notele Google", () -> googlePlacesService.refreshAll(java.time.LocalDateTime.now()));
         step("Curatarea istoricului", historyService::purgeOld);
         step("Curatarea linkurilor expirate", accountEmailService::purgeExpired);
+        step("Curatarea notificarilor vechi", () -> notificationService.purgeOld(java.time.LocalDateTime.now()));
         step("Stergerea conturilor cerute", () -> accountDeletionService.purgeDue(java.time.LocalDateTime.now()));
         return result;
     }

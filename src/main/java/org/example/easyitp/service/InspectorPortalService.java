@@ -41,6 +41,7 @@ public class InspectorPortalService {
     private final AppUserRepository appUserRepository;
     private final ItpRecordRepository itpRecordRepository;
     private final ItpService itpService;
+    private final NotificationService notificationService;
 
     // Datele masinii din ultimul ITP (dupa numar), ca inspectorul sa nu le tasteze din nou
     public record Prefill(String name, String phone, String licensePlate, String brand, String model, Integer year, String vin,
@@ -110,6 +111,12 @@ public class InspectorPortalService {
                 .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
         appt.setStatus(status);
         appointmentRepository.save(appt);
+        if (status == AppointmentStatus.NO_SHOW) {
+            notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.INSPECTOR_NO_SHOW,
+                    appt.getClientName() + " nu a venit la programare",
+                    inspector.getName() + " · " + AppointmentMailService.when(appt.getAppointmentDate()),
+                    "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
+        }
         mine.setStatus(status);
         return mine;
     }
@@ -149,6 +156,12 @@ public class InspectorPortalService {
         // termenele RCA / rovinieta raman cum le-a pus statia
         form.setDeadlines(null);
         itpService.createItpEntry(form, station, account.getEmail());
+        notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.INSPECTOR_ITP,
+                inspector.getName() + " a făcut ITP-ul: " + appt.getClientName(),
+                (form.getLicensePlate() != null ? form.getLicensePlate().trim().toUpperCase() + " · " : "")
+                        + (form.getStatus() == null || form.getStatus() == org.example.easyitp.entity.ItpStatus.PASSED ? "Admis"
+                        : form.getStatus() == org.example.easyitp.entity.ItpStatus.FAILED ? "Respins" : "Reverificare"),
+                "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
         return day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
                 .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
     }
