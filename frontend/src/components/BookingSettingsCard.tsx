@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Globe, Loader2, CheckCircle2, AlertTriangle, Copy, Check, ExternalLink, Timer } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import SettingsCard from './SettingsCard';
 import type { BookingSettings, VehicleCategory, VehicleType } from '../types';
 import { getBookingSettings, updateBookingSettings } from '../api/accountApi';
@@ -50,11 +51,13 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
     setMessage(null);
     setSaving(true);
     try {
+      // liniile se salveaza din cardul Linii ITP: aici nu le trimitem, ca sa nu le suprascriem
       const saved = await updateBookingSettings({
         ...settings,
+        capacity: undefined,
+        lineNames: undefined,
         open: settings.open.length === 5 ? `${settings.open}:00` : settings.open,
         close: settings.close.length === 5 ? `${settings.close}:00` : settings.close,
-        lineNames: Array.from({ length: settings.capacity }, (_, i) => settings.lineNames?.[i] ?? ''),
         bookingMessage: settings.bookingMessage ?? '',
       });
       setSettings(saved);
@@ -157,42 +160,6 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-1">Linii ITP</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={10}
-            value={settings.capacity}
-            onChange={(e) => update({ capacity: Number(e.target.value) })}
-            className={INPUT_CLS + ' w-24'}
-          />
-          <p className="text-xs text-slate-400 mt-1">
-            Câte vehicule pot fi verificate în același timp. Clienții se pot programa la aceeași oră cât timp o linie e liberă,
-            iar în Calendar → „Pe linii” fiecare linie are coloana ei.
-          </p>
-          {settings.capacity > 1 && settings.capacity <= 10 && (
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {Array.from({ length: settings.capacity }, (_, i) => (
-                <input
-                  key={i}
-                  value={settings.lineNames?.[i] ?? ''}
-                  maxLength={40}
-                  onChange={(e) => {
-                    const names = Array.from({ length: settings.capacity }, (_, j) => settings.lineNames?.[j] ?? '');
-                    names[i] = e.target.value;
-                    update({ lineNames: names });
-                  }}
-                  placeholder={`Linia ${i + 1} (ex. autoturisme, sau numele inspectorului)`}
-                  aria-label={`Numele liniei ${i + 1}`}
-                  className={INPUT_CLS}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div>
           <label htmlFor="booking-message" className="block text-sm font-medium text-slate-600 mb-1">
             Mesaj pe pagina de programare <span className="font-normal text-slate-400">(opțional)</span>
           </label>
@@ -247,7 +214,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
           </label>
           <p className="text-xs text-slate-400 mb-2">
             Clientul alege tipul vehiculului, iar programarea blochează linia exact cât durează inspecția, fără
-            suprapuneri. Verificați timpii minimi impuși stației voastre de RAR. Tipurile nebifate nu apar pe pagina online.
+            suprapuneri. Câte linii are stația setați în <Link to="/account#linii" className="text-blue-600 hover:underline">Linii ITP</Link>. Verificați timpii minimi impuși stației voastre de RAR. Tipurile nebifate nu apar pe pagina online.
           </p>
           <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
             {settings.vehicleTypes.map((t) => (

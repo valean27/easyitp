@@ -2,6 +2,7 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
+import org.example.easyitp.dto.LinesDTO;
 import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
 import org.example.easyitp.dto.PublicStationSummaryDTO;
@@ -10,10 +11,12 @@ import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.AppointmentSource;
 import org.example.easyitp.entity.AppointmentStatus;
+import org.example.easyitp.entity.Inspector;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.entity.VehicleCategory;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
+import org.example.easyitp.repository.InspectorRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +58,7 @@ public class BookingService {
 
     private final AppUserRepository appUserRepository;
     private final AppointmentRepository appointmentRepository;
+    private final InspectorRepository inspectorRepository;
 
     // ---------- setarile managerului ----------
 
@@ -95,13 +99,10 @@ public class BookingService {
         if (days.isEmpty() || days.stream().anyMatch(d -> d < 1 || d > 7)) {
             throw badRequest("Alegeti cel putin o zi lucratoare");
         }
-        if (dto.getCapacity() < 1 || dto.getCapacity() > MAX_CAPACITY) {
-            throw badRequest("Numarul de linii trebuie sa fie intre 1 si " + MAX_CAPACITY);
+        if (dto.getCapacity() != null || dto.getLineNames() != null) {
+            validateLines(dto.getCapacity() != null ? dto.getCapacity() : capacity(user), dto.getLineNames());
         }
         Map<VehicleCategory, Integer> durations = durations(dto.getVehicleTypes());
-        if (dto.getLineNames() != null && dto.getLineNames().stream().anyMatch(n -> n != null && n.trim().length() > MAX_LINE_NAME)) {
-            throw badRequest("Numele unei linii poate avea cel mult " + MAX_LINE_NAME + " de caractere");
-        }
 
         String slug = dto.getSlug() == null ? "" : dto.getSlug().trim().toLowerCase();
         if (slug.isEmpty()) {
@@ -117,7 +118,7 @@ public class BookingService {
         user.setBookingOpen(dto.getOpen());
         user.setBookingClose(dto.getClose());
         user.setBookingDays(days.stream().map(String::valueOf).collect(Collectors.joining(",")));
-        user.setBookingCapacity(dto.getCapacity());
+        if (dto.getCapacity() != null) user.setBookingCapacity(dto.getCapacity());
         if (dto.getPublicListing() != null) user.setPublicListing(dto.getPublicListing());
         if (dto.getEmailNotify() != null) user.setBookingEmailNotify(dto.getEmailNotify());
         if (dto.getBookingMessage() != null) {
@@ -125,10 +126,43 @@ public class BookingService {
             if (message.length() > 300) throw badRequest("Mesajul poate avea cel mult 300 de caractere");
             user.setBookingMessage(message.isEmpty() ? null : message);
         }
-        if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), dto.getCapacity()));
+        if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), capacity(user)));
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
         return getSettings(appUserRepository.save(user));
+    }
+
+    // Liniile ITP ale statiei (cardul "Linii ITP" din Contul meu)
+    public LinesDTO getLines(AppUser user) {
+        return new LinesDTO(capacity(user), lineNames(user));
+    }
+
+    @Transactional
+    public LinesDTO updateLines(AppUser user, LinesDTO dto) {
+        validateLines(dto.count(), dto.names());
+        if (dto.count() < capacity(user)) dropRemovedLines(user, dto.count());
+        user.setBookingCapacity(dto.count());
+        if (dto.names() != null) user.setBookingLineNames(formatLineNames(dto.names(), dto.count()));
+        return getLines(appUserRepository.save(user));
+    }
+
+    // Inspectorii care lucrau pe o linie scoasa raman fara linie fixa (si in programul saptamanal)
+    private void dropRemovedLines(AppUser user, int count) {
+        for (Inspector inspector : inspectorRepository.findByUserIdOrderByPositionAscIdAsc(user.getId())) {
+            if (inspector.getDefaultLine() != null && inspector.getDefaultLine() > count) inspector.setDefaultLine(null);
+            inspector.getSchedule().forEach(d -> {
+                if (d.getLine() != null && d.getLine() > count) d.setLine(null);
+            });
+        }
+    }
+
+    private static void validateLines(int count, List<String> names) {
+        if (count < 1 || count > MAX_CAPACITY) {
+            throw badRequest("Numarul de linii trebuie sa fie intre 1 si " + MAX_CAPACITY);
+        }
+        if (names != null && names.stream().anyMatch(n -> n != null && n.trim().length() > MAX_LINE_NAME)) {
+            throw badRequest("Numele unei linii poate avea cel mult " + MAX_LINE_NAME + " de caractere");
+        }
     }
 
     private static Map<VehicleCategory, Integer> durations(List<VehicleTypeDTO> types) {

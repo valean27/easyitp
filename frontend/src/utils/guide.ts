@@ -105,10 +105,10 @@ export const GUIDE: GuideGroup[] = [
           'Dacă clientul nu a venit, marcați „Neprezentat”; rata de neprezentare apare în Rapoarte.',
         ],
         tips: [
-          'Numele liniilor (ex. „Autoturisme”, „Camioane” sau numele inspectorului) le dați în Contul meu → Programare online.',
+          'Numele liniilor (ex. „Autoturisme”, „Camioane” sau numele inspectorului) le dați în Contul meu → Linii ITP, unde vedeți și inspectorul obișnuit al fiecărei linii.',
           'Programările finalizate sau anulate nu se mai pot trage; le schimbați din fereastra lor.',
         ],
-        links: [{ to: '/calendar', label: 'Calendar' }, { to: '/account#programare', label: 'Liniile stației' }],
+        links: [{ to: '/calendar', label: 'Calendar' }, { to: '/account#linii', label: 'Liniile stației' }],
       },
       {
         id: 'clienti',
@@ -143,7 +143,7 @@ export const GUIDE: GuideGroup[] = [
         intro: 'Stația primește o pagină publică de programare. Clientul vede doar orele libere, după durata inspecției și numărul de linii.',
         steps: [
           'În Contul meu → Programare online, porniți programarea și alegeți adresa paginii (ex. /programare/itp-exemplu).',
-          'Setați programul, zilele lucrătoare, câte mașini pot fi inspectate deodată (liniile, cu nume dacă vreți) și durata pe tip de vehicul. Cu mai multe linii, clienții se pot programa la aceeași oră cât timp una e liberă; fiecare programare primește linia ei.',
+          'Setați programul, zilele lucrătoare și durata pe tip de vehicul. Câte mașini pot fi inspectate deodată (liniile, cu nume dacă vreți) setați în Contul meu → Linii ITP. Cu mai multe linii, clienții se pot programa la aceeași oră cât timp una e liberă; fiecare programare primește linia ei.',
           'Puneți logo-ul stației în Contul meu → Date stație ITP: apare pe pagina de programare, în emailurile către clienți, în lista de stații, pe afișul cu QR și pe fișa ITP. Tot în Programare online puteți scrie un mesaj scurt care apare sus pe pagină (ex. „Veniți cu 10 minute înainte”).',
           'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',

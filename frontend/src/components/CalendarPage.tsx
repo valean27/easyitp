@@ -290,7 +290,7 @@ function CalendarPage({ linkDate }: { linkDate: string | null }) {
         {mode === 'lines' && !multiLine && settings && (
           <div className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2">
             Stația are o singură linie. Dacă aveți mai multe, setați-le în{' '}
-            <Link to="/account#programare" className="font-semibold underline">Contul meu → Programare online</Link>: fiecare linie primește coloana ei, iar
+            <Link to="/account#linii" className="font-semibold underline">Contul meu → Linii ITP</Link>: fiecare linie primește coloana ei, iar
             clienții se pot programa la aceeași oră cât timp o linie e liberă.
           </div>
         )}

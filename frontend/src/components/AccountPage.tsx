@@ -4,6 +4,7 @@ import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTria
 import { getProfile, updateProfile, changePassword, getInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
+import LinesCard from './LinesCard';
 import LogoUploader from './LogoUploader';
 import ThemeSwitcher from './ThemeSwitcher';
 import SettingsCard from './SettingsCard';
@@ -326,6 +327,7 @@ export default function AccountPage() {
           {user?.role === 'MANAGER' && (
             <Group title="Stația">
               <StationCard bookingLink={bookingLink} />
+              <LinesCard />
               <BookingSettingsCard onChange={(s) => setBookingLink(s.enabled && s.slug ? bookingUrl(s.slug) : null)} />
               <InspectorsCard />
               <StationDeadlinesCard />

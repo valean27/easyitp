@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, GooglePlace, Profile, StationInfo, Visibility } from '../types';
+import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, GooglePlace, Profile, StationInfo, StationLines, Visibility } from '../types';
 
 const BASE = '/api/account';
 
@@ -22,8 +22,15 @@ export const updateInspectors = (names: string[]): Promise<string[]> =>
 export const getBookingSettings = (): Promise<BookingSettings> =>
   api.get(`${BASE}/booking`).then((r) => r.data);
 
-export const updateBookingSettings = (data: BookingSettings): Promise<BookingSettings> =>
+export const updateBookingSettings = (
+  data: Omit<BookingSettings, 'capacity' | 'lineNames'> & { capacity?: undefined; lineNames?: undefined },
+): Promise<BookingSettings> =>
   api.put(`${BASE}/booking`, data).then((r) => r.data);
+
+// Liniile ITP ale statiei (cardul „Linii ITP” din Contul meu)
+export const getLines = (): Promise<StationLines> => api.get(`${BASE}/lines`).then((r) => r.data);
+
+export const updateLines = (data: StationLines): Promise<StationLines> => api.put(`${BASE}/lines`, data).then((r) => r.data);
 
 export const getDigestSettings = (): Promise<DigestSettings> =>
   api.get(`${BASE}/digest`).then((r) => r.data);

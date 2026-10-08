@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
 import org.example.easyitp.dto.ChangePasswordRequest;
 import org.example.easyitp.dto.DigestSettingsDTO;
+import org.example.easyitp.dto.LinesDTO;
 import org.example.easyitp.dto.ProfileDTO;
 import org.example.easyitp.dto.StationInfoDTO;
 import org.example.easyitp.dto.VisibilityDTO;
@@ -226,6 +227,16 @@ public class AccountController {
     @PutMapping("/booking")
     public BookingSettingsDTO updateBookingSettings(@RequestBody BookingSettingsDTO request) {
         return bookingService.updateSettings(currentUser.get(), request);
+    }
+
+    @GetMapping("/lines")
+    public LinesDTO getLines() {
+        return bookingService.getLines(currentUser.get());
+    }
+
+    @PutMapping("/lines")
+    public LinesDTO updateLines(@RequestBody LinesDTO request) {
+        return bookingService.updateLines(currentUser.get(), request);
     }
 
     // Numele inspectorilor activi, pentru formularul ITP si termenele statiei (echipa se gestioneaza in /api/inspectors)

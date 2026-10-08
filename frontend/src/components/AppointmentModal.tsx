@@ -354,7 +354,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
                     ? `Alege o linie liberă (${freeLines.map((l) => lineName(lineNames, l)).join(', ')}) sau salvează oricum.`
                     : multiLine
                       ? 'Poți salva oricum (ex. dacă o inspecție se termină mai repede).'
-                      : 'Poți salva oricum. Dacă stația are mai multe linii, setează-le în Contul meu → Programare online.'}
+                      : 'Poți salva oricum. Dacă stația are mai multe linii, setează-le în Contul meu → Linii ITP.'}
                 </p>
               </div>
             </div>

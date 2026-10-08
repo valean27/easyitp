@@ -169,12 +169,19 @@ export interface VehicleType {
   enabled: boolean;
 }
 
+// Liniile ITP ale statiei: cate sunt si numele lor ("" = "Linia N")
+export interface StationLines {
+  count: number;
+  names: string[];
+}
+
 export interface BookingSettings {
   enabled: boolean;
   slug: string | null;
   open: string; // HH:mm:ss
   close: string;
   days: number[]; // 1 = luni ... 7 = duminica
+  // numarul liniilor (doar citit aici; se schimba din cardul Linii ITP)
   capacity: number;
   vehicleTypes: VehicleType[];
   // statia apare in lista publica /statii

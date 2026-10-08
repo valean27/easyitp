@@ -386,8 +386,8 @@ export default function InspectorsPage() {
             <p className="mt-3 text-xs text-slate-400">
               Fiecare inspector are linia lui obișnuită și programul săptămânal (în fereastra inspectorului); aici schimbați doar ziua aleasă
               (înlocuire); concediile le marcați mai jos. Liniile se setează în{' '}
-              <Link to="/account#programare" className="text-blue-600 hover:underline">
-                Contul meu → Programare online
+              <Link to="/account#linii" className="text-blue-600 hover:underline">
+                Contul meu → Linii ITP
               </Link>
               .
             </p>

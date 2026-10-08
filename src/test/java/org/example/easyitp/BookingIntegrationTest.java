@@ -220,6 +220,45 @@ class BookingIntegrationTest {
     }
 
     @Test
+    void linesHaveTheirOwnSettingsAndBookingSettingsKeepThem() throws Exception {
+        mvc.perform(get("/api/account/lines").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.names[0]").value(""));
+        putLines("{\"count\":3,\"names\":[\"Autoturisme\",\"\",\" Camioane  mari \",\"in plus\"]}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(3))
+                .andExpect(jsonPath("$.names.length()").value(3))
+                .andExpect(jsonPath("$.names[2]").value("Camioane mari"));
+        putLines("{\"count\":0}").andExpect(status().isBadRequest());
+        putLines("{\"count\":11}").andExpect(status().isBadRequest());
+        putLines("{\"count\":2,\"names\":[\"" + "x".repeat(41) + "\"]}").andExpect(status().isBadRequest());
+
+        // cardul de programare online nu mai trimite liniile: raman cum erau
+        putSettings("{\"enabled\":true,\"slug\":\"linii-separat\",\"open\":\"08:00\",\"close\":\"17:00\",\"days\":[1,2,3,4,5,6,7]}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.capacity").value(3))
+                .andExpect(jsonPath("$.lineNames[0]").value("Autoturisme"));
+
+        // un inspector pe linia 3 (si marti tot pe 3), altul pe linia 1
+        long pe3 = json.readTree(mvc.perform(post("/api/inspectors").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Ion\",\"defaultLine\":3,\"schedule\":[{\"weekday\":2,\"line\":3},{\"weekday\":3,\"line\":1}]}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).get("id").asLong();
+
+        // mai putine linii: numele celor scoase dispar, iar inspectorul de pe linia 3 ramane fara linie fixa
+        putLines("{\"count\":1}").andExpect(status().isOk()).andExpect(jsonPath("$.names.length()").value(1))
+                .andExpect(jsonPath("$.names[0]").value("Autoturisme"));
+        JsonNode team = json.readTree(mvc.perform(get("/api/inspectors").header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString());
+        JsonNode ion = team.get(0);
+        assertThat(ion.get("id").asLong()).isEqualTo(pe3);
+        assertThat(ion.get("defaultLine").isNull()).isTrue();
+        assertThat(ion.get("schedule").findValues("line").stream().map(n -> n.isNull() ? "-" : n.asText()).toList())
+                .containsExactly("-", "1");
+    }
+
+    @Test
     void rejectsInvalidRequests() throws Exception {
         enableBooking("validari", 1);
         book("validari", "10:00", "I", "0722111222").andExpect(status().isBadRequest());
@@ -269,6 +308,12 @@ class BookingIntegrationTest {
     private JsonNode settings() throws Exception {
         return json.readTree(mvc.perform(get("/api/account/booking").header("Authorization", "Bearer " + token))
                 .andReturn().getResponse().getContentAsString());
+    }
+
+    private ResultActions putLines(String body) throws Exception {
+        return mvc.perform(put("/api/account/lines").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
     }
 
     private ResultActions putSettings(String body) throws Exception {

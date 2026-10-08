@@ -17,7 +17,8 @@ public class BookingSettingsDTO {
     private LocalTime open;
     private LocalTime close;
     private List<Integer> days; // 1 = luni ... 7 = duminica
-    private int capacity;
+    // Numarul liniilor ITP (se seteaza din /api/account/lines); null la salvare = nu se schimba
+    private Integer capacity;
     private List<VehicleTypeDTO> vehicleTypes;
     // Statia apare in lista publica de statii (/statii); null la salvare = nu se schimba
     private Boolean publicListing;
