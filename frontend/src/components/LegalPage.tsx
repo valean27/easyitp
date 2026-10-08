@@ -11,7 +11,7 @@ const LINKS = [
   { href: '/statii', label: 'Stații ITP' },
 ];
 
-const UPDATED = '6 octombrie 2026';
+const UPDATED = '8 octombrie 2026';
 
 function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
@@ -155,6 +155,34 @@ function Terms() {
         <p>
           Easy ITP este o aplicație online pentru stații ITP: evidența inspecțiilor, remindere pentru clienți, programări online, rapoarte
           și portal pentru flote. Serviciul este oferit de <Contact />.
+        </p>
+      </Section>
+
+      <Section id="vanzator" title="Cine vinde serviciul și emite factura">
+        <p>
+          Vânzătorul abonamentelor Easy ITP și al pachetelor de SMS, precum și emitentul facturii, este o singură entitate juridică:
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Denumire: <b>{COMPANY.name}</b>, societate cu răspundere limitată, plătitoare de TVA</li>
+          <li>CUI / CIF: {COMPANY.cui}</li>
+          {COMPANY.regCom && <li>Nr. de ordine în Registrul Comerțului: {COMPANY.regCom}</li>}
+          <li>Sediul social: {COMPANY.address}, România</li>
+          <li>
+            Telefon: <a href={COMPANY.phoneHref} className="text-blue-600 hover:underline">{COMPANY.phone}</a>, email:{' '}
+            <a href={`mailto:${COMPANY.email}`} className="text-blue-600 hover:underline">{COMPANY.email}</a>
+          </li>
+        </ul>
+        <p>
+          <b>Rolul nostru:</b> {COMPANY.name} este <b>comerciantul direct</b> și furnizorul serviciului: dezvoltă și operează aplicația
+          Easy ITP și o vinde, în nume și pe cont propriu, stațiilor ITP. Nu suntem marketplace, intermediar, distribuitor sau agent
+          pentru alți vânzători. Contractul se încheie între stație și {COMPANY.name}, iar factura pentru fiecare plată este emisă de{' '}
+          {COMPANY.name}, pe datele de facturare ale stației, și este transmisă în sistemul e-Factura.
+        </p>
+        <p>
+          NETOPIA Payments este doar procesatorul plăților cu cardul; nu vinde serviciul și nu emite factura. Inspecțiile ITP nu se
+          vând prin Easy ITP: programarea online la o stație este gratuită, iar inspecția se plătește direct stației, care emite propriul
+          document fiscal. Facturile pe care o stație le emite clienților ei din aplicație (prin contul ei Oblio) sunt emise de stație, în
+          numele ei.
         </p>
       </Section>
 
