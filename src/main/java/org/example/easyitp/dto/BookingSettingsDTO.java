@@ -25,4 +25,6 @@ public class BookingSettingsDTO {
     private List<String> lineNames;
     // Email la fiecare programare online; null la salvare = nu se schimba
     private Boolean emailNotify;
+    // Mesajul de pe pagina de programare; null la salvare = nu se schimba, "" = sterge
+    private String bookingMessage;
 }

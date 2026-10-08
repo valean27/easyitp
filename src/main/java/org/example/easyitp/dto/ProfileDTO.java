@@ -22,4 +22,6 @@ public class ProfileDTO {
     private String facebookUrl;
     // false = statia nu a confirmat inca adresa de email (banda din aplicatie)
     private boolean emailVerified;
+    // logo-ul statiei (cale publica, null = fara logo)
+    private String logoUrl;
 }

@@ -26,4 +26,7 @@ public class PublicStationDTO {
     // Nota de pe Google (null = necunoscuta)
     private Double googleRating;
     private Integer googleRatingCount;
+    // Logo-ul statiei (cale publica) si mesajul ei pe pagina de programare (pot lipsi)
+    private String logoUrl;
+    private String bookingMessage;
 }

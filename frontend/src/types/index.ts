@@ -131,6 +131,8 @@ export interface Profile extends StationInfo {
   facebookUrl: string | null;
   // false = adresa de email nu a fost confirmata din linkul primit la inscriere
   emailVerified: boolean;
+  // logo-ul statiei (cale publica), null = fara logo
+  logoUrl: string | null;
 }
 
 // Recenzii si vizibilitate (Contul meu)
@@ -181,6 +183,8 @@ export interface BookingSettings {
   lineNames: string[];
   // managerul primeste email la fiecare programare online
   emailNotify: boolean;
+  // mesajul statiei pe pagina de programare
+  bookingMessage: string | null;
 }
 
 export interface PublicStation {
@@ -197,6 +201,9 @@ export interface PublicStation {
   reviewUrl: string | null;
   googleRating: number | null;
   googleRatingCount: number | null;
+  // logo-ul statiei si mesajul ei pe pagina de programare (pot lipsi)
+  logoUrl?: string | null;
+  bookingMessage?: string | null;
 }
 
 export interface Reminder {

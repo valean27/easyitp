@@ -39,6 +39,7 @@ public class AccountController {
     private final AppUserRepository appUserRepository;
     private final CurrentUser currentUser;
     private final BookingService bookingService;
+    private final org.example.easyitp.service.LogoService logoService;
     private final org.example.easyitp.service.InspectorService inspectorService;
     private final DigestService digestService;
     private final PasswordEncoder passwordEncoder;
@@ -205,6 +206,18 @@ public class AccountController {
         return Map.of("token", jwtUtil.generateToken(user));
     }
 
+    // Logo-ul statiei: PNG / JPG, refacut ca PNG de cel mult 400 px
+    @PutMapping(value = "/logo", consumes = "multipart/form-data")
+    public Map<String, String> uploadLogo(@RequestParam("logo") org.springframework.web.multipart.MultipartFile logo) {
+        return Map.of("logoUrl", logoService.save(currentUser.get(), logo));
+    }
+
+    @DeleteMapping("/logo")
+    public ResponseEntity<Void> deleteLogo() {
+        logoService.delete(currentUser.get());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/booking")
     public BookingSettingsDTO getBookingSettings() {
         return bookingService.getSettings(currentUser.get());
@@ -278,7 +291,7 @@ public class AccountController {
         return new ProfileDTO(u.getEmail(), u.getRole().name(), u.getStationName(), u.getAddress(), u.getPhone(),
                 u.getReminderTemplate(), u.getBookingSlug(), Boolean.TRUE.equals(u.getBookingEnabled()),
                 !Boolean.FALSE.equals(u.getDigestEnabled()), u.getReviewUrl(), u.getMapsUrl(), u.getFacebookUrl(),
-                !Boolean.FALSE.equals(u.getEmailVerified()));
+                !Boolean.FALSE.equals(u.getEmailVerified()), org.example.easyitp.service.LogoService.path(u));
     }
 
     private static ResponseStatusException badRequest(String message) {

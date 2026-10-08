@@ -59,7 +59,7 @@ public class AppointmentMailService {
             case MOVED -> "Programarea dumneavoastră la ITP a fost mutată.";
             case CANCELLED -> "Programarea dumneavoastră la ITP a fost anulată. Vă puteți programa oricând din nou.";
         };
-        StringBuilder b = start(stationName);
+        StringBuilder b = start(stationName, logoUrl(station));
         b.append(p(intro));
         b.append(details(appt, station, event == Event.CANCELLED));
         if (event != Event.CANCELLED) {
@@ -87,7 +87,7 @@ public class AppointmentMailService {
             case MOVED -> "Programare mutată de client: " + appt.getClientName() + ", " + when(appt.getAppointmentDate());
             case CANCELLED -> "Programare anulată de client: " + appt.getClientName() + ", " + when(appt.getAppointmentDate());
         };
-        StringBuilder b = start(station.getStationName() != null ? station.getStationName() : "Easy ITP");
+        StringBuilder b = start(station.getStationName() != null ? station.getStationName() : "Easy ITP", logoUrl(station));
         b.append(p(switch (event) {
             case BOOKED -> "Un client s-a programat pe pagina online a stației.";
             case MOVED -> "Clientul și-a mutat programarea din linkul primit.";
@@ -126,9 +126,24 @@ public class AppointmentMailService {
                 .append("</td><td style=\"padding:3px 0;font-weight:bold\">").append(esc(value)).append("</td></tr>");
     }
 
-    private static StringBuilder start(String heading) {
-        return new StringBuilder("<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b\">")
-                .append("<p style=\"font-size:18px;font-weight:bold;color:#2563eb;margin:0 0 16px\">").append(esc(heading)).append("</p>");
+    // Antetul: logo-ul statiei (daca are) si numele ei
+    private static StringBuilder start(String heading, String logo) {
+        StringBuilder b = new StringBuilder("<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b\">");
+        if (logo != null) {
+            b.append("<table style=\"border-collapse:collapse;margin:0 0 16px\"><tr><td style=\"padding:0 12px 0 0;vertical-align:middle\">")
+                    .append("<img src=\"").append(esc(logo)).append("\" alt=\"").append(esc(heading))
+                    .append("\" height=\"56\" style=\"display:block;height:56px;width:auto;max-width:180px;border:0\"></td>")
+                    .append("<td style=\"vertical-align:middle;font-size:18px;font-weight:bold;color:#1e293b\">").append(esc(heading))
+                    .append("</td></tr></table>");
+        } else {
+            b.append("<p style=\"font-size:18px;font-weight:bold;color:#2563eb;margin:0 0 16px\">").append(esc(heading)).append("</p>");
+        }
+        return b;
+    }
+
+    private String logoUrl(AppUser station) {
+        String path = LogoService.path(station);
+        return path == null ? null : AccountMail.stripSlash(apiUrl) + path;
     }
 
     private static String end(StringBuilder b) {

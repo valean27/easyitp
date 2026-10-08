@@ -29,6 +29,7 @@ export interface PublicStationSummary {
   // nota de pe Google (null = necunoscuta)
   googleRating: number | null;
   googleRatingCount: number | null;
+  logoUrl?: string | null;
 }
 
 export const getPublicStations = (): Promise<PublicStationSummary[]> =>
@@ -85,6 +86,8 @@ export interface ManagedAppointment {
   icsUrl: string | null;
   canChange: boolean;
   clientAction: string | null;
+  // logo-ul statiei (cale publica)
+  logoUrl?: string | null;
 }
 
 const mine = (token: string) => `/api/public/appointments/${encodeURIComponent(token)}`;

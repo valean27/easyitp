@@ -82,3 +82,12 @@ export const exportAllData = (): Promise<void> =>
 // Inchide contul acum; datele se sterg definitiv dupa 30 de zile. Intoarce mesajul cu data stergerii
 export const deleteAccount = (password: string, confirm: string): Promise<string> =>
   api.post(`${BASE}/delete`, { password, confirm }).then((r) => r.data.message);
+
+// Logo-ul statiei: intoarce calea publica a logo-ului nou
+export const uploadLogo = (image: Blob): Promise<string> => {
+  const form = new FormData();
+  form.append('logo', image, 'logo.png');
+  return api.put(`${BASE}/logo`, form).then((r) => r.data.logoUrl);
+};
+
+export const deleteLogo = (): Promise<void> => api.delete(`${BASE}/logo`).then(() => undefined);

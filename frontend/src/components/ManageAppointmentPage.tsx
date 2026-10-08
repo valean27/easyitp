@@ -14,6 +14,7 @@ import { apiMessage } from '../utils/errors';
 import { isoWeekday, WEEKDAYS_SHORT, MONTHS_SHORT } from '../utils/booking';
 import { toLocalIso } from '../utils/dates';
 import AddToCalendar from './AddToCalendar';
+import { assetUrl } from '../utils/apiUrl';
 
 const LONG_DAYS = ['luni', 'marți', 'miercuri', 'joi', 'vineri', 'sâmbătă', 'duminică'];
 
@@ -125,7 +126,16 @@ export default function ManageAppointmentPage() {
       <div className="max-w-lg mx-auto space-y-4">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Programarea dumneavoastră</p>
-          <h1 className="text-xl font-bold text-slate-800">{appt.stationName}</h1>
+          <div className="flex items-center gap-3">
+            {appt.logoUrl && (
+              <img
+                src={assetUrl(appt.logoUrl)}
+                alt={`Logo ${appt.stationName}`}
+                className="h-12 w-12 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1"
+              />
+            )}
+            <h1 className="text-xl font-bold text-slate-800">{appt.stationName}</h1>
+          </div>
           <p className={`flex items-center gap-2 text-lg font-semibold ${cancelled ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
             <CalendarCheck size={20} className="text-blue-600 shrink-0" /> {longWhen(appt.appointmentDate)}
           </p>

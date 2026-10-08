@@ -4,6 +4,7 @@ import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTria
 import { getProfile, updateProfile, changePassword, getInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
+import LogoUploader from './LogoUploader';
 import ThemeSwitcher from './ThemeSwitcher';
 import SettingsCard from './SettingsCard';
 import DigestCard from './DigestCard';
@@ -72,6 +73,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
   const [template, setTemplate] = useState(DEFAULT_REMINDER_TEMPLATE);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<Message>(null);
@@ -83,6 +85,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
         setAddress(p.address ?? '');
         setPhone(p.phone ?? '');
         setTemplate(p.reminderTemplate || DEFAULT_REMINDER_TEMPLATE);
+        setLogoUrl(p.logoUrl ?? null);
       })
       .catch(() => setMessage({ text: 'Nu s-au putut încărca datele stației.', type: 'error' }))
       .finally(() => setLoaded(true));
@@ -113,6 +116,7 @@ function StationCard({ bookingLink }: { bookingLink: string | null }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          <LogoUploader logoUrl={logoUrl} onChange={setLogoUrl} />
           <label className="block">
             <span className="block text-sm font-medium text-slate-600 mb-1">Nume stație</span>
             <input value={stationName} onChange={(e) => setStationName(e.target.value)} placeholder="ITP Auto Center" className={INPUT_CLS} />

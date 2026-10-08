@@ -108,6 +108,14 @@ public class AppUser {
     // Managerul primeste email la fiecare programare online (null = da)
     private Boolean bookingEmailNotify;
 
+    // Logo-ul statiei (imaginea e in station_logos); se schimba la fiecare logo nou. null = fara logo
+    @Column(length = 40)
+    private String logoToken;
+
+    // Mesajul statiei pe pagina de programare (ex. "Veniți cu 10 minute înainte")
+    @Column(length = 300)
+    private String bookingMessage;
+
     // Numele liniilor, unul pe rand (ex. "Linia 1 - autoturisme"); null = "Linia 1", "Linia 2" ...
     @Column(length = 500)
     private String bookingLineNames;

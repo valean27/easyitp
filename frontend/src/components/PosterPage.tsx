@@ -5,6 +5,7 @@ import type { Profile } from '../types';
 import { getProfile } from '../api/accountApi';
 import { bookingUrl } from '../utils/booking';
 import { useQr } from '../utils/qr';
+import { assetUrl } from '../utils/apiUrl';
 
 // Fara "https://" pe afis: mai scurt de citit si de tastat
 const shortUrl = (url: string) => url.replace(/^https?:\/\//, '');
@@ -56,6 +57,9 @@ export default function PosterPage() {
         className="poster mx-auto shadow-lg print:shadow-none flex flex-col items-center text-center"
         style={{ width: '210mm', minHeight: '297mm', background: '#ffffff', color: '#0f172a', padding: '18mm 16mm' }}
       >
+        {profile.logoUrl && (
+          <img src={assetUrl(profile.logoUrl)} alt="" style={{ height: '28mm', width: 'auto', maxWidth: '80mm', objectFit: 'contain', marginBottom: '5mm' }} />
+        )}
         <p style={{ fontSize: '15pt', fontWeight: 700, color: '#2563eb', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
           {profile.stationName || 'Stația ITP'}
         </p>

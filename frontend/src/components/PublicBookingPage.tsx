@@ -24,6 +24,7 @@ import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../util
 import { usePageTitle } from '../utils/pageTitle';
 import { checkMobile } from '../utils/phone';
 import AddToCalendar from './AddToCalendar';
+import { assetUrl } from '../utils/apiUrl';
 import { apiMessage } from '../utils/errors';
 
 const INPUT_CLS =
@@ -42,14 +43,25 @@ function StationHeader({ station }: { station: PublicStation }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 space-y-2">
       <div className="flex items-center gap-3">
-        <div className="bg-blue-600 p-2.5 rounded-xl">
-          <Car size={20} className="text-white" />
-        </div>
+        {station.logoUrl ? (
+          <img
+            src={assetUrl(station.logoUrl)}
+            alt={`Logo ${station.name}`}
+            className="h-14 w-14 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1"
+          />
+        ) : (
+          <div className="bg-blue-600 p-2.5 rounded-xl">
+            <Car size={20} className="text-white" />
+          </div>
+        )}
         <div>
           <h1 className="text-lg font-bold text-slate-800 leading-tight">{station.name}</h1>
           <p className="text-sm text-slate-500">Programare ITP online</p>
         </div>
       </div>
+      {station.bookingMessage && (
+        <p className="rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-900 whitespace-pre-line">{station.bookingMessage}</p>
+      )}
       <div className="text-sm text-slate-600 space-y-1 pt-1">
         {station.address && (
           <p className="flex items-start gap-2">

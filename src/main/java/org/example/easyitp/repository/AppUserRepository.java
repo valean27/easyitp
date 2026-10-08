@@ -34,6 +34,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findByInspectorId(Long inspectorId);
 
+    Optional<AppUser> findByLogoToken(String logoToken);
+
     List<AppUser> findByFleetIdIn(java.util.Collection<Long> fleetIds);
 
     // Rezerva ziua pentru rezumatul zilnic: un singur apel reuseste (1), chiar daca doua rulari pornesc deodata

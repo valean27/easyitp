@@ -69,7 +69,8 @@ public class BookingService {
                 InspectionDurations.allTypes(user),
                 !Boolean.FALSE.equals(user.getPublicListing()),
                 lineNames(user),
-                !Boolean.FALSE.equals(user.getBookingEmailNotify()));
+                !Boolean.FALSE.equals(user.getBookingEmailNotify()),
+                user.getBookingMessage());
     }
 
     // Statiile active cu programarea online pornita care accepta sa apara in lista publica, dupa nume
@@ -80,7 +81,7 @@ public class BookingService {
                         && !Boolean.FALSE.equals(u.getPublicListing()))
                 .map(u -> new PublicStationSummaryDTO(u.getStationName() != null ? u.getStationName() : "Stație ITP",
                         u.getBookingSlug(), u.getAddress(), u.getPhone(), open(u), close(u), days(u), u.getMapsUrl(),
-                        rating(u), rating(u) == null ? null : u.getGoogleRatingCount()))
+                        rating(u), rating(u) == null ? null : u.getGoogleRatingCount(), LogoService.path(u)))
                 .sorted(java.util.Comparator.comparing(s -> s.name().toLowerCase(java.util.Locale.ROOT)))
                 .toList();
     }
@@ -119,6 +120,11 @@ public class BookingService {
         user.setBookingCapacity(dto.getCapacity());
         if (dto.getPublicListing() != null) user.setPublicListing(dto.getPublicListing());
         if (dto.getEmailNotify() != null) user.setBookingEmailNotify(dto.getEmailNotify());
+        if (dto.getBookingMessage() != null) {
+            String message = dto.getBookingMessage().trim();
+            if (message.length() > 300) throw badRequest("Mesajul poate avea cel mult 300 de caractere");
+            user.setBookingMessage(message.isEmpty() ? null : message);
+        }
         if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), dto.getCapacity()));
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
@@ -172,7 +178,8 @@ public class BookingService {
                 MAX_DAYS_AHEAD,
                 InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled).toList(),
                 station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl(), rating(station),
-                rating(station) == null ? null : station.getGoogleRatingCount());
+                rating(station) == null ? null : station.getGoogleRatingCount(),
+                LogoService.path(station), station.getBookingMessage());
     }
 
     // Nota Google se arata doar pe Premium (si nu se mai reimprospateaza fara el; Google nu permite note vechi)

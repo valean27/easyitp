@@ -53,7 +53,7 @@ class BookingNotificationIntegrationTest {
     void setUp() throws Exception {
         when(emailService.isConfigured()).thenReturn(true);
         users.save(AppUser.builder().email("notif@itp.ro").password(encoder.encode("secret12")).role(Role.MANAGER)
-                .stationName("ITP Notificări").address("Str. Lungă 1, Cluj").phone("0264 111 222").build());
+                .stationName("ITP Notificări").address("Str. Lungă 1, Cluj").phone("0264 111 222").logoToken("logo12345678").build());
         token = json.readTree(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"notif@itp.ro\",\"password\":\"secret12\"}")).andReturn().getResponse().getContentAsString()).get("token").asText();
         mvc.perform(put("/api/account/booking").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +77,9 @@ class BookingNotificationIntegrationTest {
         assertThat(to.getAllValues()).containsExactly("ion.pop@exemplu.ro", "notif@itp.ro");
         assertThat(subject.getAllValues().get(0)).contains("confirmată").contains("ITP Notificări");
         assertThat(html.getAllValues().get(0)).contains("calendar.google.com/calendar/render").contains("/calendar.ics")
-                .contains("/p/" + manage).contains("ora 10:00");
+                .contains("/p/" + manage).contains("ora 10:00")
+                // logo-ul statiei sus, cu adresa completa a serverului
+                .contains("<img src=\"https://").contains("/api/public/logos/logo12345678.png");
         assertThat(subject.getAllValues().get(1)).startsWith("Programare nouă online: Ion Pop");
 
         // fisierul de calendar

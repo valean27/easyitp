@@ -144,6 +144,7 @@ export const GUIDE: GuideGroup[] = [
         steps: [
           'În Contul meu → Programare online, porniți programarea și alegeți adresa paginii (ex. /programare/itp-exemplu).',
           'Setați programul, zilele lucrătoare, câte mașini pot fi inspectate deodată (liniile, cu nume dacă vreți) și durata pe tip de vehicul. Cu mai multe linii, clienții se pot programa la aceeași oră cât timp una e liberă; fiecare programare primește linia ei.',
+          'Puneți logo-ul stației în Contul meu → Date stație ITP: apare pe pagina de programare, în emailurile către clienți, în lista de stații, pe afișul cu QR și pe fișa ITP. Tot în Programare online puteți scrie un mesaj scurt care apare sus pe pagină (ex. „Veniți cu 10 minute înainte”).',
           'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',
         ],

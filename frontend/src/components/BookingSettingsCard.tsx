@@ -55,6 +55,7 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         open: settings.open.length === 5 ? `${settings.open}:00` : settings.open,
         close: settings.close.length === 5 ? `${settings.close}:00` : settings.close,
         lineNames: Array.from({ length: settings.capacity }, (_, i) => settings.lineNames?.[i] ?? ''),
+        bookingMessage: settings.bookingMessage ?? '',
       });
       setSettings(saved);
       onChange?.(saved);
@@ -189,6 +190,24 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
               ))}
             </div>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="booking-message" className="block text-sm font-medium text-slate-600 mb-1">
+            Mesaj pe pagina de programare <span className="font-normal text-slate-400">(opțional)</span>
+          </label>
+          <textarea
+            id="booking-message"
+            value={settings.bookingMessage ?? ''}
+            onChange={(e) => update({ bookingMessage: e.target.value })}
+            maxLength={300}
+            rows={2}
+            placeholder="ex. Veniți cu 10 minute înainte. Plata se face cash sau cu cardul."
+            className={INPUT_CLS + ' resize-y'}
+          />
+          <p className="text-xs text-slate-400 mt-1">
+            Apare sus, sub numele stației. Logo-ul îl puneți în Date stație ITP.
+          </p>
         </div>
 
         <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">

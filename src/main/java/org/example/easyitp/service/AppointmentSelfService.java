@@ -34,7 +34,7 @@ public class AppointmentSelfService {
                              String licensePlate, String vehicleLabel, VehicleCategory vehicleCategory,
                              AppointmentStatus status, boolean canChange, String clientAction,
                              // pentru calendarul clientului; null cand programarea nu mai e activa
-                             String googleCalendarUrl, String icsUrl) {
+                             String googleCalendarUrl, String icsUrl, String logoUrl) {
     }
 
     @Transactional(readOnly = true)
@@ -121,6 +121,7 @@ public class AppointmentSelfService {
                 slug, appt.getAppointmentDate(), appt.getLicensePlate(), category.label(), category,
                 appt.getStatus(), canChange(appt), appt.getClientAction(),
                 appt.getStatus() == AppointmentStatus.SCHEDULED ? CalendarLinks.google(appt, s, appointmentSmsService.manageLink(appt)) : null,
-                appt.getStatus() == AppointmentStatus.SCHEDULED ? appointmentMailService.icsLink(appt) : null);
+                appt.getStatus() == AppointmentStatus.SCHEDULED ? appointmentMailService.icsLink(appt) : null,
+                LogoService.path(s));
     }
 }

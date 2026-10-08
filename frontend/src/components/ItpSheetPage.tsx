@@ -7,6 +7,7 @@ import { getItp } from '../api/itpApi';
 import { bookingUrl } from '../utils/booking';
 import { STATUS_LABELS, formatDateRo } from '../utils/fleet';
 import { useQr } from '../utils/qr';
+import { assetUrl } from '../utils/apiUrl';
 
 const INK = '#0f172a';
 const MUTED = '#64748b';
@@ -77,9 +78,14 @@ export default function ItpSheetPage() {
         style={{ width: '210mm', minHeight: '297mm', background: '#ffffff', color: INK, padding: '16mm 16mm', fontSize: '11pt' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8mm', borderBottom: `2px solid ${INK}`, paddingBottom: '5mm' }}>
-          <div>
-            <p style={{ fontSize: '16pt', fontWeight: 800 }}>{profile.stationName || 'Stația ITP'}</p>
-            <p style={{ color: MUTED }}>{[profile.address, profile.phone].filter(Boolean).join(' · ')}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4mm' }}>
+            {profile.logoUrl && (
+              <img src={assetUrl(profile.logoUrl)} alt="" style={{ height: '16mm', width: 'auto', maxWidth: '40mm', objectFit: 'contain' }} />
+            )}
+            <div>
+              <p style={{ fontSize: '16pt', fontWeight: 800 }}>{profile.stationName || 'Stația ITP'}</p>
+              <p style={{ color: MUTED }}>{[profile.address, profile.phone].filter(Boolean).join(' · ')}</p>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <p style={{ fontSize: '16pt', fontWeight: 800 }}>Fișă ITP</p>

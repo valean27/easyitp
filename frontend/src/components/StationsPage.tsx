@@ -7,6 +7,7 @@ import { PublicFooter, PublicHeader } from './landing/PublicChrome';
 import StarRating from './StarRating';
 import NearbyStationsSearch from './NearbyStationsSearch';
 import { usePageTitle } from '../utils/pageTitle';
+import { assetUrl } from '../utils/apiUrl';
 
 // Linkul stației pe Google Maps, altfel o căutare după nume + adresă
 const mapLink = (s: PublicStationSummary) =>
@@ -95,7 +96,17 @@ export default function StationsPage() {
                 {shown.map((s) => (
                   <li key={s.slug} className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0 space-y-1.5">
-                      <p className="text-lg font-bold text-slate-900">{s.name}</p>
+                      <div className="flex items-center gap-3">
+                        {s.logoUrl && (
+                          <img
+                            src={assetUrl(s.logoUrl)}
+                            alt=""
+                            loading="lazy"
+                            className="h-11 w-11 shrink-0 rounded-lg border border-slate-100 bg-white object-contain p-0.5"
+                          />
+                        )}
+                        <p className="text-lg font-bold text-slate-900">{s.name}</p>
+                      </div>
                       {s.googleRating != null && <StarRating rating={s.googleRating} count={s.googleRatingCount} href={s.mapsUrl} />}
                       {s.address && (
                         <a
