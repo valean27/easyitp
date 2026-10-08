@@ -56,6 +56,7 @@ public class InspectorDashboardService {
         double revenue;
         Integer todayLine;
         boolean offToday;
+        String leaveToday;
         final Set<LocalDate> days = new HashSet<>();
 
         Acc(String key, Long id, String name, String color, boolean active) {
@@ -72,7 +73,7 @@ public class InspectorDashboardService {
 
         InspectorStats stats() {
             return new InspectorStats(key, id, name, color, active, itps, passed, failed, recheck, revenue, days.size(),
-                    appointments, completed, noShows, todayLine, todayAppointments, offToday);
+                    appointments, completed, noShows, todayLine, todayAppointments, offToday, leaveToday);
         }
     }
 
@@ -89,6 +90,7 @@ public class InspectorDashboardService {
         for (Inspector i : team) {
             Acc a = new Acc("id:" + i.getId(), i.getId(), i.getName(), i.getColor(), i.isActive());
             a.offToday = i.isActive() && !InspectorService.worksOn(i, today);
+            inspectorService.leaveOn(i.getId(), today).ifPresent(l -> a.leaveToday = l.getKind().name());
             rows.put(a.key, a);
             byId.put(i.getId(), a);
             byName.put(key(i.getName()), a);

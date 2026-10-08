@@ -10,12 +10,13 @@ import { todayIso } from '../utils/dates';
 import { formatDateRo } from '../utils/fleet';
 import { formatRon } from '../utils/plans';
 import { lineName } from '../utils/lines';
-import { PERIOD_LABELS, chartBars, colorHex, failRate, initials, perDay, periodRange, scheduleSummary, type Period } from '../utils/inspectors';
+import { LEAVE_LABELS, PERIOD_LABELS, chartBars, colorHex, failRate, initials, perDay, periodRange, rangeLabel, scheduleSummary, type Period } from '../utils/inspectors';
 import { apiMessage } from '../utils/errors';
 import PlanLock from './PlanLock';
 import DateField from './DateField';
 import InspectorModal from './InspectorModal';
 import InspectorStackedChart from './InspectorStackedChart';
+import LeavePlanner from './LeavePlanner';
 
 // Cate serii are graficul; restul intra la "Alții"
 const MAX_SERIES = 8;
@@ -373,6 +374,7 @@ export default function InspectorsPage() {
                         {active.map((i) => (
                           <option key={i.id} value={i.id}>
                             {i.name}
+                            {i.leaves.some((l) => l.from <= shiftDate && shiftDate <= l.to) ? ` (${LEAVE_LABELS[i.leaves.find((l) => l.from <= shiftDate && shiftDate <= l.to)!.kind].toLowerCase()})` : ''}
                           </option>
                         ))}
                       </select>
@@ -383,12 +385,26 @@ export default function InspectorsPage() {
             )}
             <p className="mt-3 text-xs text-slate-400">
               Fiecare inspector are linia lui obișnuită și programul săptămânal (în fereastra inspectorului); aici schimbați doar ziua aleasă
-              (concediu, înlocuire). Liniile se setează în{' '}
+              (înlocuire); concediile le marcați mai jos. Liniile se setează în{' '}
               <Link to="/account#programare" className="text-blue-600 hover:underline">
                 Contul meu → Programare online
               </Link>
               .
             </p>
+          </Card>
+        )}
+
+        {/* Concediile pe luna */}
+        {team && team.length > 0 && (
+          <Card id="concedii" title="Concedii și zile libere">
+            <LeavePlanner
+              team={team}
+              onChanged={() => {
+                loadTeam();
+                loadDashboard();
+                getLineShifts(shiftDate).then(setShifts).catch(() => undefined);
+              }}
+            />
           </Card>
         )}
 
@@ -418,6 +434,12 @@ export default function InspectorsPage() {
                         <a href={`tel:${i.phone.replace(/\s/g, '')}`} className="inline-flex items-center gap-1 hover:text-blue-600">
                           <Phone size={11} /> {i.phone}
                         </a>
+                      )}
+                      {i.leaves.length > 0 && (
+                        <span className="font-medium text-amber-700" title="Absențele care urmează">
+                          {LEAVE_LABELS[i.leaves[0].kind]} {rangeLabel(i.leaves[0])}
+                          {i.leaves.length > 1 ? ` +${i.leaves.length - 1}` : ''}
+                        </span>
                       )}
                       {i.login && (
                         <span className="inline-flex items-center gap-1" title="Contul cu care se loghează">
@@ -471,7 +493,9 @@ function InspectorCard({ stats, color, share, lineNames }: { stats: InspectorSta
               ? stats.key === 'none'
                 ? 'ITP-uri fără inspector ales'
                 : 'Nu mai e în echipă'
-              : stats.todayLine
+              : stats.leaveToday
+                ? `${LEAVE_LABELS[stats.leaveToday]} azi`
+                : stats.todayLine
                 ? `Azi pe ${lineName(lineNames, stats.todayLine)}${stats.todayAppointments ? ` · ${stats.todayAppointments} programări` : ''}`
                 : stats.todayAppointments
                   ? `Azi: ${stats.todayAppointments} programări`

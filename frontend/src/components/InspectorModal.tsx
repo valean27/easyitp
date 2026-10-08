@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { X, Loader2, Trash2, Check, KeyRound, CalendarDays } from 'lucide-react';
-import type { Inspector, InspectorColor, InspectorDay, InspectorRequest } from '../types';
-import { createInspector, deleteInspector, deleteInspectorAccount, saveInspectorAccount, updateInspector } from '../api/inspectorApi';
+import { X, Loader2, Trash2, Check, KeyRound, CalendarDays, Palmtree } from 'lucide-react';
+import type { Inspector, InspectorColor, InspectorDay, InspectorRequest, LeaveKind, LeaveRange } from '../types';
+import { clearLeave, createInspector, deleteInspector, deleteInspectorAccount, saveInspectorAccount, setLeave, updateInspector } from '../api/inspectorApi';
 import { apiMessage } from '../utils/errors';
-import { COLOR_ORDER, INSPECTOR_COLORS, WEEKDAYS_SHORT, colorHex, hm, initials } from '../utils/inspectors';
+import { COLOR_ORDER, INSPECTOR_COLORS, LEAVE_CLS, LEAVE_LABELS, LEAVE_SHORT, WEEKDAYS_SHORT, colorHex, hm, initials, rangeLabel } from '../utils/inspectors';
+import { todayIso } from '../utils/dates';
 import { lineName } from '../utils/lines';
 import { useTheme } from '../context/theme';
 import { usePlan } from '../context/plan';
@@ -228,6 +229,7 @@ export default function InspectorModal({ inspector, lineNames, usedColors, onClo
             )}
             {error?.field === 'schedule' && <p className="text-xs text-red-600 mt-1">{error.text}</p>}
           </div>
+          {inspector && <LeaveSection inspector={inspector} onChanged={onSaved} />}
           {inspector && <AccountSection inspector={inspector} onChanged={onSaved} />}
           {inspector && (
             <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
@@ -396,5 +398,101 @@ function TimeSelect({ value, onChange, label }: { value: string | null; onChange
         </option>
       ))}
     </select>
+  );
+}
+
+// Concediile inspectorului: cele care urmeaza (cu stergere) si adaugarea unei zile sau a unei perioade
+function LeaveSection({ inspector, onChanged }: { inspector: Inspector; onChanged: () => void }) {
+  const [leaves, setLeaves] = useState<LeaveRange[]>(inspector.leaves);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [kind, setKind] = useState<LeaveKind>('CONCEDIU');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async (action: () => Promise<Inspector>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      setLeaves((await action()).leaves);
+      onChanged();
+      return true;
+    } catch (err) {
+      setError(apiMessage(err, 'Concediul nu a putut fi salvat.'));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const add = async () => {
+    if (!from) return setError('Alegeți prima zi.');
+    if (await run(() => setLeave(inspector.id, from, to || from, kind, note))) {
+      setFrom('');
+      setTo('');
+      setNote('');
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-200 p-3 space-y-2">
+      <p className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+        <Palmtree size={14} /> Concedii și zile libere
+      </p>
+      {leaves.length === 0 ? (
+        <p className="text-xs text-slate-500">Nicio absență de azi încolo. Zilele de absență le puteți bifa și în planificarea lunară.</p>
+      ) : (
+        <ul className="space-y-1">
+          {leaves.map((l) => (
+            <li key={l.from} className="flex items-center gap-2 text-sm text-slate-700">
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] font-bold ${LEAVE_CLS[l.kind]}`}>{LEAVE_SHORT[l.kind]}</span>
+              <span className="flex-1">
+                {LEAVE_LABELS[l.kind]} {rangeLabel(l)}
+                {l.note && <span className="text-slate-400"> · {l.note}</span>}
+              </span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => run(() => clearLeave(inspector.id, l.from, l.to))}
+                className="p-1 rounded text-slate-400 hover:bg-red-50 hover:text-red-600"
+                aria-label={`Șterge ${LEAVE_LABELS[l.kind]} ${rangeLabel(l)}`}
+              >
+                <X size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs text-slate-500">
+          De la
+          <DateField value={from} onChange={setFrom} min={todayIso()} />
+        </label>
+        <label className="text-xs text-slate-500">
+          Până la (inclusiv)
+          <DateField value={to} onChange={setTo} min={from || todayIso()} />
+        </label>
+      </div>
+      <div className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-2">
+        <select value={kind} onChange={(e) => setKind(e.target.value as LeaveKind)} aria-label="Tipul absenței" className={INPUT_CLS + ' bg-white'}>
+          {(Object.keys(LEAVE_LABELS) as LeaveKind[]).map((k) => (
+            <option key={k} value={k}>
+              {LEAVE_LABELS[k]}
+            </option>
+          ))}
+        </select>
+        <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} placeholder="Observație (opțional)" aria-label="Observație" className={INPUT_CLS} />
+      </div>
+      <button
+        type="button"
+        onClick={add}
+        disabled={busy || !from}
+        className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+      >
+        Adaugă
+      </button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
   );
 }

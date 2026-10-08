@@ -1,4 +1,4 @@
-import type { Appointment, Inspector, InspectorColor, InspectorDashboard, InspectorDay, InspectorStats } from '../types';
+import type { Appointment, Inspector, InspectorColor, InspectorDashboard, InspectorDay, InspectorStats, LeaveKind, LeaveRange } from '../types';
 
 // Culorile inspectorilor: paleta categoriala validata (aceeasi ordine ca InspectorService.COLORS), cate o nuanta
 // pentru tema luminoasa si una pentru cea intunecata. Culoarea tine de om, nu de locul din clasament.
@@ -117,4 +117,39 @@ export function scheduleSummary(schedule: InspectorDay[]): string {
   const hours = new Set(days.map((d) => (d.start && d.end ? `${hm(d.start)}–${hm(d.end)}` : '')));
   const only = hours.size === 1 ? [...hours][0] : null;
   return only ? `${label} ${only}` : hours.size > 1 ? `${label} · ore diferite` : label;
+}
+
+export const LEAVE_LABELS: Record<LeaveKind, string> = { CONCEDIU: 'Concediu', MEDICAL: 'Medical', LIBER: 'Zi liberă' };
+export const LEAVE_SHORT: Record<LeaveKind, string> = { CONCEDIU: 'C', MEDICAL: 'M', LIBER: 'L' };
+// clasele celulei din planificare (fundal + text), aceleasi in legenda
+export const LEAVE_CLS: Record<LeaveKind, string> = {
+  CONCEDIU: 'bg-amber-200 text-amber-900',
+  MEDICAL: 'bg-rose-200 text-rose-900',
+  LIBER: 'bg-slate-200 text-slate-700',
+};
+
+const fmt = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}`;
+
+// "12.10" sau "12.10 – 16.10 (5 zile)"
+export function rangeLabel(r: Pick<LeaveRange, 'from' | 'to'>): string {
+  if (r.from === r.to) return fmt(r.from);
+  const days = Math.round((Date.parse(r.to) - Date.parse(r.from)) / 86_400_000) + 1;
+  return `${fmt(r.from)} – ${fmt(r.to)} (${days} zile)`;
+}
+
+// Zilele lunii (yyyy-mm-dd), pentru planificarea lunara
+export function monthDays(year: number, month: number): string[] {
+  const n = new Date(year, month, 0).getDate();
+  return Array.from({ length: n }, (_, i) => `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`);
+}
+
+// 1 = luni ... 7 = duminica
+export function weekdayOf(iso: string): number {
+  const d = new Date(`${iso}T12:00:00`).getDay();
+  return d === 0 ? 7 : d;
+}
+
+// Lucreaza in ziua aceea dupa programul saptamanal (fara program fix = in fiecare zi)
+export function worksOn(i: Pick<Inspector, 'schedule'>, iso: string): boolean {
+  return i.schedule.length === 0 || i.schedule.some((d) => d.weekday === weekdayOf(iso));
 }

@@ -5,6 +5,8 @@ import org.example.easyitp.dto.InspectorDTOs.AccountRequest;
 import org.example.easyitp.dto.InspectorDTOs.Dashboard;
 import org.example.easyitp.dto.InspectorDTOs.InspectorDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorRequest;
+import org.example.easyitp.dto.InspectorDTOs.LeaveDTO;
+import org.example.easyitp.dto.InspectorDTOs.LeaveRequest;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftDTO;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftRequest;
 import org.example.easyitp.security.CurrentUser;
@@ -57,6 +59,22 @@ public class InspectorController {
     @DeleteMapping("/{id}/account")
     public InspectorDTO deleteAccount(@PathVariable Long id) {
         return service.deleteAccount(currentUser.get(), id);
+    }
+
+    // Concediile: lista pe interval, adaugare pe o zi sau o perioada, scoatere
+    @GetMapping("/leaves")
+    public List<LeaveDTO> leaves(@RequestParam LocalDate from, @RequestParam LocalDate to) {
+        return service.leaves(currentUser.get(), from, to);
+    }
+
+    @PutMapping("/{id}/leaves")
+    public InspectorDTO setLeave(@PathVariable Long id, @RequestBody LeaveRequest request) {
+        return service.setLeave(currentUser.get(), id, request);
+    }
+
+    @DeleteMapping("/{id}/leaves")
+    public InspectorDTO clearLeave(@PathVariable Long id, @RequestParam LocalDate from, @RequestParam(required = false) LocalDate to) {
+        return service.clearLeave(currentUser.get(), id, from, to);
     }
 
     @GetMapping("/shifts")

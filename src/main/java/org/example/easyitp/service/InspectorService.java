@@ -6,16 +6,21 @@ import org.example.easyitp.dto.InspectorDTOs.AccountRequest;
 import org.example.easyitp.dto.InspectorDTOs.DayDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorDTO;
 import org.example.easyitp.dto.InspectorDTOs.InspectorRequest;
+import org.example.easyitp.dto.InspectorDTOs.LeaveDTO;
+import org.example.easyitp.dto.InspectorDTOs.LeaveRange;
+import org.example.easyitp.dto.InspectorDTOs.LeaveRequest;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftDTO;
 import org.example.easyitp.dto.InspectorDTOs.LineShiftRequest;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Inspector;
 import org.example.easyitp.entity.InspectorDay;
+import org.example.easyitp.entity.InspectorLeave;
 import org.example.easyitp.entity.LineShift;
 import org.example.easyitp.entity.Role;
 import org.example.easyitp.entity.StationDeadline;
 import org.example.easyitp.entity.StationDeadlineKind;
 import org.example.easyitp.repository.AppUserRepository;
+import org.example.easyitp.repository.InspectorLeaveRepository;
 import org.example.easyitp.repository.InspectorRepository;
 import org.example.easyitp.repository.LineShiftRepository;
 import org.example.easyitp.repository.StationDeadlineRepository;
@@ -57,6 +62,10 @@ public class InspectorService {
     private final StationDeadlineRepository deadlineRepository;
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final InspectorLeaveRepository leaveRepository;
+
+    // cea mai lunga perioada adaugata dintr-o data
+    static final int MAX_LEAVE_DAYS = 92;
 
     @Transactional(readOnly = true)
     public List<InspectorDTO> list(AppUser station) {
@@ -64,7 +73,11 @@ public class InspectorService {
         List<Inspector> team = all(station.getId());
         Map<Long, String> logins = logins(team);
         LocalDate today = LocalDate.now();
-        return team.stream().map(i -> dto(i, attestation(attestations, i.getName()), today, logins.get(i.getId()))).toList();
+        Map<Long, List<InspectorLeave>> leaves = leaveRepository
+                .findByUserIdAndDateBetweenOrderByDateAsc(station.getId(), today, today.plusYears(1)).stream()
+                .collect(Collectors.groupingBy(InspectorLeave::getInspectorId));
+        return team.stream().map(i -> dto(i, attestation(attestations, i.getName()), today, logins.get(i.getId()),
+                ranges(leaves.getOrDefault(i.getId(), List.of())))).toList();
     }
 
     public List<Inspector> all(Long stationId) {
@@ -119,6 +132,7 @@ public class InspectorService {
     public void delete(AppUser station, Long id) {
         Inspector inspector = find(station, id);
         appUserRepository.findByInspectorId(id).ifPresent(appUserRepository::delete);
+        leaveRepository.deleteByInspector(id);
         repository.unlinkAppointments(id);
         shiftRepository.unlinkInspector(id);
         attestation(attestations(station.getId()), inspector.getName()).ifPresent(deadlineRepository::delete);
@@ -222,6 +236,81 @@ public class InspectorService {
         return inspector;
     }
 
+    // ---------- concediile ----------
+
+    // Absentele statiei intre doua zile (pentru planificarea lunara si calendar)
+    @Transactional(readOnly = true)
+    public List<LeaveDTO> leaves(AppUser station, LocalDate from, LocalDate to) {
+        if (from == null || to == null || to.isBefore(from) || ChronoUnit.DAYS.between(from, to) > 400) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Perioada nu este validă");
+        }
+        return leaveRepository.findByUserIdAndDateBetweenOrderByDateAsc(station.getId(), from, to).stream()
+                .map(l -> new LeaveDTO(l.getInspectorId(), l.getDate(), l.getKind().name(), l.getNote())).toList();
+    }
+
+    // Pune inspectorul in concediu (sau medical / zi libera) in fiecare zi din [from, to]; zilele deja trecute se inlocuiesc
+    @Transactional
+    public InspectorDTO setLeave(AppUser station, Long id, LeaveRequest r) {
+        Inspector inspector = find(station, id);
+        LocalDate from = r.from();
+        LocalDate to = r.to() != null ? r.to() : from;
+        if (from == null) throw new FieldException("from", "Alegeți ziua.");
+        if (to.isBefore(from)) throw new FieldException("to", "Ultima zi trebuie să fie după prima.");
+        if (ChronoUnit.DAYS.between(from, to) >= MAX_LEAVE_DAYS) throw new FieldException("to", "Cel mult " + MAX_LEAVE_DAYS + " de zile odată.");
+        InspectorLeave.Kind kind;
+        try {
+            kind = InspectorLeave.Kind.valueOf(r.kind() == null ? "CONCEDIU" : r.kind());
+        } catch (IllegalArgumentException e) {
+            throw new FieldException("kind", "Tipul absenței nu este valid.");
+        }
+        String note = r.note() == null || r.note().isBlank() ? null : r.note().trim();
+        if (note != null && note.length() > 200) throw new FieldException("note", "Observația este prea lungă.");
+        leaveRepository.deleteRange(id, from, to);
+        List<InspectorLeave> days = new ArrayList<>();
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            days.add(InspectorLeave.builder().userId(station.getId()).inspectorId(id).date(d).kind(kind).note(note).build());
+        }
+        leaveRepository.saveAll(days);
+        leaveRepository.flush();
+        return dto(station, inspector);
+    }
+
+    // Scoate absentele din [from, to] (o zi din mijlocul unui concediu se poate scoate singura)
+    @Transactional
+    public InspectorDTO clearLeave(AppUser station, Long id, LocalDate from, LocalDate to) {
+        Inspector inspector = find(station, id);
+        if (from == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Alegeți ziua");
+        leaveRepository.deleteRange(id, from, to != null ? to : from);
+        return dto(station, inspector);
+    }
+
+    // Absenta inspectorului intr-o zi (null = e la lucru)
+    public Optional<InspectorLeave> leaveOn(Long inspectorId, LocalDate date) {
+        return leaveRepository.findByInspectorIdAndDateBetweenOrderByDateAsc(inspectorId, date, date).stream().findFirst();
+    }
+
+    // Zilele consecutive cu acelasi tip si aceeasi observatie devin o perioada
+    static List<LeaveRange> ranges(List<InspectorLeave> days) {
+        List<LeaveRange> out = new ArrayList<>();
+        InspectorLeave start = null, prev = null;
+        for (InspectorLeave l : days.stream().sorted(Comparator.comparing(InspectorLeave::getDate)).toList()) {
+            boolean continues = prev != null && prev.getDate().plusDays(1).equals(l.getDate()) && prev.getKind() == l.getKind()
+                    && Objects.equals(prev.getNote(), l.getNote());
+            if (!continues) {
+                if (start != null) out.add(new LeaveRange(start.getDate(), prev.getDate(), start.getKind().name(), start.getNote()));
+                start = l;
+            }
+            prev = l;
+        }
+        if (start != null) out.add(new LeaveRange(start.getDate(), prev.getDate(), start.getKind().name(), start.getNote()));
+        return out;
+    }
+
+    private Set<String> leaveKeys(Long stationId, LocalDate from, LocalDate to) {
+        return leaveRepository.findByUserIdAndDateBetweenOrderByDateAsc(stationId, from, to).stream()
+                .map(l -> l.getInspectorId() + "|" + l.getDate()).collect(Collectors.toSet());
+    }
+
     // ---------- programul si liniile ----------
 
     // In ziua respectiva lucreaza? Fara program fix: in fiecare zi
@@ -246,6 +335,7 @@ public class InspectorService {
         Map<Integer, LineShift> explicit = new HashMap<>();
         shiftRepository.findByUserIdAndDayBetween(station.getId(), date, date).forEach(s -> explicit.put(s.getLine(), s));
         List<Inspector> team = all(station.getId());
+        Set<String> onLeave = leaveKeys(station.getId(), date, date);
         List<String> names = BookingService.lineNames(station);
         List<LineShiftDTO> out = new ArrayList<>();
         for (int line = 1; line <= BookingService.lines(station); line++) {
@@ -254,7 +344,7 @@ public class InspectorService {
             if (s != null) {
                 out.add(new LineShiftDTO(line, name, s.getInspectorId(), "DAY"));
             } else {
-                Long def = defaultFor(team, line, date);
+                Long def = defaultFor(team, line, date, onLeave);
                 out.add(new LineShiftDTO(line, name, def, def == null ? "NONE" : "DEFAULT"));
             }
         }
@@ -285,11 +375,12 @@ public class InspectorService {
     public Map<LocalDate, Map<Integer, Long>> lineInspectors(AppUser station, LocalDate from, LocalDate to) {
         List<Inspector> team = all(station.getId());
         int lines = BookingService.lines(station);
+        Set<String> onLeave = leaveKeys(station.getId(), from, to);
         Map<LocalDate, Map<Integer, Long>> out = new HashMap<>();
         for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
             Map<Integer, Long> day = new HashMap<>();
             for (int line = 1; line <= lines; line++) {
-                Long def = defaultFor(team, line, d);
+                Long def = defaultFor(team, line, d, onLeave);
                 if (def != null) day.put(line, def);
             }
             out.put(d, day);
@@ -314,8 +405,12 @@ public class InspectorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inspectorul nu există"));
     }
 
-    private static Long defaultFor(List<Inspector> team, int line, LocalDate date) {
-        return team.stream().filter(i -> Objects.equals(lineOn(i, date), line)).map(Inspector::getId).findFirst().orElse(null);
+    // Inspectorul care lucreaza de obicei pe linie in ziua aceea (dupa program), daca nu e in concediu
+    private static Long defaultFor(List<Inspector> team, int line, LocalDate date, Set<String> onLeave) {
+        return team.stream()
+                .filter(i -> !onLeave.contains(i.getId() + "|" + date))
+                .filter(i -> Objects.equals(lineOn(i, date), line))
+                .map(Inspector::getId).findFirst().orElse(null);
     }
 
     private void apply(AppUser station, Inspector inspector, InspectorRequest r, List<Inspector> team) {
@@ -401,15 +496,17 @@ public class InspectorService {
     }
 
     private InspectorDTO dto(AppUser station, Inspector i) {
-        return dto(i, attestation(attestations(station.getId()), i.getName()), LocalDate.now(),
-                appUserRepository.findByInspectorId(i.getId()).map(AppUser::getEmail).orElse(null));
+        LocalDate today = LocalDate.now();
+        return dto(i, attestation(attestations(station.getId()), i.getName()), today,
+                appUserRepository.findByInspectorId(i.getId()).map(AppUser::getEmail).orElse(null),
+                ranges(leaveRepository.findByInspectorIdAndDateBetweenOrderByDateAsc(i.getId(), today, today.plusYears(1))));
     }
 
-    static InspectorDTO dto(Inspector i, Optional<StationDeadline> attestation, LocalDate today, String login) {
+    static InspectorDTO dto(Inspector i, Optional<StationDeadline> attestation, LocalDate today, String login, List<LeaveRange> leaves) {
         LocalDate until = attestation.map(StationDeadline::getDueDate).orElse(null);
         List<DayDTO> schedule = i.getSchedule().stream()
                 .map(d -> new DayDTO(d.getWeekday(), d.getLine(), d.getStart(), d.getEnd())).toList();
         return new InspectorDTO(i.getId(), i.getName(), i.getPhone(), i.getColor(), i.isActive(), i.getDefaultLine(), until,
-                until == null ? null : ChronoUnit.DAYS.between(today, until), schedule, login);
+                until == null ? null : ChronoUnit.DAYS.between(today, until), schedule, login, leaves);
     }
 }

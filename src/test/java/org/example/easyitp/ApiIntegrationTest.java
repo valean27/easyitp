@@ -603,6 +603,59 @@ class ApiIntegrationTest {
                 .content("{\"email\":\"" + loginName + "\",\"password\":\"parola-noua-1\"}")).andExpect(status().isForbidden());
     }
 
+    @Test
+    void inspectorLeavesTakeThemOffTheirLine() throws Exception {
+        mvc.perform(put("/api/account/booking").header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false,\"open\":\"08:00\",\"close\":\"17:00\",\"days\":[1,2,3,4,5,6,7],\"capacity\":2}"))
+                .andExpect(status().isOk());
+        LocalDate today = LocalDate.now();
+        long ana = json.readTree(sendJson(post("/api/inspectors"), "{\"name\":\"Ana\",\"defaultLine\":1}")
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("id").asLong();
+
+        // medical 5 zile, apoi o zi din mijloc scoasa
+        sendJson(put("/api/inspectors/" + ana + "/leaves"), "{\"from\":\"" + today + "\",\"to\":\"" + today.plusDays(4) + "\",\"kind\":\"MEDICAL\"}")
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/inspectors/" + ana + "/leaves?from=" + today.plusDays(2)).header("Authorization", bearer(manager)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.leaves.length()").value(2))
+                .andExpect(jsonPath("$.leaves[0].to").value(today.plusDays(1).toString()))
+                .andExpect(jsonPath("$.leaves[1].from").value(today.plusDays(3).toString()));
+        // o zi de concediu peste medical o inlocuieste
+        sendJson(put("/api/inspectors/" + ana + "/leaves"), "{\"from\":\"" + today.plusDays(4) + "\",\"kind\":\"CONCEDIU\",\"note\":\"nunta\"}")
+                .andExpect(jsonPath("$.leaves.length()").value(3));
+        assertThat(getJson("/api/inspectors/leaves?from=" + today + "&to=" + today.plusDays(10), manager).findValues("kind").stream()
+                .map(JsonNode::asText).toList()).containsExactly("MEDICAL", "MEDICAL", "MEDICAL", "CONCEDIU");
+
+        sendJson(put("/api/inspectors/" + ana + "/leaves"), "{\"from\":\"" + today + "\",\"to\":\"" + today.minusDays(1) + "\"}")
+                .andExpect(jsonPath("$.field").value("to"));
+        sendJson(put("/api/inspectors/" + ana + "/leaves"), "{\"from\":\"" + today + "\",\"to\":\"" + today.plusDays(100) + "\"}")
+                .andExpect(jsonPath("$.field").value("to"));
+        sendJson(put("/api/inspectors/" + ana + "/leaves"), "{\"from\":\"" + today + "\",\"kind\":\"VACANTA\"}")
+                .andExpect(jsonPath("$.field").value("kind"));
+
+        // azi nu mai e pe linia lui; in ziua scoasa din concediu revine
+        assertThat(getJson("/api/inspectors/shifts?date=" + today, manager).get(0).get("source").asText()).isEqualTo("NONE");
+        assertThat(getJson("/api/inspectors/shifts?date=" + today.plusDays(2), manager).get(0).get("inspectorId").asLong()).isEqualTo(ana);
+        JsonNode dash = getJson("/api/inspectors/dashboard?from=" + today.withDayOfMonth(1) + "&to=" + today, manager);
+        assertThat(dash.get("inspectors").get(0).get("leaveToday").asText()).isEqualTo("MEDICAL");
+
+        // si el vede ca e in medical
+        String login = json.readTree(sendJson(put("/api/inspectors/" + ana + "/account"), "{\"password\":\"changeme\"}")
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8)).get("login").asText();
+        String first = login(login, "changeme");
+        String token = json.readTree(mvc.perform(put("/api/account/password").header("Authorization", bearer(first)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"changeme\",\"newPassword\":\"parola-noua-1\"}"))
+                .andReturn().getResponse().getContentAsString()).get("token").asText();
+        JsonNode day = getJson("/api/inspector-portal/day?date=" + today, token);
+        assertThat(day.get("works").asBoolean()).isFalse();
+        assertThat(day.get("leave").asText()).isEqualTo("MEDICAL");
+        assertThat(getJson("/api/inspector-portal/me", token).get("leaves")).hasSize(3);
+
+        // stergerea inspectorului ia si concediile
+        mvc.perform(delete("/api/inspectors/" + ana).header("Authorization", bearer(manager))).andExpect(status().isNoContent());
+        assertThat(getJson("/api/inspectors/leaves?from=" + today + "&to=" + today.plusDays(10), manager)).isEmpty();
+    }
+
     private org.springframework.test.web.servlet.ResultActions sendJson(
             org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request, String body) throws Exception {
         return mvc.perform(request.header("Authorization", bearer(manager)).contentType(MediaType.APPLICATION_JSON).content(body));

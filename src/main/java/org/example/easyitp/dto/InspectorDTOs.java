@@ -13,7 +13,18 @@ public final class InspectorDTOs {
     // attestationUntil: din termenele statiei (atestatul inspectorului), null daca nu e trecut
     // schedule gol = fara program fix; login = contul propriu (null = fara cont)
     public record InspectorDTO(Long id, String name, String phone, String color, boolean active, Integer defaultLine,
-                               LocalDate attestationUntil, Long attestationDaysLeft, List<DayDTO> schedule, String login) {
+                               LocalDate attestationUntil, Long attestationDaysLeft, List<DayDTO> schedule, String login,
+                               List<LeaveRange> leaves) {
+    }
+
+    // Absentele: kind CONCEDIU / MEDICAL / LIBER; o zi pe rand (LeaveDTO) sau grupate in perioade (LeaveRange)
+    public record LeaveDTO(Long inspectorId, LocalDate date, String kind, String note) {
+    }
+
+    public record LeaveRange(LocalDate from, LocalDate to, String kind, String note) {
+    }
+
+    public record LeaveRequest(LocalDate from, LocalDate to, String kind, String note) {
     }
 
     // O zi de lucru: 1 = luni ... 7 = duminica; line null = linia lui obisnuita; orele optionale
@@ -42,7 +53,7 @@ public final class InspectorDTOs {
     public record InspectorStats(String key, Long id, String name, String color, boolean active,
                                  long itps, long passed, long failed, long recheck, double revenue,
                                  long daysWorked, long appointments, long completed, long noShows,
-                                 Integer todayLine, long todayAppointments, boolean offToday) {
+                                 Integer todayLine, long todayAppointments, boolean offToday, String leaveToday) {
     }
 
     public record DayCount(String key, long count) {

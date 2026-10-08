@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { appointmentInspector, chartBars, failRate, initials, perDay, periodRange, scheduleSummary } from './inspectors';
+import { appointmentInspector, chartBars, failRate, initials, monthDays, perDay, periodRange, rangeLabel, scheduleSummary, weekdayOf, worksOn } from './inspectors';
 import type { Inspector } from '../types';
 
 const team: Inspector[] = [
-  { id: 1, name: 'Ana Pop', phone: null, color: 'blue', active: true, defaultLine: 1, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null },
-  { id: 2, name: 'Ion', phone: null, color: 'orange', active: true, defaultLine: 2, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null },
+  { id: 1, name: 'Ana Pop', phone: null, color: 'blue', active: true, defaultLine: 1, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null, leaves: [] },
+  { id: 2, name: 'Ion', phone: null, color: 'orange', active: true, defaultLine: 2, attestationUntil: null, attestationDaysLeft: null, schedule: [], login: null, leaves: [] },
 ];
 
 describe('inspectors', () => {
@@ -63,5 +63,26 @@ describe('scheduleSummary', () => {
     expect(scheduleSummary([day(1), day(3), day(5)])).toBe('Lu, Mi, Vi 08:00–16:00');
     expect(scheduleSummary([day(1, null, null), day(2, null, null)])).toBe('Lu, Ma');
     expect(scheduleSummary([day(1), day(2, '12:00', '20:00'), day(3)])).toBe('Lu–Mi · ore diferite');
+  });
+});
+
+describe('leaves', () => {
+  it('labels ranges', () => {
+    expect(rangeLabel({ from: '2026-10-12', to: '2026-10-12' })).toBe('12.10');
+    expect(rangeLabel({ from: '2026-10-12', to: '2026-10-16' })).toBe('12.10 – 16.10 (5 zile)');
+  });
+
+  it('lists the days of a month and their weekday', () => {
+    expect(monthDays(2026, 2)).toHaveLength(28);
+    expect(monthDays(2026, 10)[0]).toBe('2026-10-01');
+    expect(weekdayOf('2026-10-12')).toBe(1);
+    expect(weekdayOf('2026-10-11')).toBe(7);
+  });
+
+  it('knows the working days from the weekly schedule', () => {
+    expect(worksOn({ schedule: [] }, '2026-10-11')).toBe(true);
+    const weekdays = { schedule: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, line: null, start: null, end: null })) };
+    expect(worksOn(weekdays, '2026-10-12')).toBe(true);
+    expect(worksOn(weekdays, '2026-10-11')).toBe(false);
   });
 });

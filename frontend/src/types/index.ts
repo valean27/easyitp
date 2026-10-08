@@ -628,6 +628,25 @@ export interface Inspector {
   // programul saptamanal (gol = fara program fix) si contul propriu (null = fara cont)
   schedule: InspectorDay[];
   login: string | null;
+  // concediile de azi incolo, grupate pe perioade
+  leaves: LeaveRange[];
+}
+
+export type LeaveKind = 'CONCEDIU' | 'MEDICAL' | 'LIBER';
+
+export interface LeaveRange {
+  from: string;
+  to: string;
+  kind: LeaveKind;
+  note: string | null;
+}
+
+// O zi de absenta (planificarea lunara)
+export interface LeaveDay {
+  inspectorId: number;
+  date: string;
+  kind: LeaveKind;
+  note: string | null;
 }
 
 // O zi de lucru: 1 = luni ... 7 = duminica; line null = linia lui obisnuita; orele "HH:mm[:ss]" optionale
@@ -675,6 +694,7 @@ export interface InspectorStats {
   todayAppointments: number;
   // are program si azi nu lucreaza
   offToday: boolean;
+  leaveToday: LeaveKind | null;
 }
 
 export interface InspectorDashboard {
@@ -698,6 +718,7 @@ export interface InspectorMe {
   schedule: InspectorDay[];
   itpsThisMonth: number;
   failedThisMonth: number;
+  leaves: LeaveRange[];
 }
 
 export interface InspectorPortalDay {
@@ -706,5 +727,6 @@ export interface InspectorPortalDay {
   line: number | null;
   start: string | null;
   end: string | null;
+  leave: LeaveKind | null;
   appointments: Appointment[];
 }

@@ -199,7 +199,8 @@ export const GUIDE: GuideGroup[] = [
         steps: [
           'În meniu → Inspectori apăsați „+ Inspector”: nume, telefon, culoare, linia pe care lucrează de obicei și data atestatului.',
           'În fereastra inspectorului setați programul săptămânal: zilele în care lucrează, orele și, dacă vreți, altă linie într-o anumită zi. În zilele libere nu mai e trecut pe nicio linie.',
-          'Programările de pe o linie îi revin inspectorului liniei. O zi anume (concediu, înlocuire) o schimbați în „Cine e pe linii” sau direct în Calendar → „Pe linii”, din capul coloanei.',
+          'Concediile, zilele de medical sau zilele libere le marcați pe zile, nu săptămânal: în „Concedii și zile libere” alegeți tipul și apăsați zilele din lună (Shift + click pentru o perioadă), sau adăugați perioada din fereastra inspectorului. În zilele acelea nu mai e pus pe linia lui, iar el vede absența în contul lui.',
+          'Programările de pe o linie îi revin inspectorului liniei. O zi anume (înlocuire) o schimbați în „Cine e pe linii” sau direct în Calendar → „Pe linii”, din capul coloanei.',
           'Tot acolo îi faceți cont în aplicație: se loghează cu prenume.nume@stație și o parolă provizorie, pe care o schimbă la prima logare. Pe telefon își vede ziua (linia, orele, programările lui, cu telefonul clientului) și marchează „Finalizat” sau „Nu a venit”.',
           'Pe o programare puteți alege alt inspector decât cel al liniei; în vederea pe linii apare cu inițialele lui.',
           'La „Începe ITP” dintr-o programare, inspectorul ei se completează singur în formular.',

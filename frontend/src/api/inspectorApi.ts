@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { Inspector, InspectorDashboard, InspectorRequest, LineShift } from '../types';
+import type { Inspector, InspectorDashboard, InspectorRequest, LeaveDay, LeaveKind, LineShift } from '../types';
 
 const BASE = '/api/inspectors';
 
@@ -13,6 +13,15 @@ export const updateInspector = (id: number, data: InspectorRequest): Promise<Ins
 // Contul propriu: login gol = cel propus; password gol = nu se schimba
 export const saveInspectorAccount = (id: number, login: string, password: string): Promise<Inspector> =>
   api.put(`${BASE}/${id}/account`, { login: login || null, password: password || null }).then((r) => r.data);
+
+// Concediile: pe interval (planificarea lunara), adaugare pe o zi / perioada, scoatere
+export const getLeaves = (from: string, to: string): Promise<LeaveDay[]> => api.get(`${BASE}/leaves`, { params: { from, to } }).then((r) => r.data);
+
+export const setLeave = (id: number, from: string, to: string, kind: LeaveKind, note?: string | null): Promise<Inspector> =>
+  api.put(`${BASE}/${id}/leaves`, { from, to, kind, note: note || null }).then((r) => r.data);
+
+export const clearLeave = (id: number, from: string, to?: string): Promise<Inspector> =>
+  api.delete(`${BASE}/${id}/leaves`, { params: { from, to } }).then((r) => r.data);
 
 export const deleteInspectorAccount = (id: number): Promise<Inspector> => api.delete(`${BASE}/${id}/account`).then((r) => r.data);
 

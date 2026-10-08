@@ -5,7 +5,7 @@ import { getInspectorDay, getInspectorMe, setMyAppointmentStatus } from '../api/
 import { useTheme } from '../context/theme';
 import { todayIso } from '../utils/dates';
 import { APPOINTMENT_STATUS_LABELS, VEHICLE_SHORT_LABELS, appointmentMinutes } from '../utils/appointments';
-import { WEEKDAYS, colorHex, hm, initials } from '../utils/inspectors';
+import { LEAVE_LABELS, WEEKDAYS, colorHex, hm, initials, rangeLabel } from '../utils/inspectors';
 import { lineName } from '../utils/lines';
 import { apiMessage } from '../utils/errors';
 
@@ -132,6 +132,10 @@ export default function InspectorHomePage() {
                 ) : null}
                 . {shown.appointments.length === 0 ? 'Nicio programare.' : `${shown.appointments.length} programări${left ? `, ${left} de făcut` : ''}.`}
               </p>
+            ) : shown.leave ? (
+              <p className="text-sm">
+                {isToday ? 'Azi ești' : 'Ești'} în <b>{LEAVE_LABELS[shown.leave].toLowerCase()}</b>.
+              </p>
             ) : (
               <p className="text-sm">{isToday ? 'Azi ești liber.' : 'Zi liberă.'}</p>
             )}
@@ -254,7 +258,21 @@ export default function InspectorHomePage() {
                   })}
                 </ul>
               )}
-              <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">Programul îl stabilește stația; o zi anume poate fi schimbată de manager.</p>
+              {me.leaves.length > 0 && (
+                <div className="border-t border-slate-100 px-4 py-2">
+                  <p className="text-xs font-semibold text-slate-600">Absențe care urmează</p>
+                  <ul className="mt-1 space-y-0.5 text-sm text-slate-700">
+                    {me.leaves.map((l) => (
+                      <li key={l.from}>
+                        {LEAVE_LABELS[l.kind]} {rangeLabel(l)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-400">
+                Programul și concediile le stabilește stația; o zi anume poate fi schimbată de manager.
+              </p>
             </section>
           </>
         )}

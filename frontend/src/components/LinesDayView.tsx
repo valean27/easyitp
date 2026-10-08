@@ -191,6 +191,7 @@ export default function LinesDayView({
                   </p>
                   {team.length > 0 && line !== null && line <= lineNames.length && (
                     <LineInspector
+                      date={date}
                       shift={shifts.find((s) => s.line === line)}
                       team={team}
                       mode={resolved}
@@ -315,11 +316,13 @@ export default function LinesDayView({
 
 // Inspectorul liniei in ziua afisata: cel ales pentru ziua asta, cel care lucreaza de obicei pe linie sau nimeni
 function LineInspector({
+  date,
   shift,
   team,
   mode,
   onChange,
 }: {
+  date: string;
   shift: LineShift | undefined;
   team: Inspector[];
   mode: 'light' | 'dark';
@@ -339,13 +342,14 @@ function LineInspector({
         aria-label="Inspectorul liniei în ziua asta"
         className="min-w-0 flex-1 truncate rounded border border-slate-200 bg-white px-1 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
       >
-        <option value="">{shift?.source === 'DEFAULT' && who ? `${who.name} (de obicei)` : 'Nimeni (de obicei)'}</option>
+        <option value="">{shift?.source === 'DEFAULT' && who ? `${who.name} (automat)` : 'Nimeni (automat)'}</option>
         <option value="none">Nimeni azi</option>
         {team
           .filter((i) => i.active)
           .map((i) => (
             <option key={i.id} value={i.id}>
               {i.name}
+              {i.leaves.some((l) => l.from <= date && date <= l.to) ? ' (absent)' : ''}
             </option>
           ))}
       </select>

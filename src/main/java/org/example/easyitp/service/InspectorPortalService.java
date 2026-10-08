@@ -41,11 +41,13 @@ public class InspectorPortalService {
 
     public record Me(String name, String color, String stationName, String stationAddress, String stationPhone,
                      List<String> lineNames, Integer defaultLine, List<DayDTO> schedule,
-                     long itpsThisMonth, long failedThisMonth) {
+                     long itpsThisMonth, long failedThisMonth, List<org.example.easyitp.dto.InspectorDTOs.LeaveRange> leaves) {
     }
 
     // works: lucreaza in ziua aceea (dupa program); line: linia lui (programul, ziua aleasa de manager)
-    public record Day(LocalDate date, boolean works, Integer line, LocalTime start, LocalTime end, List<AppointmentDTO> appointments) {
+    // leave: CONCEDIU / MEDICAL / LIBER cand lipseste in ziua aceea
+    public record Day(LocalDate date, boolean works, Integer line, LocalTime start, LocalTime end, String leave,
+                      List<AppointmentDTO> appointments) {
     }
 
     public record StatusRequest(AppointmentStatus status) {
@@ -65,7 +67,9 @@ public class InspectorPortalService {
         List<DayDTO> schedule = inspector.getSchedule().stream()
                 .map(d -> new DayDTO(d.getWeekday(), d.getLine(), d.getStart(), d.getEnd())).toList();
         return new Me(inspector.getName(), inspector.getColor(), station.getStationName(), station.getAddress(), station.getPhone(),
-                BookingService.lineNames(station), inspector.getDefaultLine(), schedule, itps, failed);
+                BookingService.lineNames(station), inspector.getDefaultLine(), schedule, itps, failed,
+                inspectorService.list(station).stream().filter(i -> i.id().equals(inspector.getId())).findFirst()
+                        .map(org.example.easyitp.dto.InspectorDTOs.InspectorDTO::leaves).orElse(List.of()));
     }
 
     @Transactional(readOnly = true)
@@ -80,8 +84,9 @@ public class InspectorPortalService {
                 .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED)
                 .filter(a -> Objects.equals(a.getInspectorId() != null ? a.getInspectorId() : a.getLineInspectorId(), inspector.getId()))
                 .toList();
-        return new Day(date, InspectorService.worksOn(inspector, date) || line != null, line,
-                hours != null ? hours.getStart() : null, hours != null ? hours.getEnd() : null, mine);
+        String leave = inspectorService.leaveOn(inspector.getId(), date).map(l -> l.getKind().name()).orElse(null);
+        return new Day(date, (InspectorService.worksOn(inspector, date) && leave == null) || line != null, line,
+                hours != null ? hours.getStart() : null, hours != null ? hours.getEnd() : null, leave, mine);
     }
 
     @Transactional
