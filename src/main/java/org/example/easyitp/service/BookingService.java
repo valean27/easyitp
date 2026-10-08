@@ -290,8 +290,8 @@ public class BookingService {
 
         String name = req.getClientName() == null ? "" : req.getClientName().trim();
         if (name.length() < 2 || name.length() > 80) throw badRequest("Introduceti numele");
-        String phoneDigits = req.getPhone() == null ? "" : req.getPhone().replaceAll("\\D", "");
-        if (phoneDigits.length() < 10 || phoneDigits.length() > 15) throw badRequest("Numar de telefon invalid");
+        // numar real de mobil, din Romania sau (cu prefixul tarii) din alta tara
+        String phone = PhoneNumbers.requireMobile(req.getPhone());
         String plate = req.getLicensePlate() == null ? "" : req.getLicensePlate().trim().toUpperCase();
         if (plate.length() > 15) throw badRequest("Numar de inmatriculare invalid");
         if (req.getAppointmentDate() == null) throw badRequest("Alegeti data si ora");
@@ -304,7 +304,7 @@ public class BookingService {
 
         return appointmentRepository.save(Appointment.builder()
                 .clientName(name)
-                .phone(req.getPhone().trim())
+                .phone(phone)
                 .licensePlate(plate.isEmpty() ? null : plate)
                 .appointmentDate(when)
                 .status(AppointmentStatus.SCHEDULED)

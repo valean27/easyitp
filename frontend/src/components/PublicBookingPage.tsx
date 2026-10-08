@@ -22,6 +22,8 @@ import { toLocalIso } from '../utils/dates';
 import StarRating from './StarRating';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
 import { usePageTitle } from '../utils/pageTitle';
+import { checkMobile } from '../utils/phone';
+import { apiMessage } from '../utils/errors';
 
 const INPUT_CLS =
   'w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-base text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -103,6 +105,9 @@ export default function PublicBookingPage() {
   const [time, setTime] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  // greseala la telefon apare dupa ce clientul paraseste campul (sau la trimitere), nu cat scrie
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const phoneCheck = useMemo(() => checkMobile(phone), [phone]);
   const [plate, setPlate] = useState('');
   const [website, setWebsite] = useState('');
   const [consent, setConsent] = useState(false);
@@ -164,11 +169,16 @@ export default function PublicBookingPage() {
     e.preventDefault();
     if (!date || !time || !category) return;
     setError(null);
+    if (!phoneCheck.ok) {
+      setPhoneTouched(true);
+      document.getElementById('booking-phone')?.focus();
+      return;
+    }
     setSubmitting(true);
     try {
       const token = await createPublicBooking(slug, {
         clientName: name,
-        phone,
+        phone: phoneCheck.formatted ?? phone,
         licensePlate: plate,
         appointmentDate: `${date}T${time}`,
         vehicleCategory: category,
@@ -185,7 +195,7 @@ export default function PublicBookingPage() {
       } else if (status === 429) {
         setError('Prea multe programări de pe acest dispozitiv. Încercați mai târziu sau sunați la stație.');
       } else if (status === 400) {
-        setError('Verificați numele și numărul de telefon.');
+        setError(apiMessage(err, 'Verificați numele și numărul de telefon.'));
       } else {
         setError('Programarea nu a putut fi trimisă. Încercați din nou.');
       }
@@ -346,14 +356,25 @@ export default function PublicBookingPage() {
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">Telefon</label>
               <input
+                id="booking-phone"
                 required
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onBlur={() => setPhoneTouched(true)}
                 placeholder="07xx xxx xxx"
                 autoComplete="tel"
-                className={INPUT_CLS}
+                aria-invalid={phoneTouched && !phoneCheck.ok}
+                aria-describedby="booking-phone-hint"
+                className={INPUT_CLS + (phoneTouched && !phoneCheck.ok ? ' border-red-400 ring-1 ring-red-300' : '')}
               />
+              <p id="booking-phone-hint" className={`text-xs mt-1 ${phoneTouched && !phoneCheck.ok ? 'text-red-600' : 'text-slate-400'}`}>
+                {phoneTouched && !phoneCheck.ok
+                  ? phoneCheck.error
+                  : phoneCheck.ok
+                    ? `✓ ${phoneCheck.formatted}${phoneCheck.country ? ` · ${phoneCheck.country}` : ''}`
+                    : 'Număr de mobil; din altă țară, cu prefixul țării (ex. +49 ...).'}
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1">

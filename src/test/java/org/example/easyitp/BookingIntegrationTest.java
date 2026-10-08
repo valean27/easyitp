@@ -224,6 +224,18 @@ class BookingIntegrationTest {
         enableBooking("validari", 1);
         book("validari", "10:00", "I", "0722111222").andExpect(status().isBadRequest());
         book("validari", "10:00", "Ion", "072").andExpect(status().isBadRequest());
+        // numar gresit (o cifra lipsa, prefix inexistent) sau fix: refuzat, cu campul marcat
+        book("validari", "10:00", "Ion", "072211122").andExpect(status().isBadRequest()).andExpect(jsonPath("$.field").value("phone"));
+        book("validari", "10:00", "Ion", "0122111222").andExpect(status().isBadRequest());
+        book("validari", "10:00", "Ion", "0264 111 222").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("mobil")));
+        // din alta tara, cu prefix: acceptat si salvat in format international (alt IP: limita anti-spam e 5 pe ora)
+        ip = ip + "7";
+        book("validari", "10:00", "Hans", "0049 1512 3456789").andExpect(status().isCreated());
+        JsonNode saved = json.readTree(mvc.perform(get("/api/appointments?start=" + day + "T00:00:00&end=" + day.plusDays(1) + "T00:00:00")
+                        .header("Authorization", "Bearer " + token))
+                .andReturn().getResponse().getContentAsString());
+        assertThat(saved.get(0).get("phone").asText()).isEqualTo("+49 1512 3456789");
         book("validari", "10:15", "Ion", "0722111222").andExpect(status().isConflict()); // nu e un slot
         book("necunoscut", "10:00", "Ion", "0722111222").andExpect(status().isNotFound());
         assertThat(getJson("/api/public/stations/validari/slots?date=" + LocalDate.now().minusDays(1))).isEmpty();

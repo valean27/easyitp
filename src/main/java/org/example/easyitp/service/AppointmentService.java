@@ -78,7 +78,7 @@ public class AppointmentService {
         inspectorService.requireOwn(user, dto.getInspectorId());
         Appointment appt = Appointment.builder()
                 .clientName(dto.getClientName().trim())
-                .phone(dto.getPhone())
+                .phone(PhoneNumbers.optionalValid(dto.getPhone()))
                 .licensePlate(dto.getLicensePlate())
                 .appointmentDate(dto.getAppointmentDate())
                 .status(dto.getStatus() != null ? dto.getStatus() : AppointmentStatus.SCHEDULED)
@@ -101,7 +101,11 @@ public class AppointmentService {
         Appointment appt = find(id, station.getId());
         appt.setInspectorId(dto.getInspectorId());
         appt.setClientName(dto.getClientName().trim());
-        appt.setPhone(dto.getPhone());
+        // un numar vechi, scris gresit inainte de verificare, nu blocheaza mutarea programarii: verificam doar unul schimbat
+        String phone = dto.getPhone() == null ? null : dto.getPhone().trim();
+        if (!Objects.equals(phone, appt.getPhone() == null ? null : appt.getPhone().trim())) {
+            appt.setPhone(PhoneNumbers.optionalValid(phone));
+        }
         appt.setLicensePlate(dto.getLicensePlate());
         appt.setAppointmentDate(dto.getAppointmentDate());
         appt.setStatus(dto.getStatus() != null ? dto.getStatus() : appt.getStatus());
