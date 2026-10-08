@@ -39,5 +39,7 @@ export function itpPrefillFromAppointment(a: Appointment, inspectorName?: string
     licensePlate: a.licensePlate ?? '',
     // bifa din programarea online trece in formularul ITP
     ...(a.reminderConsent ? { reminderConsent: true } : {}),
+    // tariful statiei pentru tipul vehiculului
+    ...(a.listPrice != null ? { price: a.listPrice } : {}),
   };
 }

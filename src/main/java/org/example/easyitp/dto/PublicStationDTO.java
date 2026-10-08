@@ -29,4 +29,9 @@ public class PublicStationDTO {
     // Logo-ul statiei (cale publica) si mesajul ei pe pagina de programare (pot lipsi)
     private String logoUrl;
     private String bookingMessage;
+    // Zilele fara programari din urmatoarele maxDaysAhead zile (sarbatori si zile inchise), cu numele lor
+    private List<ClosedDayDTO> closedDays;
+    // Pauza zilnica (pot lipsi)
+    private LocalTime breakStart;
+    private LocalTime breakEnd;
 }

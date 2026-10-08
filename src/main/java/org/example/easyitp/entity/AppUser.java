@@ -124,6 +124,20 @@ public class AppUser {
     @Column(length = 200)
     private String bookingDurations;
 
+    // Pauza zilnica in programul online (ex. 12:00-12:30); null = fara pauza
+    private LocalTime bookingBreakStart;
+    private LocalTime bookingBreakEnd;
+
+    // Fara programari online in zilele de sarbatoare legala (null = inchis)
+    private Boolean bookingHolidaysClosed;
+
+    // Tariful ITP per tip de vehicul (vezi InspectionPrices); null = fara tarife
+    @Column(length = 200)
+    private String bookingPrices;
+
+    // Tarifele apar pe pagina de programare (null = nu)
+    private Boolean bookingShowPrices;
+
     // Email zilnic catre manager; null = activ
     private Boolean digestEnabled;
     @Enumerated(EnumType.STRING)

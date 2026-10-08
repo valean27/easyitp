@@ -61,6 +61,7 @@ export default function InspectorItpModal({
           year: p.year ?? f.year,
           vin: p.vin ?? f.vin,
           validityMonths: p.validityMonths ?? f.validityMonths,
+          price: f.price ?? p.price ?? null,
         }))
       )
       .catch(() => undefined);

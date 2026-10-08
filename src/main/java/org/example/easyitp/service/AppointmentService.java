@@ -45,6 +45,7 @@ public class AppointmentService {
                 .map(a -> {
                     AppointmentDTO dto = toDto(a);
                     if (a.getLine() == null) dto.setLine(lines.get(a.getId()));
+                    dto.setListPrice(InspectionPrices.priceFor(station, a.getVehicleCategory()));
                     if (dto.getLine() != null) {
                         dto.setLineInspectorId(onLines.getOrDefault(a.getAppointmentDate().toLocalDate(), Map.of()).get(dto.getLine()));
                     }

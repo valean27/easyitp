@@ -21,6 +21,7 @@ import { createPublicBooking, getPublicSlots, getPublicStation } from '../api/pu
 import { toLocalIso } from '../utils/dates';
 import StarRating from './StarRating';
 import { MONTHS_SHORT, WEEKDAYS_LONG, WEEKDAYS_SHORT, isoWeekday } from '../utils/booking';
+import { breakText, closedMap, closedNotice } from '../utils/closedDays';
 import { usePageTitle } from '../utils/pageTitle';
 import { checkMobile } from '../utils/phone';
 import AddToCalendar from './AddToCalendar';
@@ -78,6 +79,7 @@ function StationHeader({ station }: { station: PublicStation }) {
         <p className="flex items-center gap-2">
           <Clock size={15} className="shrink-0 text-slate-400" />
           {station.days.map((d) => WEEKDAYS_SHORT[d - 1]).join(', ')} · {station.open.slice(0, 5)} – {station.close.slice(0, 5)}
+          {breakText(station.breakStart, station.breakEnd) && ` · pauză ${breakText(station.breakStart, station.breakEnd)}`}
         </p>
         {station.googleRating != null && (
           <StarRating rating={station.googleRating} count={station.googleRatingCount} href={station.mapsUrl} />
@@ -155,9 +157,11 @@ export default function PublicBookingPage() {
   const dates = useMemo(() => {
     if (!station) return [];
     const result: string[] = [];
+    const closed = closedMap(station.closedDays);
     const d = new Date();
     for (let i = 0; i <= station.maxDaysAhead; i++) {
-      if (station.days.includes(isoWeekday(d))) result.push(toLocalIso(d).slice(0, 10));
+      const iso = toLocalIso(d).slice(0, 10);
+      if (station.days.includes(isoWeekday(d)) && !closed.has(iso)) result.push(iso);
       d.setDate(d.getDate() + 1);
     }
     return result;
@@ -325,7 +329,10 @@ export default function PublicBookingPage() {
                     }`}
                   >
                     <span className="font-medium">{t.label}</span>
-                    <span className={`text-xs shrink-0 ${active ? 'text-blue-100' : 'text-slate-400'}`}>~{t.minutes} min</span>
+                    <span className={`text-xs shrink-0 text-right ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+                      ~{t.minutes} min
+                      {t.price != null && <span className={`block text-sm font-semibold ${active ? 'text-white' : 'text-slate-700'}`}>{t.price} lei</span>}
+                    </span>
                   </button>
                 );
               })}
@@ -358,6 +365,12 @@ export default function PublicBookingPage() {
                 );
               })}
             </div>
+            {closedNotice(station.closedDays) && <p className="text-xs text-slate-500">{closedNotice(station.closedDays)}</p>}
+            {station.vehicleTypes.length === 1 && station.vehicleTypes[0].price != null && (
+              <p className="text-sm text-slate-600">
+                Tarif ITP: <span className="font-semibold text-slate-800">{station.vehicleTypes[0].price} lei</span>
+              </p>
+            )}
           </div>
         )}
 
@@ -499,6 +512,7 @@ export default function PublicBookingPage() {
               {submitting && <Loader2 size={17} className="animate-spin" />}
               Confirmă programarea · {longDate(date)}, {time.slice(0, 5)}
               {vehicle && station.vehicleTypes.length > 1 ? ` · ${vehicle.label}` : ''}
+              {vehicle?.price != null ? ` · ${vehicle.price} lei` : ''}
             </button>
             <button
               type="button"

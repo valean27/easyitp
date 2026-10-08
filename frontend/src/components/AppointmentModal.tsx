@@ -8,7 +8,8 @@ import { APPOINTMENT_STATUS_LABELS, LEGACY_DURATION_MINUTES, appointmentMinutes 
 import { lineName } from '../utils/lines';
 import { apiMessage } from '../utils/errors';
 import { getInspectorTeam } from '../api/inspectorApi';
-import type { Inspector } from '../types';
+import type { ClosedDay, Inspector } from '../types';
+import { closedMap } from '../utils/closedDays';
 
 const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
@@ -76,6 +77,8 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
   const [error, setError] = useState<string | null>(null);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [lineNames, setLineNames] = useState<string[]>([]);
+  // zilele fara programari online (sarbatori, daca statia e inchisa atunci, si zilele inchise de ea)
+  const [closed, setClosed] = useState<Map<string, ClosedDay>>(new Map());
   const [team, setTeam] = useState<Inspector[]>([]);
 
   useEffect(() => {
@@ -90,6 +93,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       .then((s) => {
         setVehicleTypes(s.vehicleTypes);
         setLineNames(s.lineNames ?? []);
+        setClosed(closedMap([...(s.holidaysClosed ? s.holidays ?? [] : []), ...(s.closedDays ?? [])]));
         // o linie scoasa intre timp (statia are acum mai putine linii) devine "automat"
         setForm((f) => (f.line && f.line > (s.lineNames?.length ?? 1) ? { ...f, line: null } : f));
         if (!appointment) {
@@ -248,6 +252,12 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
               onChange={handleChange}
               className={INPUT_CLS}
             />
+            {closed.get(form.appointmentDate.slice(0, 10)) && (
+              <p className="mt-1 text-xs text-amber-700">
+                Stația e închisă în ziua asta ({closed.get(form.appointmentDate.slice(0, 10))?.name ?? 'zi închisă'}); clienții nu se pot
+                programa online, dar programarea o puteți salva.
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-[1fr_auto] gap-3">
             <div>

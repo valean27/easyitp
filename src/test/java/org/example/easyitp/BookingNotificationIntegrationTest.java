@@ -47,7 +47,13 @@ class BookingNotificationIntegrationTest {
     @MockBean private EmailService emailService;
 
     private String token;
-    private final LocalDate day = LocalDate.now().plusDays(3);
+    // o zi peste 3 zile care nu e sarbatoare legala (statia e inchisa atunci)
+    private final LocalDate day = workday(LocalDate.now().plusDays(3));
+
+    private static LocalDate workday(LocalDate d) {
+        while (org.example.easyitp.service.RomanianHolidays.nameOf(d) != null) d = d.plusDays(1);
+        return d;
+    }
 
     @BeforeEach
     void setUp() throws Exception {

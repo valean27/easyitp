@@ -145,6 +145,8 @@ export const GUIDE: GuideGroup[] = [
           'În Contul meu → Programare online, porniți programarea și alegeți adresa paginii (ex. /programare/itp-exemplu).',
           'Setați programul, zilele lucrătoare și durata pe tip de vehicul. Câte mașini pot fi inspectate deodată (liniile, cu nume dacă vreți) setați în Contul meu → Linii ITP. Cu mai multe linii, clienții se pot programa la aceeași oră cât timp una e liberă; fiecare programare primește linia ei.',
           'Puneți logo-ul stației în Contul meu → Date stație ITP: apare pe pagina de programare, în emailurile către clienți, în lista de stații, pe afișul cu QR și pe fișa ITP. Tot în Programare online puteți scrie un mesaj scurt care apare sus pe pagină (ex. „Veniți cu 10 minute înainte”).',
+          'Puneți o pauză zilnică (ex. 12:00–12:30) dacă vreți: în ea nu se fac programări online. De sărbătorile legale (Paște, Rusalii, 1 Decembrie, Crăciun și celelalte) stația e închisă automat; dacă lucrați atunci, debifați. Zilele în care închideți (inventar, renovare) le adăugați la „Zile fără programări”, cu un motiv opțional: clientul le vede pe pagină ca închise.',
+          'Lângă durată puteți trece tariful pe tip de vehicul. Dacă bifați „Arată tarifele”, clientul vede prețul pe pagina de programare; oricum, ITP-ul început dintr-o programare are prețul deja completat.',
           'Copiați linkul și dați-l clienților. Opțional îl puneți pe Google Maps (Google Business Profile → Programări), pe Facebook sau în semnătura mesajelor; programarea online merge și fără ele.',
           'Stația apare și în lista publică /statii, unde șoferii caută după oraș; o puteți scoate de acolo din aceeași setare.',
         ],

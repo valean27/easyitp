@@ -27,6 +27,8 @@ public class AppointmentDTO {
     private Long inspectorId;
     // Doar la citire: inspectorul care lucreaza pe linia programarii in ziua ei
     private Long lineInspectorId;
+    // Doar la citire: tariful statiei pentru tipul vehiculului (null = fara tarif)
+    private Integer listPrice;
     private Boolean reminderConsent;
     // Ce a facut clientul din link-ul din SMS: CANCELLED / RESCHEDULED (null = nimic)
     private String clientAction;

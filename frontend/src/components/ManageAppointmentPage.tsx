@@ -12,6 +12,7 @@ import {
 import type { PublicStation } from '../types';
 import { apiMessage } from '../utils/errors';
 import { isoWeekday, WEEKDAYS_SHORT, MONTHS_SHORT } from '../utils/booking';
+import { closedMap } from '../utils/closedDays';
 import { toLocalIso } from '../utils/dates';
 import AddToCalendar from './AddToCalendar';
 import { assetUrl } from '../utils/apiUrl';
@@ -51,10 +52,11 @@ export default function ManageAppointmentPage() {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
     const limit = station?.maxDaysAhead ?? 14;
+    const closed = closedMap(station?.closedDays);
     for (let i = 0; i <= limit && out.length < 14; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      if (!station || station.days.includes(isoWeekday(d))) out.push(d);
+      if ((!station || station.days.includes(isoWeekday(d))) && !closed.has(toLocalIso(d).slice(0, 10))) out.push(d);
     }
     return out;
   }, [station]);

@@ -3,6 +3,8 @@ package org.example.easyitp.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
 import org.example.easyitp.dto.ChangePasswordRequest;
+import org.example.easyitp.dto.ClosedDayDTO;
+import org.example.easyitp.dto.ClosedDaysRequest;
 import org.example.easyitp.dto.DigestSettingsDTO;
 import org.example.easyitp.dto.LinesDTO;
 import org.example.easyitp.dto.ProfileDTO;
@@ -227,6 +229,18 @@ public class AccountController {
     @PutMapping("/booking")
     public BookingSettingsDTO updateBookingSettings(@RequestBody BookingSettingsDTO request) {
         return bookingService.updateSettings(currentUser.get(), request);
+    }
+
+    // Zilele in care statia e inchisa (fara programari online); raspunsul = zilele inchise de azi incolo
+    @PostMapping("/closed-days")
+    public List<ClosedDayDTO> addClosedDays(@RequestBody ClosedDaysRequest request) {
+        return bookingService.addClosedDays(currentUser.get(), request);
+    }
+
+    @DeleteMapping("/closed-days")
+    public List<ClosedDayDTO> removeClosedDays(@RequestParam java.time.LocalDate from,
+                                               @RequestParam(required = false) java.time.LocalDate to) {
+        return bookingService.removeClosedDays(currentUser.get(), from, to);
     }
 
     @GetMapping("/lines")

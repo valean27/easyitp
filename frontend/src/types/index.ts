@@ -167,6 +167,15 @@ export interface VehicleType {
   label: string;
   minutes: number;
   enabled: boolean;
+  // tariful ITP in lei (null = fara); pe pagina publica doar daca statia il arata
+  price: number | null;
+}
+
+// O zi fara programari online: sarbatoare legala (cu numele ei) sau zi inchisa de statie (cu nota ei)
+export interface ClosedDay {
+  date: string; // yyyy-mm-dd
+  name: string | null;
+  holiday: boolean;
 }
 
 // Liniile ITP ale statiei: cate sunt si numele lor ("" = "Linia N")
@@ -192,6 +201,16 @@ export interface BookingSettings {
   emailNotify: boolean;
   // mesajul statiei pe pagina de programare
   bookingMessage: string | null;
+  // pauza zilnica ("HH:mm:ss", ambele sau niciuna)
+  breakStart: string | null;
+  breakEnd: string | null;
+  // fara programari de sarbatorile legale
+  holidaysClosed: boolean;
+  // tarifele apar pe pagina de programare
+  showPrices: boolean;
+  // doar citite: zilele inchise de statie de azi incolo si sarbatorile din urmatoarele 12 luni
+  closedDays?: ClosedDay[];
+  holidays?: ClosedDay[];
 }
 
 export interface PublicStation {
@@ -211,6 +230,10 @@ export interface PublicStation {
   // logo-ul statiei si mesajul ei pe pagina de programare (pot lipsi)
   logoUrl?: string | null;
   bookingMessage?: string | null;
+  // zilele fara programari din perioada in care se poate programa si pauza zilnica
+  closedDays?: ClosedDay[];
+  breakStart?: string | null;
+  breakEnd?: string | null;
 }
 
 export interface Reminder {
@@ -274,6 +297,8 @@ export interface Appointment {
   // inspectorul ales anume (null = cel de pe linie) si, doar la citire, cel care lucreaza pe linia programarii
   inspectorId?: number | null;
   lineInspectorId?: number | null;
+  // doar citit: tariful statiei pentru tipul vehiculului
+  listPrice?: number | null;
   // bifa de acord pentru remindere din programarea online
   reminderConsent?: boolean | null;
   // ce a facut clientul din link-ul din SMS

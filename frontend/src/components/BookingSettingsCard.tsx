@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Globe, Loader2, CheckCircle2, AlertTriangle, Copy, Check, ExternalLink, Timer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SettingsCard from './SettingsCard';
+import ClosedDaysEditor from './ClosedDaysEditor';
+import { apiMessage } from '../utils/errors';
 import type { BookingSettings, VehicleCategory, VehicleType } from '../types';
 import { getBookingSettings, updateBookingSettings } from '../api/accountApi';
 import { WEEKDAYS_SHORT, bookingUrl } from '../utils/booking';
@@ -10,6 +12,8 @@ const INPUT_CLS =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
 
 type Message = { text: string; type: 'success' | 'error' } | null;
+
+const withSeconds = (t: string) => (t.length === 5 ? `${t}:00` : t);
 
 // Setarile paginii publice de programare a statiei
 export default function BookingSettingsCard({ onChange }: { onChange?: (s: BookingSettings) => void }) {
@@ -56,8 +60,12 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         ...settings,
         capacity: undefined,
         lineNames: undefined,
-        open: settings.open.length === 5 ? `${settings.open}:00` : settings.open,
-        close: settings.close.length === 5 ? `${settings.close}:00` : settings.close,
+        closedDays: undefined,
+        holidays: undefined,
+        open: withSeconds(settings.open),
+        close: withSeconds(settings.close),
+        breakStart: settings.breakStart ? withSeconds(settings.breakStart) : null,
+        breakEnd: settings.breakEnd ? withSeconds(settings.breakEnd) : null,
         bookingMessage: settings.bookingMessage ?? '',
       });
       setSettings(saved);
@@ -69,7 +77,10 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         text:
           status === 409
             ? 'Link-ul este deja folosit de altă stație. Alegeți altul.'
-            : 'Verificați datele: link doar cu litere mici, cifre și cratime; ora de deschidere înaintea celei de închidere; cel puțin o zi; cel puțin un tip de vehicul, cu durata între 10 și 120 de minute, din 5 în 5.',
+            : apiMessage(
+                err,
+                'Verificați datele: link doar cu litere mici, cifre și cratime; ora de deschidere înaintea celei de închidere; pauza cu început și sfârșit; cel puțin o zi; cel puțin un tip de vehicul, cu durata între 10 și 120 de minute, din 5 în 5; tarif între 0 și 10000 lei.',
+              ),
         type: 'error',
       });
     } finally {
@@ -160,6 +171,39 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         </div>
 
         <div>
+          <label className="flex items-center gap-2.5 text-sm font-medium text-slate-600 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!!settings.breakStart}
+              onChange={(e) => update(e.target.checked ? { breakStart: '12:00', breakEnd: '12:30' } : { breakStart: null, breakEnd: null })}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            Pauză zilnică
+          </label>
+          {settings.breakStart && (
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="break-start" className="block text-xs text-slate-500 mb-1">De la</label>
+                <input id="break-start" type="time" step={300} value={settings.breakStart.slice(0, 5)} onChange={(e) => update({ breakStart: e.target.value })} className={INPUT_CLS} />
+              </div>
+              <div>
+                <label htmlFor="break-end" className="block text-xs text-slate-500 mb-1">Până la</label>
+                <input id="break-end" type="time" step={300} value={(settings.breakEnd ?? '').slice(0, 5)} onChange={(e) => update({ breakEnd: e.target.value })} className={INPUT_CLS} />
+              </div>
+              <p className="col-span-2 text-xs text-slate-400">În pauză nu se pot face programări online; după ea, prima oră liberă e chiar la sfârșitul pauzei.</p>
+            </div>
+          )}
+        </div>
+
+        <ClosedDaysEditor
+          holidaysClosed={settings.holidaysClosed}
+          onHolidaysClosed={(holidaysClosed) => update({ holidaysClosed })}
+          holidays={settings.holidays ?? []}
+          closedDays={settings.closedDays ?? []}
+          onClosedDays={(closedDays) => update({ closedDays })}
+        />
+
+        <div>
           <label htmlFor="booking-message" className="block text-sm font-medium text-slate-600 mb-1">
             Mesaj pe pagina de programare <span className="font-normal text-slate-400">(opțional)</span>
           </label>
@@ -210,11 +254,11 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1">
             <Timer size={14} className="text-slate-400" />
-            Durata inspecției pe tip de vehicul
+            Durata și tariful pe tip de vehicul
           </label>
           <p className="text-xs text-slate-400 mb-2">
             Clientul alege tipul vehiculului, iar programarea blochează linia exact cât durează inspecția, fără
-            suprapuneri. Câte linii are stația setați în <Link to="/account#linii" className="text-blue-600 hover:underline">Linii ITP</Link>. Verificați timpii minimi impuși stației voastre de RAR. Tipurile nebifate nu apar pe pagina online.
+            suprapuneri. Tariful (opțional, în lei cu TVA) se completează singur în ITP-ul început dintr-o programare. Câte linii are stația setați în <Link to="/account#linii" className="text-blue-600 hover:underline">Linii ITP</Link>. Verificați timpii minimi impuși stației voastre de RAR. Tipurile nebifate nu apar pe pagina online.
           </p>
           <div className="rounded-lg border border-slate-200 divide-y divide-slate-100">
             {settings.vehicleTypes.map((t) => (
@@ -243,10 +287,37 @@ export default function BookingSettingsCard({ onChange }: { onChange?: (s: Booki
                   />
                 </div>
                 <span className="text-xs text-slate-400 w-6">min</span>
+                <div className="w-20 shrink-0">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={10000}
+                    value={t.price ?? ''}
+                    onChange={(e) => updateType(t.category, { price: e.target.value === '' ? null : Number(e.target.value) })}
+                    placeholder="—"
+                    aria-label={`Tariful pentru ${t.label}`}
+                    className={INPUT_CLS + ' placeholder-slate-300'}
+                  />
+                </div>
+                <span className="text-xs text-slate-400 w-5">lei</span>
               </div>
             ))}
           </div>
         </div>
+
+        <label className="flex items-start gap-2.5 text-sm text-slate-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={settings.showPrices}
+            onChange={(e) => update({ showPrices: e.target.checked })}
+            className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span>
+            Arată tarifele pe pagina de programare
+            <span className="block text-xs text-slate-400">Clientul vede prețul lângă tipul vehiculului. Tipurile fără tarif apar fără preț.</span>
+          </span>
+        </label>
 
         {settings.enabled && link && (
           <div className="rounded-lg bg-blue-50 border border-blue-100 px-3 py-2.5 space-y-2">

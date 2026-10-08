@@ -45,7 +45,7 @@ public class InspectorPortalService {
 
     // Datele masinii din ultimul ITP (dupa numar), ca inspectorul sa nu le tasteze din nou
     public record Prefill(String name, String phone, String licensePlate, String brand, String model, Integer year, String vin,
-                          Integer validityMonths, Boolean reminderConsent) {
+                          Integer validityMonths, Boolean reminderConsent, Integer price) {
     }
 
     public record Me(String name, String color, String stationName, String stationAddress, String stationPhone,
@@ -135,7 +135,8 @@ public class InspectorPortalService {
                 last.map(org.example.easyitp.dto.DashboardDTO::getYear).orElse(null),
                 last.map(org.example.easyitp.dto.DashboardDTO::getVin).orElse(null),
                 last.map(org.example.easyitp.dto.DashboardDTO::getValabilitateLuni).orElse(null),
-                appt.getReminderConsent());
+                appt.getReminderConsent(),
+                InspectionPrices.priceFor(station, appt.getVehicleCategory()));
     }
 
     // ITP-ul facut de inspector la o programare a lui: se salveaza pe statie, cu numele lui, iar programarea devine

@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -45,7 +46,13 @@ class BookingIntegrationTest {
     private String token;
     // Limita pe IP e comuna tuturor testelor, asa ca fiecare test foloseste alt IP
     private String ip;
-    private final LocalDate day = LocalDate.now().plusDays(3);
+    // o zi peste 3 zile care nu e sarbatoare legala (statia e inchisa atunci)
+    private final LocalDate day = workday(LocalDate.now().plusDays(3));
+
+    private static LocalDate workday(LocalDate d) {
+        while (org.example.easyitp.service.RomanianHolidays.nameOf(d) != null) d = d.plusDays(1);
+        return d;
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -256,6 +263,72 @@ class BookingIntegrationTest {
         assertThat(ion.get("defaultLine").isNull()).isTrue();
         assertThat(ion.get("schedule").findValues("line").stream().map(n -> n.isNull() ? "-" : n.asText()).toList())
                 .containsExactly("-", "1");
+    }
+
+    @Test
+    void breakAndClosedDaysHaveNoOnlineSlots() throws Exception {
+        putSettings(settingsJson(true, "pauza", 1).replace("}", ",\"breakStart\":\"12:00\",\"breakEnd\":\"12:30\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.breakStart").value("12:00:00"))
+                .andExpect(jsonPath("$.holidaysClosed").value(true));
+        JsonNode slots = getJson("/api/public/stations/pauza/slots?date=" + day);
+        // 11:40 se termina la 12:00 (incape), 12:00 si 12:20 cad in pauza, 12:30 e primul dupa ea
+        assertThat(slots.toString()).contains("11:40:00", "12:30:00").doesNotContain("12:00:00", "12:20:00", "11:50:00");
+        // pauza fara sfarsit sau intoarsa e refuzata
+        putSettings(settingsJson(true, "pauza", 1).replace("}", ",\"breakStart\":\"12:00\"}")).andExpect(status().isBadRequest());
+        putSettings(settingsJson(true, "pauza", 1).replace("}", ",\"breakStart\":\"13:00\",\"breakEnd\":\"12:00\"}"))
+                .andExpect(status().isBadRequest());
+
+        // ziua inchisa de statie: nicio ora, iar pagina publica o arata cu nota ei
+        mvc.perform(post("/api/account/closed-days").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + day + "\",\"to\":\"" + day.plusDays(1) + "\",\"note\":\" Inventar \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].date").value(day.toString()))
+                .andExpect(jsonPath("$[0].name").value("Inventar"))
+                .andExpect(jsonPath("$.length()").value(2));
+        assertThat(getJson("/api/public/stations/pauza/slots?date=" + day)).isEmpty();
+        assertThat(getJson("/api/public/stations/pauza").get("closedDays").toString()).contains(day.toString(), "Inventar");
+        book("pauza", "10:00", "Ion Pop", "0722 111 222").andExpect(status().is4xxClientError());
+        mvc.perform(get("/api/account/booking").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.closedDays.length()").value(2))
+                .andExpect(jsonPath("$.holidays.length()").value(org.hamcrest.Matchers.greaterThan(10)));
+
+        // a doua zi se redeschide; prima ramane inchisa
+        mvc.perform(delete("/api/account/closed-days?from=" + day.plusDays(1)).header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        assertThat(getJson("/api/public/stations/pauza/slots?date=" + day.plusDays(1))).isNotEmpty();
+        // zilele trecute sau intervalele prea lungi sunt refuzate
+        mvc.perform(post("/api/account/closed-days").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + LocalDate.now().minusDays(1) + "\"}"))
+                .andExpect(status().isBadRequest());
+        mvc.perform(post("/api/account/closed-days").header("Authorization", "Bearer " + token).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"from\":\"" + day + "\",\"to\":\"" + day.plusDays(100) + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void pricesAreSavedShownOnlyWhenAskedAndPrefillTheAppointment() throws Exception {
+        String types = "[{'category':'CAR','minutes':20,'enabled':true,'price':180},"
+                + "{'category':'VAN','minutes':45,'enabled':false,'price':250}]";
+        putSettings(settingsJson(true, "tarife", 1, types))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vehicleTypes[0].price").value(180))
+                .andExpect(jsonPath("$.showPrices").value(false));
+        // ascunse pe pagina publica pana nu le arata statia
+        assertThat(getJson("/api/public/stations/tarife").get("vehicleTypes").get(0).get("price").isNull()).isTrue();
+        putSettings(settingsJson(true, "tarife", 1, types).replace("}]}", "}],\"showPrices\":true}")).andExpect(status().isOk());
+        JsonNode publicTypes = getJson("/api/public/stations/tarife").get("vehicleTypes");
+        assertThat(publicTypes).hasSize(1);
+        assertThat(publicTypes.get(0).get("price").asInt()).isEqualTo(180);
+
+        book("tarife", "10:00", "Ion Pop", "0722 111 222", "CAR").andExpect(status().isCreated());
+        assertThat(calendar().get(0).get("listPrice").asInt()).isEqualTo(180);
+
+        putSettings(settingsJson(true, "tarife", 1, "[{'category':'CAR','minutes':20,'enabled':true,'price':-5}]"))
+                .andExpect(status().isBadRequest());
+        // fara tipuri in cerere tarifele raman
+        putSettings(settingsJson(true, "tarife", 1)).andExpect(status().isOk()).andExpect(jsonPath("$.vehicleTypes[0].price").value(180));
     }
 
     @Test

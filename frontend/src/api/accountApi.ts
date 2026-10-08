@@ -1,5 +1,5 @@
 import api from './axiosInstance';
-import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, DigestSettings, GooglePlace, Profile, StationInfo, StationLines, Visibility } from '../types';
+import type { AutoSmsLogEntry, AutoSmsSettings, BookingSettings, ClosedDay, DigestSettings, GooglePlace, Profile, StationInfo, StationLines, Visibility } from '../types';
 
 const BASE = '/api/account';
 
@@ -23,9 +23,21 @@ export const getBookingSettings = (): Promise<BookingSettings> =>
   api.get(`${BASE}/booking`).then((r) => r.data);
 
 export const updateBookingSettings = (
-  data: Omit<BookingSettings, 'capacity' | 'lineNames'> & { capacity?: undefined; lineNames?: undefined },
+  data: Omit<BookingSettings, 'capacity' | 'lineNames' | 'closedDays' | 'holidays'> & {
+    capacity?: undefined;
+    lineNames?: undefined;
+    closedDays?: undefined;
+    holidays?: undefined;
+  },
 ): Promise<BookingSettings> =>
   api.put(`${BASE}/booking`, data).then((r) => r.data);
+
+// Zilele in care statia e inchisa; raspunsul = zilele inchise de azi incolo
+export const addClosedDays = (from: string, to: string | null, note: string): Promise<ClosedDay[]> =>
+  api.post(`${BASE}/closed-days`, { from, to, note }).then((r) => r.data);
+
+export const removeClosedDays = (from: string, to: string): Promise<ClosedDay[]> =>
+  api.delete(`${BASE}/closed-days`, { params: { from, to } }).then((r) => r.data);
 
 // Liniile ITP ale statiei (cardul „Linii ITP” din Contul meu)
 export const getLines = (): Promise<StationLines> => api.get(`${BASE}/lines`).then((r) => r.data);

@@ -47,11 +47,12 @@ public final class InspectionDurations {
                 .collect(Collectors.joining(","));
     }
 
-    // Toate tipurile, cu durata statiei (sau cea implicita pentru cele dezactivate)
+    // Toate tipurile, cu durata statiei (sau cea implicita pentru cele dezactivate) si tariful ei
     public static List<VehicleTypeDTO> allTypes(AppUser station) {
         Map<VehicleCategory, Integer> active = of(station);
+        Map<VehicleCategory, Integer> prices = InspectionPrices.of(station);
         return Arrays.stream(VehicleCategory.values())
-                .map(c -> new VehicleTypeDTO(c, c.label(), active.getOrDefault(c, c.defaultMinutes()), active.containsKey(c)))
+                .map(c -> new VehicleTypeDTO(c, c.label(), active.getOrDefault(c, c.defaultMinutes()), active.containsKey(c), prices.get(c)))
                 .toList();
     }
 

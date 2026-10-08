@@ -31,6 +31,7 @@ public class DailyJobService {
     private final PlanNoticeService planNoticeService;
     private final AccountEmailService accountEmailService;
     private final AccountDeletionService accountDeletionService;
+    private final BookingService bookingService;
     private final JobRunRepository jobRunRepository;
     private final TransactionTemplate transactionTemplate;
 
@@ -57,6 +58,7 @@ public class DailyJobService {
         step("Curatarea istoricului", historyService::purgeOld);
         step("Curatarea linkurilor expirate", accountEmailService::purgeExpired);
         step("Curatarea notificarilor vechi", () -> notificationService.purgeOld(java.time.LocalDateTime.now()));
+        step("Curatarea zilelor inchise trecute", () -> bookingService.purgePastClosedDays(today));
         step("Stergerea conturilor cerute", () -> accountDeletionService.purgeDue(java.time.LocalDateTime.now()));
         return result;
     }

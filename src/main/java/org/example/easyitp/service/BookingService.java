@@ -2,6 +2,8 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.BookingSettingsDTO;
+import org.example.easyitp.dto.ClosedDayDTO;
+import org.example.easyitp.dto.ClosedDaysRequest;
 import org.example.easyitp.dto.LinesDTO;
 import org.example.easyitp.dto.PublicBookingRequest;
 import org.example.easyitp.dto.PublicStationDTO;
@@ -13,10 +15,12 @@ import org.example.easyitp.entity.AppointmentSource;
 import org.example.easyitp.entity.AppointmentStatus;
 import org.example.easyitp.entity.Inspector;
 import org.example.easyitp.entity.Role;
+import org.example.easyitp.entity.StationClosedDay;
 import org.example.easyitp.entity.VehicleCategory;
 import org.example.easyitp.repository.AppUserRepository;
 import org.example.easyitp.repository.AppointmentRepository;
 import org.example.easyitp.repository.InspectorRepository;
+import org.example.easyitp.repository.StationClosedDayRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +36,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,6 +47,7 @@ import java.util.stream.Collectors;
 public class BookingService {
 
     public static final int MAX_DAYS_AHEAD = 30;
+    private static final int MAX_CLOSED_RANGE = 92;
     // Clientul nu se poate programa cu mai putin de o ora inainte
     private static final int MIN_LEAD_MINUTES = 60;
     // Orele oferite si duratele sunt multipli de 5 minute
@@ -59,6 +65,7 @@ public class BookingService {
     private final AppUserRepository appUserRepository;
     private final AppointmentRepository appointmentRepository;
     private final InspectorRepository inspectorRepository;
+    private final StationClosedDayRepository closedDayRepository;
 
     // ---------- setarile managerului ----------
 
@@ -74,7 +81,66 @@ public class BookingService {
                 !Boolean.FALSE.equals(user.getPublicListing()),
                 lineNames(user),
                 !Boolean.FALSE.equals(user.getBookingEmailNotify()),
-                user.getBookingMessage());
+                user.getBookingMessage(),
+                user.getBookingBreakStart(),
+                user.getBookingBreakEnd(),
+                holidaysClosed(user),
+                Boolean.TRUE.equals(user.getBookingShowPrices()),
+                stationClosedDays(user, LocalDate.now(), LocalDate.now().plusYears(1)),
+                RomanianHolidays.between(LocalDate.now(), LocalDate.now().plusYears(1)).entrySet().stream()
+                        .map(e -> new ClosedDayDTO(e.getKey(), e.getValue(), true)).toList());
+    }
+
+    // ---------- zilele inchise ----------
+
+    private static boolean holidaysClosed(AppUser u) {
+        return !Boolean.FALSE.equals(u.getBookingHolidaysClosed());
+    }
+
+    private List<ClosedDayDTO> stationClosedDays(AppUser user, LocalDate from, LocalDate to) {
+        return closedDayRepository.findByUserIdAndDateBetweenOrderByDateAsc(user.getId(), from, to).stream()
+                .map(d -> new ClosedDayDTO(d.getDate(), d.getNote(), false))
+                .toList();
+    }
+
+    // Zilele fara programari online din [from, to]: sarbatorile (daca statia e inchisa atunci) si zilele inchise de ea
+    public List<ClosedDayDTO> closedDays(AppUser station, LocalDate from, LocalDate to) {
+        TreeMap<LocalDate, ClosedDayDTO> days = new TreeMap<>();
+        if (holidaysClosed(station)) {
+            RomanianHolidays.between(from, to).forEach((d, name) -> days.put(d, new ClosedDayDTO(d, name, true)));
+        }
+        stationClosedDays(station, from, to).forEach(d -> days.putIfAbsent(d.date(), d));
+        return List.copyOf(days.values());
+    }
+
+    // Inchide statia in zilele [from, to] (cel mult MAX_CLOSED_RANGE zile); o zi deja inchisa primeste nota noua
+    @Transactional
+    public List<ClosedDayDTO> addClosedDays(AppUser user, ClosedDaysRequest request) {
+        if (request == null || request.from() == null) throw badRequest("Alegeți ziua");
+        LocalDate from = request.from();
+        LocalDate to = request.to() != null ? request.to() : from;
+        if (to.isBefore(from)) throw badRequest("Ultima zi trebuie să fie după prima");
+        if (from.plusDays(MAX_CLOSED_RANGE - 1).isBefore(to)) throw badRequest("Cel mult " + MAX_CLOSED_RANGE + " de zile deodată");
+        if (from.isBefore(LocalDate.now())) throw badRequest("Alegeți o zi de azi încolo");
+        String note = request.note() == null || request.note().isBlank() ? null : request.note().trim().replaceAll("\\s+", " ");
+        if (note != null && note.length() > 100) throw badRequest("Motivul poate avea cel mult 100 de caractere");
+        closedDayRepository.deleteRange(user.getId(), from, to);
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            closedDayRepository.save(StationClosedDay.builder().userId(user.getId()).date(d).note(note).build());
+        }
+        return stationClosedDays(user, LocalDate.now(), LocalDate.now().plusYears(1));
+    }
+
+    @Transactional
+    public List<ClosedDayDTO> removeClosedDays(AppUser user, LocalDate from, LocalDate to) {
+        closedDayRepository.deleteRange(user.getId(), from, to != null ? to : from);
+        return stationClosedDays(user, LocalDate.now(), LocalDate.now().plusYears(1));
+    }
+
+    // Rularea de dimineata: zilele inchise trecute nu mai folosesc la nimic
+    @Transactional
+    public void purgePastClosedDays(LocalDate today) {
+        closedDayRepository.deleteBefore(today);
     }
 
     // Statiile active cu programarea online pornita care accepta sa apara in lista publica, dupa nume
@@ -103,6 +169,11 @@ public class BookingService {
             validateLines(dto.getCapacity() != null ? dto.getCapacity() : capacity(user), dto.getLineNames());
         }
         Map<VehicleCategory, Integer> durations = durations(dto.getVehicleTypes());
+        Map<VehicleCategory, Integer> prices = prices(dto.getVehicleTypes());
+        if ((dto.getBreakStart() == null) != (dto.getBreakEnd() == null)
+                || (dto.getBreakStart() != null && !dto.getBreakStart().isBefore(dto.getBreakEnd()))) {
+            throw badRequest("Pauza are nevoie de o oră de început înaintea celei de sfârșit");
+        }
 
         String slug = dto.getSlug() == null ? "" : dto.getSlug().trim().toLowerCase();
         if (slug.isEmpty()) {
@@ -129,6 +200,11 @@ public class BookingService {
         if (dto.getLineNames() != null) user.setBookingLineNames(formatLineNames(dto.getLineNames(), capacity(user)));
         // Clientii vechi nu trimit tipurile: pastram ce era salvat
         if (durations != null) user.setBookingDurations(InspectionDurations.format(durations));
+        if (prices != null) user.setBookingPrices(InspectionPrices.format(prices));
+        user.setBookingBreakStart(dto.getBreakStart());
+        user.setBookingBreakEnd(dto.getBreakEnd());
+        if (dto.getHolidaysClosed() != null) user.setBookingHolidaysClosed(dto.getHolidaysClosed());
+        if (dto.getShowPrices() != null) user.setBookingShowPrices(dto.getShowPrices());
         return getSettings(appUserRepository.save(user));
     }
 
@@ -163,6 +239,21 @@ public class BookingService {
         if (names != null && names.stream().anyMatch(n -> n != null && n.trim().length() > MAX_LINE_NAME)) {
             throw badRequest("Numele unei linii poate avea cel mult " + MAX_LINE_NAME + " de caractere");
         }
+    }
+
+    // Tarifele trimise (si pentru tipurile neprogramabile online, ca ITP-ul sa le poata folosi); null = nu se schimba
+    private static Map<VehicleCategory, Integer> prices(List<VehicleTypeDTO> types) {
+        if (types == null) return null;
+        Map<VehicleCategory, Integer> prices = new EnumMap<>(VehicleCategory.class);
+        for (VehicleTypeDTO type : types) {
+            if (type.category() == null || type.price() == null) continue;
+            if (type.price() < 0 || type.price() > InspectionPrices.MAX_PRICE) {
+                throw badRequest("Tariful pentru " + type.category().label() + " trebuie să fie între 0 și "
+                        + InspectionPrices.MAX_PRICE + " lei");
+            }
+            prices.put(type.category(), type.price());
+        }
+        return prices;
     }
 
     private static Map<VehicleCategory, Integer> durations(List<VehicleTypeDTO> types) {
@@ -210,10 +301,15 @@ public class BookingService {
                 close(station),
                 days(station),
                 MAX_DAYS_AHEAD,
-                InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled).toList(),
+                InspectionDurations.allTypes(station).stream().filter(VehicleTypeDTO::enabled)
+                        .map(t -> Boolean.TRUE.equals(station.getBookingShowPrices()) ? t
+                                : new VehicleTypeDTO(t.category(), t.label(), t.minutes(), true, null))
+                        .toList(),
                 station.getMapsUrl(), station.getFacebookUrl(), station.getReviewUrl(), rating(station),
                 rating(station) == null ? null : station.getGoogleRatingCount(),
-                LogoService.path(station), station.getBookingMessage());
+                LogoService.path(station), station.getBookingMessage(),
+                closedDays(station, LocalDate.now(), LocalDate.now().plusDays(MAX_DAYS_AHEAD)),
+                station.getBookingBreakStart(), station.getBookingBreakEnd());
     }
 
     // Nota Google se arata doar pe Premium (si nu se mai reimprospateaza fara el; Google nu permite note vechi)
@@ -238,6 +334,7 @@ public class BookingService {
         LocalDate today = now.toLocalDate();
         if (date.isBefore(today) || date.isAfter(today.plusDays(MAX_DAYS_AHEAD))) return List.of();
         if (!days(station).contains(date.getDayOfWeek().getValue())) return List.of();
+        if (!closedDays(station, date, date).isEmpty()) return List.of();
 
         int duration = InspectionDurations.minutesFor(station, category);
         LocalDateTime dayOpen = date.atTime(open(station));
@@ -253,6 +350,10 @@ public class BookingService {
             candidates.add(t);
         }
         taken.forEach(i -> candidates.add(alignUp(i.end())));
+        // pauza: nicio inspectie nu se suprapune cu ea, iar dupa ea se poate incepe imediat
+        LocalDateTime breakStart = station.getBookingBreakStart() == null ? null : date.atTime(station.getBookingBreakStart());
+        LocalDateTime breakEnd = station.getBookingBreakEnd() == null ? null : date.atTime(station.getBookingBreakEnd());
+        if (breakEnd != null) candidates.add(breakEnd);
 
         LocalDateTime earliest = now.plusMinutes(MIN_LEAD_MINUTES);
         int capacity = capacity(station);
@@ -260,6 +361,7 @@ public class BookingService {
         for (LocalDateTime start : candidates) {
             LocalDateTime end = start.plusMinutes(duration);
             if (start.isBefore(dayOpen) || end.isAfter(dayClose) || start.isBefore(earliest)) continue;
+            if (breakStart != null && start.isBefore(breakEnd) && end.isAfter(breakStart)) continue;
             // o linie trebuie sa fie libera tot intervalul (nu doar numarul de masini sub capacitate)
             if (maxConcurrent(taken, start, end) < capacity && LinePlanner.freeLine(booked, capacity, start, end, null) != null) {
                 slots.add(start.toLocalTime());

@@ -71,7 +71,7 @@ class AppointmentSelfServiceIntegrationTest {
                 .apptConfirmSms(true).apptReminderSms(true).build());
         when(smsSender.send(any(), anyString(), anyString())).thenReturn("id");
         day = LocalDate.now().plusDays(3);
-        while (day.getDayOfWeek().getValue() > 5) day = day.plusDays(1);
+        while (day.getDayOfWeek().getValue() > 5 || org.example.easyitp.service.RomanianHolidays.nameOf(day) != null) day = day.plusDays(1);
     }
 
     @Test

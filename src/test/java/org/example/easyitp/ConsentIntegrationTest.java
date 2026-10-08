@@ -118,7 +118,7 @@ class ConsentIntegrationTest {
     @Test
     void onlineBookingConsentIsKeptOnTheAppointment() throws Exception {
         LocalDate day = LocalDate.now().plusDays(1);
-        while (day.getDayOfWeek().getValue() > 5) day = day.plusDays(1);
+        while (day.getDayOfWeek().getValue() > 5 || org.example.easyitp.service.RomanianHolidays.nameOf(day) != null) day = day.plusDays(1);
         JsonNode slots = json.readTree(mvc.perform(get("/api/public/stations/itp-acord/slots?date=" + day + "&category=CAR"))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         Map<String, Object> booking = Map.of("clientName", "Maria Online", "phone", "0722 555 666",

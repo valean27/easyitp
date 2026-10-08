@@ -150,6 +150,7 @@ public class AccountDeletionService {
         jdbc.update("delete from notifications where user_id = ?", id);
         jdbc.update("delete from station_logos where user_id = ?", id);
         jdbc.update("delete from inspector_leaves where user_id = ?", id);
+        jdbc.update("delete from station_closed_days where user_id = ?", id);
         jdbc.update("delete from app_users where inspector_id in (select i.id from inspectors i where i.user_id = ?)", id);
         jdbc.update("delete from inspector_days where inspector_id in (select i.id from inspectors i where i.user_id = ?)", id);
         jdbc.update("delete from inspectors where user_id = ?", id);

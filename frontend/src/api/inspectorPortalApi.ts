@@ -22,6 +22,8 @@ export interface ItpPrefill {
   vin: string | null;
   validityMonths: number | null;
   reminderConsent: boolean | null;
+  // tariful statiei pentru tipul vehiculului din programare
+  price: number | null;
 }
 
 export const getItpPrefill = (appointmentId: number): Promise<ItpPrefill> =>
