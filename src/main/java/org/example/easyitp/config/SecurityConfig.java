@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/fleet-portal/**").hasRole("FLEET")
                 // Inspectorii vad doar ziua lor (programarile lor si programul)
                 .requestMatchers("/api/inspector-portal/**").hasRole("INSPECTOR")
+                .requestMatchers(HttpMethod.GET, "/api/cars/**").hasAnyRole("ADMIN", "MANAGER", "INSPECTOR")
                 .requestMatchers("/api/account/me", "/api/account/password").authenticated()
                 .requestMatchers("/api/fleets/**", "/api/clients/**", "/api/history/**", "/api/station-deadlines/**", "/api/inspectors/**", "/api/invoicing/**", "/api/billing/**").hasRole("MANAGER")
                 .anyRequest().hasAnyRole("ADMIN", "MANAGER")

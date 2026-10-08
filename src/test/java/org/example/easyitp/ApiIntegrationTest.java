@@ -588,13 +588,42 @@ class ApiIntegrationTest {
         assertThat(day.get("appointments").get(0).get("clientName").asText()).isEqualTo("Pe linia 2");
         assertThat(getJson("/api/inspector-portal/day?date=" + today.plusDays(1), token).get("works").asBoolean()).isFalse();
 
+        // "Finalizat" nu se pune de mana (vine din ITP); "Nu a venit" si inapoi, da
         mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("COMPLETED"));
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}")).andExpect(status().isBadRequest());
+        mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"NO_SHOW\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("NO_SHOW"));
+        mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SCHEDULED\"}")).andExpect(status().isOk());
         mvc.perform(put("/api/inspector-portal/appointments/" + other + "/status").header("Authorization", bearer(token))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"COMPLETED\"}")).andExpect(status().isNotFound());
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"NO_SHOW\"}")).andExpect(status().isNotFound());
         mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"CANCELLED\"}")).andExpect(status().isBadRequest());
+
+        // "Incepe ITP": precompletat din programare, salvat pe statie cu numele lui, programarea devine "Finalizat"
+        mvc.perform(get("/api/inspector-portal/appointments/" + mine + "/prefill").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("Pe linia 2"));
+        String itp = "{\"name\":\"Pe linia 2\",\"phone\":\"0722000111\",\"brand\":\"Dacia\",\"licensePlate\":\"CJ77INS\",\"testDate\":\""
+                + today + "\",\"validityMonths\":12,\"price\":150,\"inspector\":\"Altcineva\"}";
+        mvc.perform(post("/api/inspector-portal/appointments/" + other + "/itp").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content(itp)).andExpect(status().isNotFound());
+        mvc.perform(post("/api/inspector-portal/appointments/" + mine + "/itp").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(itp.replace("\"brand\":\"Dacia\",", "")))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.field").value("brand"));
+        mvc.perform(post("/api/inspector-portal/appointments/" + mine + "/itp").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(itp))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.itpRecordId").isNumber());
+        assertThat(getJson("/api/itp/dashboard", manager).toString()).contains("\"inspector\":\"Ana Mărin\"").doesNotContain("Altcineva");
+        assertThat(getJson("/api/history", manager).toString()).contains(loginName);
+        mvc.perform(post("/api/inspector-portal/appointments/" + mine + "/itp").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content(itp)).andExpect(status().isConflict());
+        mvc.perform(put("/api/inspector-portal/appointments/" + mine + "/status").header("Authorization", bearer(token))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"NO_SHOW\"}")).andExpect(status().isConflict());
+        // dictionarul de marci il poate citi
+        mvc.perform(get("/api/cars/makes").header("Authorization", bearer(token))).andExpect(status().isOk());
 
         // inactiv: contul nu mai merge
         sendJson(put("/api/inspectors/" + ana), "{\"name\":\"Ana Mărin\",\"active\":false}").andExpect(status().isOk());

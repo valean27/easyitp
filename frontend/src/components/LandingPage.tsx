@@ -70,7 +70,7 @@ const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: Users, title: 'Clienți și istoric', text: 'Un client cu toate mașinile lui și istoricul ITP al fiecăreia; dublurile se unesc ușor.' },
   { icon: BarChart3, title: 'Rapoarte pentru patron', text: 'Încasări pe lună, dashboard pe inspector (ITP-uri, încasări, respingeri), clienții care nu s-au mai întors, neprezentări.' },
   { icon: HardHat, title: 'Echipa și liniile', text: 'Fiecare inspector cu linia, programul săptămânal și culoarea lui în calendar; concediile se bifează pe zile, iar linia se eliberează singură.' },
-  { icon: Smartphone, title: 'Contul inspectorului', text: 'Fiecare inspector își vede pe telefon ziua lui: linia, orele și programările, pe care le marchează finalizate sau neprezentate.' },
+  { icon: Smartphone, title: 'Contul inspectorului', text: 'Fiecare inspector își vede pe telefon ziua lui: linia, orele și programările; pornește ITP-ul direct din programare, precompletat, iar programarea se închide singură.' },
   { icon: Truck, title: 'Flote și facturare', text: 'Firmele își văd mașinile și centralizatorul lunar; facturați prin Oblio, cu e-Factura.' },
   { icon: Star, title: 'Recenzii Google', text: 'După ITP, clientul primește linkul de recenzie; nota stației apare în lista publică de stații.' },
   { icon: ClipboardList, title: 'Termenele stației', text: 'Autorizația RAR, metrologia și atestatele inspectorilor, cu alertă înainte de expirare.' },

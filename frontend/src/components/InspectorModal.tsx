@@ -336,7 +336,7 @@ function AccountSection({ inspector, onChanged }: { inspector: Inspector; onChan
         </p>
       ) : (
         <>
-          <p className="text-xs text-slate-500">Cu un cont, inspectorul își vede pe telefon programările zilei și le marchează finalizate.</p>
+          <p className="text-xs text-slate-500">Cu un cont, inspectorul își vede pe telefon programările zilei și face ITP-ul direct din ele.</p>
           <input
             value={loginDraft}
             onChange={(e) => setLoginDraft(e.target.value.toLowerCase())}

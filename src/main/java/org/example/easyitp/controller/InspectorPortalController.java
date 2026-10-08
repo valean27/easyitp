@@ -30,6 +30,17 @@ public class InspectorPortalController {
         return service.day(currentUser.get(), date);
     }
 
+    @GetMapping("/appointments/{id}/prefill")
+    public InspectorPortalService.Prefill prefill(@PathVariable Long id) {
+        return service.prefill(currentUser.get(), id);
+    }
+
+    // "Incepe ITP" din contul inspectorului: ITP-ul se salveaza pe statie, programarea devine "Finalizat"
+    @PostMapping("/appointments/{id}/itp")
+    public AppointmentDTO startItp(@PathVariable Long id, @RequestBody org.example.easyitp.dto.ItpFormDTO form) {
+        return service.startItp(currentUser.get(), id, form);
+    }
+
     @PutMapping("/appointments/{id}/status")
     public AppointmentDTO setStatus(@PathVariable Long id, @RequestBody StatusRequest request) {
         return service.setStatus(currentUser.get(), id, request.status());

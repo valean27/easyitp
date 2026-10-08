@@ -2,6 +2,7 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.dto.AppointmentDTO;
+import org.example.easyitp.dto.ItpFormDTO;
 import org.example.easyitp.dto.InspectorDTOs.DayDTO;
 import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
@@ -31,13 +32,20 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class InspectorPortalService {
 
-    private static final Set<AppointmentStatus> ALLOWED = Set.of(AppointmentStatus.SCHEDULED, AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW);
+    // "Finalizat" vine doar din ITP-ul salvat; de mana inspectorul pune doar "Nu a venit" (si inapoi)
+    private static final Set<AppointmentStatus> ALLOWED = Set.of(AppointmentStatus.SCHEDULED, AppointmentStatus.NO_SHOW);
 
     private final InspectorService inspectorService;
     private final AppointmentService appointmentService;
     private final AppointmentRepository appointmentRepository;
     private final AppUserRepository appUserRepository;
     private final ItpRecordRepository itpRecordRepository;
+    private final ItpService itpService;
+
+    // Datele masinii din ultimul ITP (dupa numar), ca inspectorul sa nu le tasteze din nou
+    public record Prefill(String name, String phone, String licensePlate, String brand, String model, Integer year, String vin,
+                          Integer validityMonths, Boolean reminderConsent) {
+    }
 
     public record Me(String name, String color, String stationName, String stationAddress, String stationPhone,
                      List<String> lineNames, Integer defaultLine, List<DayDTO> schedule,
@@ -94,17 +102,65 @@ public class InspectorPortalService {
         Inspector inspector = inspectorService.inspectorOf(account);
         AppUser station = stationOf(inspector);
         if (status == null || !ALLOWED.contains(status)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status nepermis");
-        Appointment appt = appointmentRepository.findByIdAndUserId(appointmentId, station.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta"));
-        LocalDate date = appt.getAppointmentDate().toLocalDate();
-        // doar programarile lui: alese anume pentru el sau de pe linia pe care lucreaza in ziua aceea
-        AppointmentDTO mine = day(account, date).appointments().stream()
-                .filter(a -> a.getId().equals(appointmentId)).findFirst()
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta"));
+        Appointment appt = mine(account, station, appointmentId);
+        if (appt.getItpRecordId() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "ITP-ul pentru această programare e deja înregistrat");
+        }
+        AppointmentDTO mine = day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
+                .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
         appt.setStatus(status);
         appointmentRepository.save(appt);
         mine.setStatus(status);
         return mine;
+    }
+
+    // Datele de pornire ale ITP-ului: programarea + masina din ultimul ITP cu acelasi numar
+    @Transactional(readOnly = true)
+    public Prefill prefill(AppUser account, Long appointmentId) {
+        Inspector inspector = inspectorService.inspectorOf(account);
+        AppUser station = stationOf(inspector);
+        Appointment appt = mine(account, station, appointmentId);
+        var last = appt.getLicensePlate() == null ? java.util.Optional.<org.example.easyitp.dto.DashboardDTO>empty()
+                : itpService.lookupByPlate(appt.getLicensePlate(), station.getId());
+        return new Prefill(appt.getClientName(), appt.getPhone(), appt.getLicensePlate(),
+                last.map(org.example.easyitp.dto.DashboardDTO::getMarca).orElse(null),
+                last.map(org.example.easyitp.dto.DashboardDTO::getModel).orElse(null),
+                last.map(org.example.easyitp.dto.DashboardDTO::getYear).orElse(null),
+                last.map(org.example.easyitp.dto.DashboardDTO::getVin).orElse(null),
+                last.map(org.example.easyitp.dto.DashboardDTO::getValabilitateLuni).orElse(null),
+                appt.getReminderConsent());
+    }
+
+    // ITP-ul facut de inspector la o programare a lui: se salveaza pe statie, cu numele lui, iar programarea devine
+    // "Finalizat" (ca la "Incepe ITP" din contul statiei)
+    @Transactional
+    public AppointmentDTO startItp(AppUser account, Long appointmentId, ItpFormDTO form) {
+        Inspector inspector = inspectorService.inspectorOf(account);
+        AppUser station = stationOf(inspector);
+        Appointment appt = mine(account, station, appointmentId);
+        if (appt.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Programarea este anulată");
+        }
+        if (appt.getItpRecordId() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "ITP-ul pentru această programare e deja înregistrat");
+        }
+        form.setInspector(inspector.getName());
+        form.setAppointmentId(appointmentId);
+        // termenele RCA / rovinieta raman cum le-a pus statia
+        form.setDeadlines(null);
+        itpService.createItpEntry(form, station, account.getEmail());
+        return day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
+                .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
+    }
+
+    // O programare a lui: aleasa anume pentru el sau de pe linia pe care lucreaza in ziua aceea (altfel 404)
+    private Appointment mine(AppUser account, AppUser station, Long appointmentId) {
+        Appointment appt = appointmentRepository.findByIdAndUserId(appointmentId, station.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta"));
+        boolean ok = day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
+                .anyMatch(a -> a.getId().equals(appointmentId));
+        if (!ok) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta");
+        return appt;
     }
 
     private AppUser stationOf(Inspector inspector) {

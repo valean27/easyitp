@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Phone, Globe, CheckCircle2, UserX, RotateCcw, Loader2, AlertTriangle, ClipboardCheck, XCircle, CalendarDays } from 'lucide-react';
+import InspectorItpModal from './InspectorItpModal';
 import type { Appointment, AppointmentStatus, InspectorMe, InspectorPortalDay } from '../types';
 import { getInspectorDay, getInspectorMe, setMyAppointmentStatus } from '../api/inspectorPortalApi';
 import { useTheme } from '../context/theme';
@@ -35,6 +36,7 @@ export default function InspectorHomePage() {
   const [date, setDate] = useState(todayIso);
   const [day, setDay] = useState<InspectorPortalDay | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const [itpFor, setItpFor] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -175,15 +177,20 @@ export default function InspectorHomePage() {
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_CLS[a.status]}`}>{APPOINTMENT_STATUS_LABELS[a.status]}</span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {a.status === 'SCHEDULED' ? (
+                  {a.itpRecordId ? (
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-green-700">
+                      <CheckCircle2 size={15} /> ITP înregistrat
+                    </p>
+                  ) : a.status === 'SCHEDULED' || a.status === 'COMPLETED' ? (
                     <>
+                      {/* "Finalizat" vine din ITP-ul salvat, nu se pune de mana */}
                       <button
                         type="button"
                         disabled={busy === a.id}
-                        onClick={() => changeStatus(a, 'COMPLETED')}
+                        onClick={() => setItpFor(a)}
                         className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
                       >
-                        <CheckCircle2 size={15} /> Finalizat
+                        <ClipboardCheck size={15} /> Începe ITP
                       </button>
                       <button
                         type="button"
@@ -277,6 +284,17 @@ export default function InspectorHomePage() {
           </>
         )}
       </main>
+
+      {itpFor && (
+        <InspectorItpModal
+          appointment={itpFor}
+          onClose={() => setItpFor(null)}
+          onSaved={(saved) => {
+            setDay((d) => (d ? { ...d, appointments: d.appointments.map((x) => (x.id === saved.id ? saved : x)) } : d));
+            getInspectorMe().then(setMe).catch(() => undefined);
+          }}
+        />
+      )}
     </div>
   );
 }

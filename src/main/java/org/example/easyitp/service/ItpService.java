@@ -224,6 +224,12 @@ public class ItpService {
 
     @Transactional
     public ItpRecord createItpEntry(ItpFormDTO form, AppUser user) {
+        return createItpEntry(form, user, user.getEmail());
+    }
+
+    // actor: cine apare in istoric (contul statiei sau inspectorul care a facut ITP-ul din contul lui)
+    @Transactional
+    public ItpRecord createItpEntry(ItpFormDTO form, AppUser user, String actor) {
         validate(form);
         // Acelasi numar de inmatriculare = acelasi vehicul, ca sa se pastreze istoricul ITP
         Vehicle vehicle = vehicleRepository
@@ -252,7 +258,7 @@ public class ItpService {
                 .build();
 
         record = itpRecordRepository.save(record);
-        auditService.record(user, Action.CREATE, EntityType.ITP, record.getId(), AuditService.itpSummary(record), null);
+        auditService.recordAs(user, actor, Action.CREATE, EntityType.ITP, record.getId(), AuditService.itpSummary(record), null);
         if (form.getAppointmentId() != null) {
             appointmentService.completeWithItp(form.getAppointmentId(), user.getId(), record.getId());
         }
