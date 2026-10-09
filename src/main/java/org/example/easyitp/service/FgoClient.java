@@ -78,14 +78,14 @@ public class FgoClient {
         post(baseUrl, "/factura/incasare", request);
     }
 
-    // Proba din admin: starea unei facturi inexistente. Cu date gresite FGO raspunde cu eroare de autentificare,
-    // cu date bune spune ca factura nu exista. Intoarce mesajul FGO, ca adminul sa vada exact ce s-a intamplat.
+    // Proba din admin: PDF-ul unei facturi inexistente (nr. 0), prin /factura/print, a carui formula de hash e documentata
+    // (CUI + cheie + numarul facturii). Cu CUI sau cheie gresite FGO spune asta; cu date bune, doar ca factura lipseste. Intoarce mesajul FGO, ca adminul sa vada exact ce s-a intamplat.
     public String probe(String baseUrl, String cui, String privateKey, String platformUrl, String series) {
         Map<String, Object> request = auth(cui, hash(cui, privateKey, "0"), platformUrl);
         request.put("Numar", "0");
         request.put("Serie", series);
         try {
-            JsonNode res = call(baseUrl, "/factura/getstatus", request);
+            JsonNode res = call(baseUrl, "/factura/print", request);
             return res.path("Success").asBoolean() ? "OK" : cleanMessage(res.path("Message").asText(null));
         } catch (RestClientException e) {
             throw new DeliveryException("FGO nu răspunde: " + e.getMessage());

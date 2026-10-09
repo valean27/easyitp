@@ -179,9 +179,9 @@ function FgoSettingsCard() {
           )}
         </div>
         <p className="text-xs text-slate-400">
-          La „Testează conexiunea”, FGO caută factura nr. 0: un răspuns că factura nu există înseamnă că datele sunt bune. „Codul unic nu
+          La „Testează conexiunea”, FGO caută PDF-ul facturii nr. 0: un răspuns că factura nu există înseamnă că datele sunt bune. „Codul unic nu
           există sau nu este asociat” = CUI-ul nu e cel din contul FGO al acestui mediu (testul și producția sunt conturi separate); o eroare
-          de hash = cheie greșită. „Ne pare rău, a intervenit o eroare” = FGO a răspuns, dar nu poate spune nimic despre factura nr. 0;
+          „Hash-ul transmis nu este corect” = cheie greșită. „Ne pare rău, a intervenit o eroare” = FGO a răspuns, dar nu poate spune nimic despre factura nr. 0;
           verificarea sigură e prima factură emisă din lista de mai jos. Scrieți CUI-ul exact ca în contul FGO.
         </p>
       </form>

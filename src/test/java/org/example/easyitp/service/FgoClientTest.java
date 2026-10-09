@@ -43,10 +43,10 @@ class FgoClientTest {
                         + "\"Link\":\"https://fgo.ro/f/7.pdf\"}}", MediaType.APPLICATION_JSON));
         server.expect(requestTo(FgoClient.TEST + "/factura/emitere"))
                 .andRespond(withSuccess("{\"Success\":false,\"Message\":\"Hash invalid\"}", MediaType.APPLICATION_JSON));
-        server.expect(requestTo(FgoClient.TEST + "/factura/getstatus"))
+        server.expect(requestTo(FgoClient.TEST + "/factura/print"))
                 .andRespond(withSuccess("{\"Success\":false,\"Message\":\"Factura nu exista\"}", MediaType.APPLICATION_JSON));
         // asa raspunde FGO la erori (vazut pe serverul lor de test): HTTP 500, JSON cu exceptia si stack trace-ul
-        server.expect(requestTo(FgoClient.TEST + "/factura/getstatus"))
+        server.expect(requestTo(FgoClient.TEST + "/factura/print"))
                 .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR).contentType(MediaType.APPLICATION_JSON)
                         .body("{\"Success\":false,\"Message\":\"System.Exception: Codul unic nu exista sau nu este asociat.\\r\\n   at Fgo.PublicApi.Controllers.FacturaController.GetStatus()\"}"));
 
