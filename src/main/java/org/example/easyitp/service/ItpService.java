@@ -230,6 +230,13 @@ public class ItpService {
     // actor: cine apare in istoric (contul statiei sau inspectorul care a facut ITP-ul din contul lui)
     @Transactional
     public ItpRecord createItpEntry(ItpFormDTO form, AppUser user, String actor) {
+        // ITP salvat offline si retrimis: acelasi ITP, nu inca unul
+        String ref = form.getClientRef() == null || form.getClientRef().isBlank() ? null : form.getClientRef().trim();
+        if (ref != null) {
+            if (!ref.matches("^[A-Za-z0-9_-]{8,40}$")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cod de sincronizare invalid");
+            Optional<ItpRecord> existing = itpRecordRepository.findByClientRef(ref, user.getId());
+            if (existing.isPresent()) return existing.get();
+        }
         validate(form);
         // Acelasi numar de inmatriculare = acelasi vehicul, ca sa se pastreze istoricul ITP
         Vehicle vehicle = vehicleRepository
@@ -255,6 +262,7 @@ public class ItpService {
                 .price(form.getPrice() != null ? form.getPrice() : 0.0)
                 .observations(form.getObservations())
                 .inspector(inspector(form.getInspector()))
+                .clientRef(ref)
                 .build();
 
         record = itpRecordRepository.save(record);

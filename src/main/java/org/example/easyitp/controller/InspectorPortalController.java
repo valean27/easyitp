@@ -43,6 +43,6 @@ public class InspectorPortalController {
 
     @PutMapping("/appointments/{id}/status")
     public AppointmentDTO setStatus(@PathVariable Long id, @RequestBody StatusRequest request) {
-        return service.setStatus(currentUser.get(), id, request.status());
+        return service.setStatus(currentUser.get(), id, request.status(), request.version());
     }
 }

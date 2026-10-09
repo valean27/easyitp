@@ -29,6 +29,14 @@ public class AppointmentDTO {
     private Long lineInspectorId;
     // Doar la citire: tariful statiei pentru tipul vehiculului (null = fara tarif)
     private Integer listPrice;
+    // Versiunea programarii; la salvare = versiunea pe care s-a facut schimbarea (null = fara verificare)
+    private Integer version;
+    // La creare: codul generat pe telefon (o retrimitere intoarce aceeasi programare)
+    private String clientRef;
+    // La salvare: vine din coada offline (o suprapunere se marcheaza, nu se refuza)
+    private Boolean offline;
+    // Doar la citire: venita offline si suprapusa cu alte programari
+    private Boolean overlap;
     private Boolean reminderConsent;
     // Ce a facut clientul din link-ul din SMS: CANCELLED / RESCHEDULED (null = nimic)
     private String clientAction;

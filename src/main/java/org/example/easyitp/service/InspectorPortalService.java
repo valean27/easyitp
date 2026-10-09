@@ -59,7 +59,8 @@ public class InspectorPortalService {
                       List<AppointmentDTO> appointments) {
     }
 
-    public record StatusRequest(AppointmentStatus status) {
+    // version: versiunea programarii pe care a vazut-o inspectorul (null = fara verificare)
+    public record StatusRequest(AppointmentStatus status, Integer version) {
     }
 
     @Transactional(readOnly = true)
@@ -89,9 +90,8 @@ public class InspectorPortalService {
         Integer line = lines.entrySet().stream().filter(e -> Objects.equals(e.getValue(), inspector.getId()))
                 .map(Map.Entry::getKey).sorted().findFirst().orElse(null);
         InspectorDay hours = InspectorService.dayOf(inspector, date).orElse(null);
-        List<AppointmentDTO> mine = appointmentService.getAppointments(station, date.atStartOfDay(), date.atTime(23, 59, 59)).stream()
+        List<AppointmentDTO> mine = assigned(inspector, station, date).stream()
                 .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED)
-                .filter(a -> Objects.equals(a.getInspectorId() != null ? a.getInspectorId() : a.getLineInspectorId(), inspector.getId()))
                 .toList();
         String leave = inspectorService.leaveOn(inspector.getId(), date).map(l -> l.getKind().name()).orElse(null);
         return new Day(date, (InspectorService.worksOn(inspector, date) && leave == null) || line != null, line,
@@ -100,16 +100,35 @@ public class InspectorPortalService {
 
     @Transactional
     public AppointmentDTO setStatus(AppUser account, Long appointmentId, AppointmentStatus status) {
+        return setStatus(account, appointmentId, status, null);
+    }
+
+    // Programarile inspectorului dintr-o zi (alese anume pentru el sau de pe linia lui), si cele anulate
+    private List<AppointmentDTO> assigned(Inspector inspector, AppUser station, LocalDate date) {
+        return appointmentService.getAppointments(station, date.atStartOfDay(), date.atTime(23, 59, 59)).stream()
+                .filter(a -> Objects.equals(a.getInspectorId() != null ? a.getInspectorId() : a.getLineInspectorId(), inspector.getId()))
+                .toList();
+    }
+
+    @Transactional
+    public AppointmentDTO setStatus(AppUser account, Long appointmentId, AppointmentStatus status, Integer version) {
         Inspector inspector = inspectorService.inspectorOf(account);
         AppUser station = stationOf(inspector);
         if (status == null || !ALLOWED.contains(status)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status nepermis");
-        Appointment appt = mine(account, station, appointmentId);
+        Appointment appt = mine(account, station, appointmentId, true);
+        AppointmentDTO mine = assigned(inspector, station, appt.getAppointmentDate().toLocalDate()).stream()
+                .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
+        if (version != null && version != appt.currentVersion()) {
+            throw new org.example.easyitp.config.VersionConflictException("Programarea a fost schimbată între timp.", mine);
+        }
+        if (appt.getStatus() == AppointmentStatus.CANCELLED) {
+            throw new org.example.easyitp.config.VersionConflictException("Programarea a fost anulată de client.", mine);
+        }
         if (appt.getItpRecordId() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "ITP-ul pentru această programare e deja înregistrat");
         }
-        AppointmentDTO mine = day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
-                .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
         appt.setStatus(status);
+        appt.touch();
         appointmentRepository.save(appt);
         if (status == AppointmentStatus.NO_SHOW) {
             notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.INSPECTOR_NO_SHOW,
@@ -118,6 +137,7 @@ public class InspectorPortalService {
                     "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
         }
         mine.setStatus(status);
+        mine.setVersion(appt.currentVersion());
         return mine;
     }
 
@@ -145,8 +165,15 @@ public class InspectorPortalService {
     public AppointmentDTO startItp(AppUser account, Long appointmentId, ItpFormDTO form) {
         Inspector inspector = inspectorService.inspectorOf(account);
         AppUser station = stationOf(inspector);
-        Appointment appt = mine(account, station, appointmentId);
-        if (appt.getStatus() == AppointmentStatus.CANCELLED) {
+        boolean offline = form.getClientRef() != null && !form.getClientRef().isBlank();
+        // facut offline: si o programare anulata intre timp ramane a lui (inspectia a avut loc)
+        Appointment appt = mine(account, station, appointmentId, offline);
+        if (offline && itpRecordRepository.findByClientRef(form.getClientRef().trim(), station.getId()).isPresent()) {
+            return day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
+                    .filter(a -> a.getId().equals(appointmentId)).findFirst().orElseThrow();
+        }
+        boolean cancelledMeanwhile = appt.getStatus() == AppointmentStatus.CANCELLED;
+        if (cancelledMeanwhile && !offline) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Programarea este anulată");
         }
         if (appt.getItpRecordId() != null) {
@@ -157,6 +184,12 @@ public class InspectorPortalService {
         // termenele RCA / rovinieta raman cum le-a pus statia
         form.setDeadlines(null);
         itpService.createItpEntry(form, station, account.getEmail());
+        if (cancelledMeanwhile) {
+            notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.SYNC_CONFLICT,
+                    "ITP la o programare anulată: " + appt.getClientName(),
+                    inspector.getName() + " a făcut ITP-ul fără internet, iar între timp programarea fusese anulată. ITP-ul e salvat.",
+                    "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
+        }
         notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.INSPECTOR_ITP,
                 inspector.getName() + " a făcut ITP-ul: " + appt.getClientName(),
                 (form.getLicensePlate() != null ? form.getLicensePlate().trim().toUpperCase() + " · " : "")
@@ -169,9 +202,15 @@ public class InspectorPortalService {
 
     // O programare a lui: aleasa anume pentru el sau de pe linia pe care lucreaza in ziua aceea (altfel 404)
     private Appointment mine(AppUser account, AppUser station, Long appointmentId) {
+        return mine(account, station, appointmentId, false);
+    }
+
+    private Appointment mine(AppUser account, AppUser station, Long appointmentId, boolean includeCancelled) {
         Appointment appt = appointmentRepository.findByIdAndUserId(appointmentId, station.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta"));
-        boolean ok = day(account, appt.getAppointmentDate().toLocalDate()).appointments().stream()
+        Inspector inspector = inspectorService.inspectorOf(account);
+        boolean ok = assigned(inspector, station, appt.getAppointmentDate().toLocalDate()).stream()
+                .filter(a -> includeCancelled || a.getStatus() != AppointmentStatus.CANCELLED)
                 .anyMatch(a -> a.getId().equals(appointmentId));
         if (!ok) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Programare inexistenta");
         return appt;

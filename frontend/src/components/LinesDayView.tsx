@@ -232,6 +232,8 @@ export default function LinesDayView({
                     const startMinute = minuteOfDay(a.appointmentDate);
                     const canDrag = a.status === 'SCHEDULED';
                     const cls = a.source === 'ONLINE' && a.status === 'SCHEDULED' ? ONLINE_CLS : STATUS_CLS[a.status];
+                    // salvata fara internet si suprapusa cu alta: chenar rosu pana o muta managerul
+                    const overlapCls = a.overlap ? ' ring-2 ring-red-500' : '';
                     return (
                       <button
                         key={a.id}
@@ -264,7 +266,7 @@ export default function LinesDayView({
                           }
                           onOpen(a);
                         }}
-                        className={`absolute overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-left text-xs leading-tight shadow-sm transition-shadow hover:shadow-md ${cls} ${
+                        className={`absolute overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-left text-xs leading-tight shadow-sm transition-shadow hover:shadow-md ${cls}${overlapCls} ${
                           canDrag ? 'cursor-grab active:cursor-grabbing' : ''
                         } ${dragging ? 'z-30 opacity-90 shadow-lg ring-2 ring-blue-400' : 'z-0'}`}
                         style={{

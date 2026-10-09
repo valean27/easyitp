@@ -19,6 +19,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
 
     Optional<Appointment> findByIdAndUserId(Long id, Long userId);
 
+    Optional<Appointment> findByUserIdAndClientRef(Long userId, String clientRef);
+
     boolean existsByUserId(Long userId);
 
     Optional<Appointment> findByManageToken(String manageToken);

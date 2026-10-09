@@ -1,7 +1,7 @@
 import api from './axiosInstance';
 
 // Notificarile din aplicatie ale statiei (clopotelul)
-export type NotificationKind = 'NEW_BOOKING' | 'CLIENT_CANCELLED' | 'CLIENT_MOVED' | 'INSPECTOR_ITP' | 'INSPECTOR_NO_SHOW';
+export type NotificationKind = 'NEW_BOOKING' | 'CLIENT_CANCELLED' | 'CLIENT_MOVED' | 'INSPECTOR_ITP' | 'INSPECTOR_NO_SHOW' | 'SYNC_CONFLICT';
 
 export interface AppNotification {
   id: number;

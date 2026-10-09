@@ -103,7 +103,9 @@ export const GUIDE: GuideGroup[] = [
           'Inspectorii cu cont propriu au același lucru în „Ziua mea”, jos: instalează aplicația și pornesc notificările. Ei află când un client se programează, își mută sau își anulează programarea azi sau mâine, pe linia lor.',
         ],
         tips: [
-          'Fără internet, aplicația se deschide și arată programările de azi din ultima sincronizare (doar citire). Pentru modificări e nevoie de conexiune.',
+          'Fără internet, aplicația se deschide și arată programările de azi din ultima sincronizare. Puteți adăuga, muta sau șterge programări, marca „Neprezentat” și salva ITP-ul unei programări: apar marcate „nesincronizat” și jos „N modificări așteaptă internetul”; pleacă singure când revine conexiunea (sau apăsați pe mesaj). Clienții, flotele și setările se modifică doar cu internet.',
+          'Dacă între timp cineva s-a programat online la aceeași oră, programarea salvată fără internet nu se pierde: apare cu „suprapunere” (în calendar cu ⚠ și chenar roșu) și primiți o notificare; o mutați pe o oră sau linie liberă.',
+          'Dacă programarea s-a schimbat între timp (clientul a mutat-o sau a anulat-o din link, ori altcineva a modificat-o), modificarea făcută fără internet nu o suprascrie: apare jos „De rezolvat”, cu varianta de acum, și alegeți „Păstrează varianta de acum” sau „Aplică modificarea mea”. Un ITP făcut fără internet se salvează mereu (inspecția a avut loc), chiar dacă programarea fusese anulată; primiți o notificare.',
           'Notificările se pornesc pe fiecare dispozitiv în parte. La ieșirea din cont se opresc pe dispozitivul acela, iar programările salvate pe el se șterg. După schimbarea parolei trebuie pornite din nou.',
           'Pe iPhone notificările merg doar din aplicația instalată pe ecranul principal (iOS 16.4 sau mai nou).',
         ],

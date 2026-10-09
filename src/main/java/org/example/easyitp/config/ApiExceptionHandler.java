@@ -29,6 +29,14 @@ public class ApiExceptionHandler {
                 .body(Map.of("message", e.getReason() == null ? "Eroare" : e.getReason()));
     }
 
+    @ExceptionHandler(VersionConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleVersion(VersionConflictException e) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("message", e.getMessage());
+        body.put("current", e.getCurrent());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     @ExceptionHandler(DateTimeParseException.class)
     public ResponseEntity<Map<String, String>> handleDate(DateTimeParseException e) {
         return badRequest("Data are un format invalid");

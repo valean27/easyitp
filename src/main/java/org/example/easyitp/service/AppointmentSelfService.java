@@ -46,6 +46,7 @@ public class AppointmentSelfService {
     public ManageView cancel(String token) {
         Appointment appt = changeable(find(token));
         appt.setStatus(AppointmentStatus.CANCELLED);
+        appt.touch();
         appt.setClientAction("CANCELLED");
         appt.setClientActionAt(LocalDateTime.now());
         Appointment saved = appointmentRepository.save(appt);
@@ -72,6 +73,7 @@ public class AppointmentSelfService {
         }
         appt.setLine(bookingService.pickLine(appt.getUser(), start, InspectionDurations.minutesOf(appt), appt.getId(), appt.getLine()));
         appt.setAppointmentDate(start);
+        appt.touch();
         appt.setClientAction("RESCHEDULED");
         appt.setClientActionAt(LocalDateTime.now());
         // reminderul de dinainte se trimite din nou pentru noua data, iar confirmarea pleaca acum

@@ -30,4 +30,7 @@ public class ItpFormDTO {
     private Map<DeadlineKind, LocalDate> deadlines;
     // Optional: programarea din care s-a facut ITP-ul (devine "Finalizat")
     private Long appointmentId;
+    // ITP facut offline: codul generat pe telefon (o retrimitere intoarce acelasi ITP) si versiunea programarii
+    private String clientRef;
+    private Integer appointmentVersion;
 }

@@ -61,4 +61,8 @@ public class ItpRecord {
     // Cand a plecat SMS-ul cu cererea de recenzie dupa acest ITP (null = niciunul)
     @Column(name = "review_requested_at")
     private LocalDateTime reviewRequestedAt;
+
+    // Codul generat pe telefon pentru un ITP facut offline (retrimis, nu se dubleaza)
+    @Column(name = "client_ref", length = 40)
+    private String clientRef;
 }

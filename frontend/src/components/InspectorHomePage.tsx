@@ -4,6 +4,8 @@ import InspectorItpModal from './InspectorItpModal';
 import AppDeviceSettings from './AppDeviceSettings';
 import { useAuth } from '../context/auth';
 import { isNetworkError, loadToday, saveToday, savedTime } from '../utils/offline';
+import { withPending } from '../utils/outbox';
+import { useOnSynced, useOutbox } from '../utils/useOutbox';
 import type { Appointment, AppointmentStatus, InspectorMe, InspectorPortalDay } from '../types';
 import { getInspectorDay, getInspectorMe, setMyAppointmentStatus } from '../api/inspectorPortalApi';
 import { useTheme } from '../context/theme';
@@ -80,12 +82,16 @@ export default function InspectorHomePage() {
   useEffect(() => {
     load();
   }, [load]);
+  useOnSynced(load);
+  const { items: queued } = useOutbox();
 
   const changeStatus = async (a: Appointment, status: AppointmentStatus) => {
     setBusy(a.id);
     try {
-      const saved = await setMyAppointmentStatus(a.id, status);
-      setDay((d) => (d ? { ...d, appointments: d.appointments.map((x) => (x.id === a.id ? { ...x, status: saved.status } : x)) } : d));
+      const saved = await setMyAppointmentStatus(a, status);
+      setDay((d) =>
+        d ? { ...d, appointments: d.appointments.map((x) => (x.id === a.id ? { ...x, status: saved.status, version: saved.version, pending: saved.pending } : x)) } : d,
+      );
     } catch (err) {
       setError(apiMessage(err, 'Statusul nu a putut fi schimbat.'));
     } finally {
@@ -94,7 +100,8 @@ export default function InspectorHomePage() {
   };
 
   const isToday = date === todayIso();
-  const shown = day?.date === date ? day : null;
+  const loaded = day?.date === date ? day : null;
+  const shown = loaded ? { ...loaded, appointments: withPending(loaded.appointments, queued.filter((i) => i.kind !== 'create'), date) } : null;
   const left = shown?.appointments.filter((a) => a.status === 'SCHEDULED').length ?? 0;
 
   return (

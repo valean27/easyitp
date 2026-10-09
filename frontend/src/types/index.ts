@@ -299,6 +299,12 @@ export interface Appointment {
   lineInspectorId?: number | null;
   // doar citit: tariful statiei pentru tipul vehiculului
   listPrice?: number | null;
+  // versiunea programarii (la salvare: versiunea pe care s-a facut schimbarea)
+  version?: number;
+  // venita din coada offline si suprapusa cu alte programari
+  overlap?: boolean | null;
+  // doar in aplicatie: asteapta internetul (coada offline)
+  pending?: boolean;
   // bifa de acord pentru remindere din programarea online
   reminderConsent?: boolean | null;
   // ce a facut clientul din link-ul din SMS

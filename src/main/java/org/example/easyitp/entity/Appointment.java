@@ -86,6 +86,17 @@ public class Appointment {
     @Column(name = "client_action_at")
     private LocalDateTime clientActionAt;
 
+    // Versiunea programarii: creste la fiecare schimbare facuta de oameni (vezi touch); null = 0
+    @Column(name = "edit_version")
+    private Integer editVersion;
+
+    // Codul generat pe telefon pentru o programare facuta offline (retrimisa, nu se dubleaza)
+    @Column(name = "client_ref", length = 40)
+    private String clientRef;
+
+    // Venita din coada offline si suprapusa cu alte programari (se sterge cand managerul o salveaza din nou)
+    private Boolean overlap;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @ToString.Exclude
@@ -95,5 +106,15 @@ public class Appointment {
     void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (manageToken == null) manageToken = org.example.easyitp.service.ClientKeys.newToken().substring(0, 16);
+        if (editVersion == null) editVersion = 1;
+    }
+
+    public int currentVersion() {
+        return editVersion == null ? 0 : editVersion;
+    }
+
+    // O schimbare facuta de cineva (manager, inspector, client); trimiterile automate (SMS, emailuri) nu o cresc
+    public void touch() {
+        editVersion = currentVersion() + 1;
     }
 }

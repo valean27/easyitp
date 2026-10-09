@@ -99,7 +99,7 @@ export default function InspectorItpModal({
     setSaving(true);
     try {
       // nebifat = acordul clientului ramane cum era (nu il retragem din greseala)
-      const saved = await startMyItp(appointment.id, {
+      const saved = await startMyItp(appointment, {
         ...form,
         licensePlate: form.licensePlate.trim().toUpperCase(),
         vin: form.vin.trim().toUpperCase(),

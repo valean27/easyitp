@@ -25,6 +25,10 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final BookingService bookingService;
     private final InspectorService inspectorService;
+    private final NotificationService notificationService;
+
+    // Codul generat pe telefon pentru ce s-a facut offline (UUID sau asemanator)
+    private static final java.util.regex.Pattern CLIENT_REF = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]{8,40}$");
 
     // Programarile din interval; cele vechi, fara linie, primesc linia pe care incap in ziua lor (doar la afisare)
     public List<AppointmentDTO> getAppointments(AppUser station, LocalDateTime start, LocalDateTime end) {
@@ -74,6 +78,11 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentDTO create(AppointmentDTO dto, AppUser user) {
+        String ref = clientRef(dto.getClientRef());
+        if (ref != null) {
+            var existing = appointmentRepository.findByUserIdAndClientRef(user.getId(), ref);
+            if (existing.isPresent()) return toDto(existing.get());
+        }
         validate(dto);
         validateLine(dto.getLine(), user);
         inspectorService.requireOwn(user, dto.getInspectorId());
@@ -87,12 +96,47 @@ public class AppointmentService {
                 .vehicleCategory(dto.getVehicleCategory())
                 .durationMinutes(duration(dto, user))
                 .inspectorId(dto.getInspectorId())
+                .clientRef(ref)
                 .user(user)
                 .build();
+        boolean overlap = Boolean.TRUE.equals(dto.getOffline()) && overlaps(user, appt, dto.getLine());
         // Linia aleasa de manager (chiar daca e ocupata, ca pana acum); fara linie = prima libera
         appt.setLine(dto.getLine() != null ? dto.getLine()
                 : bookingService.pickLine(user, appt.getAppointmentDate(), InspectionDurations.minutesOf(appt), null, null));
-        return toDto(appointmentRepository.save(appt));
+        appt.setOverlap(overlap ? true : null);
+        Appointment saved = appointmentRepository.save(appt);
+        if (overlap) notifyOverlap(user, saved);
+        return toDto(saved);
+    }
+
+    // O programare din coada offline care nu incape: linia ceruta e ocupata sau nu mai e nicio linie libera
+    private boolean overlaps(AppUser station, Appointment appt, Integer requestedLine) {
+        Integer free = bookingService.pickLine(station, appt.getAppointmentDate(), InspectionDurations.minutesOf(appt),
+                appt.getId(), requestedLine);
+        return free == null || (requestedLine != null && !requestedLine.equals(free));
+    }
+
+    private void notifyOverlap(AppUser station, Appointment appt) {
+        notificationService.add(station.getId(), org.example.easyitp.entity.Notification.Kind.SYNC_CONFLICT,
+                "Suprapunere: " + appt.getClientName(),
+                AppointmentMailService.when(appt.getAppointmentDate())
+                        + " · salvată fără internet, se suprapune cu alte programări. Mutați-o pe o oră sau linie liberă.",
+                "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
+    }
+
+    private static String clientRef(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String ref = raw.trim();
+        if (!CLIENT_REF.matcher(ref).matches()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cod de sincronizare invalid");
+        return ref;
+    }
+
+    // Schimbarea s-a facut pe o versiune veche: nu suprascriem, intoarcem varianta de acum
+    private void checkVersion(Appointment appt, Integer base) {
+        if (base != null && base != appt.currentVersion()) {
+            throw new org.example.easyitp.config.VersionConflictException(
+                    "Programarea a fost schimbată între timp de altcineva.", toDto(appt));
+        }
     }
 
     @Transactional
@@ -101,6 +145,7 @@ public class AppointmentService {
         validateLine(dto.getLine(), station);
         inspectorService.requireOwn(station, dto.getInspectorId());
         Appointment appt = find(id, station.getId());
+        checkVersion(appt, dto.getVersion());
         appt.setInspectorId(dto.getInspectorId());
         appt.setClientName(dto.getClientName().trim());
         // un numar vechi, scris gresit inainte de verificare, nu blocheaza mutarea programarii: verificam doar unul schimbat
@@ -118,6 +163,8 @@ public class AppointmentService {
             appt.setDurationMinutes(duration(dto, appt.getUser()));
         }
         // Fara linie (ex. mutata prin drag & drop in saptamana): ramane pe linia ei daca e libera, altfel prima libera
+        // din coada offline: o suprapunere se marcheaza; salvata de manager cu internet, marcajul dispare
+        boolean overlap = Boolean.TRUE.equals(dto.getOffline()) && overlaps(station, appt, dto.getLine());
         if (dto.getLine() != null) {
             appt.setLine(dto.getLine());
         } else {
@@ -125,7 +172,11 @@ public class AppointmentService {
                     appt.getId(), appt.getLine());
             if (free != null) appt.setLine(free);
         }
-        return toDto(appointmentRepository.save(appt));
+        appt.setOverlap(overlap ? true : null);
+        appt.touch();
+        Appointment saved = appointmentRepository.save(appt);
+        if (overlap) notifyOverlap(station, saved);
+        return toDto(saved);
     }
 
     // Apelat la salvarea unui ITP facut dintr-o programare
@@ -134,11 +185,15 @@ public class AppointmentService {
         Appointment appt = find(id, userId);
         appt.setStatus(AppointmentStatus.COMPLETED);
         appt.setItpRecordId(itpRecordId);
+        appt.touch();
     }
 
+    // version: versiunea pe care s-a hotarat stergerea (null = fara verificare)
     @Transactional
-    public void delete(Long id, Long userId) {
-        appointmentRepository.delete(find(id, userId));
+    public void delete(Long id, Long userId, Integer version) {
+        Appointment appt = find(id, userId);
+        checkVersion(appt, version);
+        appointmentRepository.delete(appt);
     }
 
     private Appointment find(Long id, Long userId) {
@@ -188,6 +243,8 @@ public class AppointmentService {
         dto.setReminderConsent(appt.getReminderConsent());
         dto.setClientAction(appt.getClientAction());
         dto.setClientActionAt(appt.getClientActionAt());
+        dto.setVersion(appt.currentVersion());
+        dto.setOverlap(Boolean.TRUE.equals(appt.getOverlap()) ? true : null);
         return dto;
     }
 }

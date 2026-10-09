@@ -128,4 +128,7 @@ public interface ItpRecordRepository extends JpaRepository<ItpRecord, Long> {
 
     @Query("SELECT r FROM ItpRecord r JOIN r.vehicle v JOIN v.client c WHERE r.id = :id AND c.user.id = :userId")
     Optional<ItpRecord> findByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+
+    @Query("SELECT r FROM ItpRecord r JOIN r.vehicle v JOIN v.client c WHERE r.clientRef = :ref AND c.user.id = :userId")
+    Optional<ItpRecord> findByClientRef(@Param("ref") String clientRef, @Param("userId") Long userId);
 }

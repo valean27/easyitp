@@ -6,6 +6,7 @@ export const NOTIFICATION_LABELS: Record<NotificationKind, string> = {
   CLIENT_MOVED: 'Mutată de client',
   INSPECTOR_ITP: 'ITP de la inspector',
   INSPECTOR_NO_SHOW: 'Neprezentat',
+  SYNC_CONFLICT: 'Fără internet',
 };
 
 // "acum", "acum 5 min", "acum 3 h", "ieri", "12.10"

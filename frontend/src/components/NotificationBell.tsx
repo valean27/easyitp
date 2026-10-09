@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CalendarPlus, CalendarX, CalendarClock, ClipboardCheck, UserX, CheckCheck, X, Loader2 } from 'lucide-react';
+import { Bell, CalendarPlus, CalendarX, CalendarClock, ClipboardCheck, UserX, CheckCheck, X, Loader2, CloudOff } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { getInbox, getUnreadCount, markAllNotificationsRead, markNotificationRead, type AppNotification, type NotificationKind } from '../api/notificationApi';
 import { NOTIFICATION_LABELS, badge, timeAgo } from '../utils/notifications';
@@ -14,6 +14,7 @@ const KIND_STYLE: Record<NotificationKind, { icon: LucideIcon; cls: string }> = 
   CLIENT_CANCELLED: { icon: CalendarX, cls: 'bg-slate-200 text-slate-700' },
   INSPECTOR_ITP: { icon: ClipboardCheck, cls: 'bg-green-100 text-green-700' },
   INSPECTOR_NO_SHOW: { icon: UserX, cls: 'bg-orange-100 text-orange-700' },
+  SYNC_CONFLICT: { icon: CloudOff, cls: 'bg-red-100 text-red-700' },
 };
 
 // Clopotelul statiei: numarul de notificari necitite (cerut la un minut si cand revii in fereastra) si lista lor.

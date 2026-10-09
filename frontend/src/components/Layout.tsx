@@ -10,6 +10,7 @@ import EmailVerifyBanner from './EmailVerifyBanner';
 import { PlanProvider } from '../context/PlanContext';
 import ForcePasswordChange from './ForcePasswordChange';
 import NotificationBell from './NotificationBell';
+import SyncIndicator from './SyncIndicator';
 
 interface NavItem {
   to: string;
@@ -179,6 +180,9 @@ export default function Layout() {
               <Outlet />
             </Suspense>
           </div>
+
+          {/* Modificarile facute fara internet: cate asteapta, sincronizarea, "De rezolvat" */}
+          {(user?.role === 'MANAGER' || user?.role === 'INSPECTOR') && <SyncIndicator />}
 
           {/* Bara de navigare de jos (telefon) */}
           <nav

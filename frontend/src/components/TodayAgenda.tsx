@@ -4,6 +4,8 @@ import { CalendarDays, ClipboardCheck, Plus, Loader2, CheckCircle2 } from 'lucid
 import { getAppointments } from '../api/appointmentApi';
 import { useAuth } from '../context/auth';
 import { isNetworkError, loadToday, saveToday, savedTime } from '../utils/offline';
+import { withPending } from '../utils/outbox';
+import { useOnSynced, useOutbox } from '../utils/useOutbox';
 import type { Appointment } from '../types';
 import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
@@ -85,17 +87,20 @@ export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) 
   useEffect(() => {
     fetchAgenda();
   }, [fetchAgenda]);
+  useOnSynced(fetchAgenda);
+  const { items: queued } = useOutbox();
+  const shown = useMemo(() => withPending(appointments, queued), [appointments, queued]);
 
   const byDay = useMemo(() => {
     const groups = new Map<string, Appointment[]>();
-    for (const a of appointments) {
+    for (const a of shown) {
       const day = a.appointmentDate.slice(0, 10);
       // Anularile din zilele urmatoare doar incarca lista
       if (day !== today && a.status === 'CANCELLED') continue;
       groups.set(day, [...(groups.get(day) ?? []), a]);
     }
     return groups;
-  }, [appointments, today]);
+  }, [shown, today]);
 
   const countFor = (day: string) => (byDay.get(day) ?? []).filter((a) => a.status !== 'CANCELLED').length;
   const weekCount = [...byDay.keys()].reduce((sum, day) => sum + countFor(day), 0);
@@ -121,6 +126,16 @@ export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) 
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium text-slate-800">{a.clientName}</span>
         {a.licensePlate && <span className="ml-2 font-mono text-xs text-slate-500">{a.licensePlate}</span>}
+        {a.pending && (
+          <span className="ml-2 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-slate-200 text-slate-600" title="Se trimite când revine internetul">
+            nesincronizat
+          </span>
+        )}
+        {a.overlap && (
+          <span className="ml-2 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-red-100 text-red-700" title="Salvată fără internet; se suprapune cu alte programări">
+            suprapunere
+          </span>
+        )}
         {a.source === 'ONLINE' && (
           <span className="ml-2 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-violet-100 text-violet-700">
             Online

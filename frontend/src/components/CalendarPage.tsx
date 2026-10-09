@@ -7,6 +7,7 @@ import { ro } from 'date-fns/locale';
 import { Loader2, AlertTriangle, CalendarDays, Columns3 } from 'lucide-react';
 import { getAppointments, updateAppointment } from '../api/appointmentApi';
 import { getBookingSettings } from '../api/accountApi';
+import { apiMessage } from '../utils/errors';
 import { getInspectorTeam, getLineShifts, setLineShift } from '../api/inspectorApi';
 import type { Appointment, AppointmentStatus, BookingSettings, Inspector, LineShift } from '../types';
 import { appointmentInspector } from '../utils/inspectors';
@@ -91,7 +92,7 @@ function toEvent(a: Appointment, multiLine: boolean, team: Inspector[]): Schedul
   const line = multiLine && a.status !== 'CANCELLED' ? (a.line ? `L${a.line} · ` : '⚠ ') : '';
   return {
     id: a.id,
-    title: `${line}${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
+    title: `${line}${a.overlap ? '⚠ ' : ''}${a.itpRecordId ? '✓ ' : ''}${a.source === 'ONLINE' ? '🌐 ' : ''}${a.clientName}${a.licensePlate ? ' · ' + a.licensePlate : ''}`,
     description:
       [
         a.vehicleCategory ? VEHICLE_SHORT_LABELS[a.vehicleCategory] : null,
@@ -223,11 +224,12 @@ function CalendarPage({ linkDate }: { linkDate: string | null }) {
         durationMinutes: old.durationMinutes,
         line,
         inspectorId: old.inspectorId ?? null,
+        version: old.version,
       });
       handleSaved(saved);
       setError(null);
-    } catch {
-      setError('Programarea nu a putut fi mutată.');
+    } catch (err) {
+      setError(apiMessage(err, 'Programarea nu a putut fi mutată.'));
       fetchRange();
     }
   };

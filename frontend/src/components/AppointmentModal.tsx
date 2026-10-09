@@ -144,9 +144,12 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
       appointmentDate: form.appointmentDate + ':00',
       status: form.status,
       vehicleCategory: form.vehicleCategory || null,
-      durationMinutes: Number(form.durationMinutes),
+      // fara durata (ex. offline, fara tipurile statiei): serverul o ia dupa tipul vehiculului
+      durationMinutes: Number(form.durationMinutes) || null,
       line: form.line ?? null,
       inspectorId: form.inspectorId ?? null,
+      // versiunea pe care s-a facut schimbarea (alta intre timp = 409, nu suprascriem)
+      version: appointment?.version,
     };
     try {
       const saved = appointment
@@ -169,7 +172,7 @@ export default function AppointmentModal({ appointment, initial, onClose, onSave
     if (!appointment || !confirm('Ștergeți această programare?')) return;
     setDeleting(true);
     try {
-      await deleteAppointment(appointment.id);
+      await deleteAppointment(appointment.id, appointment.version, `${appointment.clientName}`);
       onDeleted?.(appointment.id);
       onClose();
     } catch {

@@ -20,7 +20,7 @@ export default function OfflineBanner() {
   return (
     <div role="status" className="sticky top-0 z-[60] flex items-center justify-center gap-2 bg-slate-800 px-4 py-1.5 text-xs text-white">
       <WifiOff size={13} className="shrink-0" />
-      Fără internet: vedeți programările de azi salvate pe dispozitiv; pentru modificări e nevoie de conexiune.
+      Fără internet: vedeți programările de azi; programările și ITP-urile salvate acum pleacă singure când revine conexiunea.
     </div>
   );
 }

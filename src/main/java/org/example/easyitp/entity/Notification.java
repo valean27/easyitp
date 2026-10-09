@@ -22,7 +22,9 @@ public class Notification {
         CLIENT_MOVED,
         // un inspector a facut ITP-ul sau a marcat "Nu a venit" din contul lui
         INSPECTOR_ITP,
-        INSPECTOR_NO_SHOW
+        INSPECTOR_NO_SHOW,
+        // o modificare facuta fara internet s-a sincronizat cu o problema (suprapunere, programare anulata intre timp)
+        SYNC_CONFLICT
     }
 
     @Id
