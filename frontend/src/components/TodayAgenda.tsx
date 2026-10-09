@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarDays, ClipboardCheck, Plus, Loader2, CheckCircle2 } from 'lucide-react';
 import { getAppointments } from '../api/appointmentApi';
+import { useAuth } from '../context/auth';
+import { isNetworkError, loadToday, saveToday, savedTime } from '../utils/offline';
 import type { Appointment } from '../types';
 import AppointmentModal from './AppointmentModal';
 import AddItpModal from './AddItpModal';
@@ -47,6 +49,9 @@ function dayLabel(day: string, today: string, tomorrow: string): string {
 // Programarile de azi si din zilele urmatoare pe dashboard, cu pornire rapida a ITP-ului pentru azi
 export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const account = useAuth().user?.email ?? null;
+  // ora copiei salvate, cand lista vine de pe dispozitiv (fara internet)
+  const [offlineAt, setOfflineAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('today');
   const [editAppt, setEditAppt] = useState<Appointment | null>(null);
@@ -61,14 +66,21 @@ export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) 
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
     end.setDate(end.getDate() + DAYS_AHEAD + 1);
+    const day = toLocalIso(start).slice(0, 10);
     try {
-      setAppointments(await getAppointments(toLocalIso(start), toLocalIso(end)));
-    } catch {
-      setAppointments([]);
+      const list = await getAppointments(toLocalIso(start), toLocalIso(end));
+      setAppointments(list);
+      setOfflineAt(null);
+      // copia de azi, pentru cand dispozitivul ramane fara internet
+      if (account) saveToday('agenda', account, day, list.filter((a) => a.appointmentDate.startsWith(day)));
+    } catch (err) {
+      const saved = account && isNetworkError(err) ? loadToday<Appointment[]>('agenda', account, day) : null;
+      setAppointments(saved?.data ?? []);
+      setOfflineAt(saved?.savedAt ?? null);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [account]);
 
   useEffect(() => {
     fetchAgenda();
@@ -150,6 +162,7 @@ export default function TodayAgenda({ onItpSaved }: { onItpSaved: () => void }) 
           <h2 className="text-base font-semibold text-slate-800 flex items-center gap-2">
             <CalendarDays size={16} className="text-blue-600" />
             Programări
+            {offlineAt && <span className="text-xs font-normal text-amber-700">fără internet · salvate la {savedTime(offlineAt)}</span>}
             {tab === 'today' && todayActive.length > 0 && (
               <span className="text-sm font-normal text-slate-400">
                 ({todayDone} din {todayActive.length} finalizate azi)

@@ -29,6 +29,7 @@ export const FIRST_STEPS: { id: string; text: string; link: GuideLink }[] = [
   { id: 'inspectori', text: 'Adăugați inspectorii stației, cu linia pe care lucrează fiecare', link: { to: '/inspectori', label: 'Inspectori' } },
   { id: 'sms', text: 'Alegeți cum pleacă SMS-urile și porniți reminderele automate', link: { to: '/account#sms', label: 'SMS automate' } },
   { id: 'rezumat', text: 'Primiți rezumatul de dimineață pe email sau WhatsApp', link: { to: '/account#rezumat', label: 'Rezumat zilnic' } },
+  { id: 'aplicatie', text: 'Instalați aplicația pe telefon și porniți notificările', link: { to: '/account#aplicatie', label: 'Aplicație și notificări' } },
   { id: 'afis', text: 'Tipăriți afișul cu QR și, dacă vreți, puneți linkul de programare pe Google Maps sau Facebook', link: { to: '/afis', label: 'Afiș cu QR' } },
 ];
 
@@ -90,6 +91,23 @@ export const GUIDE: GuideGroup[] = [
         ],
         tips: ['Notificările se păstrează 90 de zile.'],
         links: [{ to: '/calendar', label: 'Calendar' }],
+      },
+      {
+        id: 'aplicatie',
+        title: 'Aplicația pe telefon și notificările push',
+        intro: 'Easy ITP se instalează ca o aplicație, pe telefon (Android, iPhone) și pe calculator, și trimite notificări chiar când e închisă.',
+        steps: [
+          'Deschideți Contul meu → Aplicație și notificări. Pe Android și pe calculator (Chrome, Edge) apăsați „Instalează aplicația”. Pe iPhone, în Safari: Partajează → Adaugă pe ecranul principal.',
+          'Apăsați „Pornește notificările” și permiteți notificările când vă întreabă telefonul. Cu „Trimite o probă” verificați că ajung.',
+          'Primiți pe telefon tot ce apare la clopoțel: programările online noi, programările mutate sau anulate de clienți, ITP-urile și neprezentările marcate de inspectori. Un click pe notificare deschide calendarul pe ziua aceea.',
+          'Inspectorii cu cont propriu au același lucru în „Ziua mea”, jos: instalează aplicația și pornesc notificările. Ei află când un client se programează, își mută sau își anulează programarea azi sau mâine, pe linia lor.',
+        ],
+        tips: [
+          'Fără internet, aplicația se deschide și arată programările de azi din ultima sincronizare (doar citire). Pentru modificări e nevoie de conexiune.',
+          'Notificările se pornesc pe fiecare dispozitiv în parte. La ieșirea din cont se opresc pe dispozitivul acela, iar programările salvate pe el se șterg. După schimbarea parolei trebuie pornite din nou.',
+          'Pe iPhone notificările merg doar din aplicația instalată pe ecranul principal (iOS 16.4 sau mai nou).',
+        ],
+        links: [{ to: '/account#aplicatie', label: 'Aplicație și notificări' }],
       },
       {
         id: 'calendar',

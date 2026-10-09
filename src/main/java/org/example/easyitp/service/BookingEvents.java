@@ -2,15 +2,20 @@ package org.example.easyitp.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.easyitp.config.FieldException;
+import org.example.easyitp.entity.AppUser;
 import org.example.easyitp.entity.Appointment;
 import org.example.easyitp.entity.Notification;
+import org.example.easyitp.repository.AppUserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 // Ce se intampla dupa ce un client face, muta sau anuleaza o programare: SMS-ul de confirmare, emailurile (clientului
-// si managerului) si notificarea din aplicatie
+// si managerului), notificarea din aplicatie si cea push (managerului si inspectorului programarii, daca e azi sau maine)
 @Service
 @RequiredArgsConstructor
 public class BookingEvents {
@@ -20,6 +25,9 @@ public class BookingEvents {
     private final AppointmentSmsService smsService;
     private final AppointmentMailService mailService;
     private final NotificationService notificationService;
+    private final InspectorService inspectorService;
+    private final AppUserRepository appUserRepository;
+    private final PushService pushService;
 
     // Emailul optional al clientului: gol = null, altfel un email valid (litere mici)
     public static String optionalEmail(String raw) {
@@ -57,5 +65,22 @@ public class BookingEvents {
         if (appt.getVehicleCategory() != null) body.append(" · ").append(appt.getVehicleCategory().label());
         notificationService.add(appt.getUser().getId(), kind, title, body.toString(),
                 "/calendar?date=" + appt.getAppointmentDate().toLocalDate());
+        toInspector(appt, title, body.toString());
+    }
+
+    // Inspectorul programarii (ales anume sau cel de pe linia ei in ziua aceea) afla pe telefon, daca e azi sau maine
+    private void toInspector(Appointment appt, String title, String body) {
+        LocalDate day = appt.getAppointmentDate().toLocalDate();
+        LocalDate today = LocalDate.now();
+        if (!pushService.available() || day.isBefore(today) || day.isAfter(today.plusDays(1))) return;
+        Long inspectorId = appt.getInspectorId();
+        if (inspectorId == null && appt.getLine() != null) {
+            inspectorId = inspectorService.lineInspectors(appt.getUser(), day, day).getOrDefault(day, Map.of()).get(appt.getLine());
+        }
+        if (inspectorId == null) return;
+        appUserRepository.findByInspectorId(inspectorId)
+                .filter(AppUser::isEnabled)
+                .ifPresent(account -> pushService.toAccounts(List.of(account.getId()),
+                        new PushService.Message(title, (day.equals(today) ? "Azi" : "Mâine") + " · " + body, "/", "appt-" + appt.getId())));
     }
 }

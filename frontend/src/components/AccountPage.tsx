@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, BookOpen } from 'lucide-react';
+import { UserCog, Building2, KeyRound, Palette, Loader2, CheckCircle2, AlertTriangle, MessageSquareText, RotateCcw, LogOut, HardHat, BookOpen, Smartphone } from 'lucide-react';
 import { getProfile, updateProfile, changePassword, getInspectors } from '../api/accountApi';
 import { useAuth } from '../context/auth';
 import BookingSettingsCard from './BookingSettingsCard';
+import AppDeviceSettings from './AppDeviceSettings';
 import LinesCard from './LinesCard';
 import LogoUploader from './LogoUploader';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -348,6 +349,11 @@ export default function AccountPage() {
             )}
             <Group title="Contul tău">
               {user?.role === 'MANAGER' && <DigestCard />}
+              {user?.role === 'MANAGER' && (
+                <Card id="aplicatie" icon={<Smartphone size={15} />} title="Aplicație și notificări" summary="Pe telefon și calculator">
+                  <AppDeviceSettings who="manager" />
+                </Card>
+              )}
               <Card icon={<Palette size={15} />} title="Aspect">
                 <ThemeSwitcher />
               </Card>

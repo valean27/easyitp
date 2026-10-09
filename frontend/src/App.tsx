@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import OfflineBanner from './components/OfflineBanner';
 import LoginPage from './components/LoginPage';
 import ServerWakeBanner from './components/ServerWakeBanner';
 import UndoToast from './components/UndoToast';
@@ -68,6 +69,7 @@ function RootGate() {
 function App() {
   return (
     <BrowserRouter>
+      <OfflineBanner />
       <ServerWakeBanner />
       <UndoToast />
       <AuthProvider>

@@ -21,6 +21,7 @@ public class NotificationService {
     static final int KEEP_DAYS = 90;
 
     private final NotificationRepository repository;
+    private final PushService pushService;
 
     public record NotificationDTO(Long id, String kind, String title, String body, String link, LocalDateTime createdAt, boolean read) {
     }
@@ -39,6 +40,9 @@ public class NotificationService {
                 .link(link == null ? null : trim(link, 300))
                 .createdAt(LocalDateTime.now())
                 .build());
+        // si pe telefonul / calculatorul managerului, daca a pornit notificarile push (dupa salvare)
+        pushService.toStation(stationId, new PushService.Message(trim(title, 120), body == null ? null : trim(body, 300), link,
+                kind.name()));
     }
 
     @Transactional(readOnly = true)

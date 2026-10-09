@@ -2,6 +2,8 @@ import { useState, useCallback, type ReactNode } from 'react';
 import { login as loginApi, signup as signupApi, type SignupData } from '../api/authApi';
 import type { UserRole } from '../types';
 import { AuthContext, type AuthUser } from './auth';
+import { disablePush } from '../utils/device';
+import { clearOffline } from '../utils/offline';
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -47,9 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // dispozitivul nu mai primeste notificarile contului, iar programarile salvate pentru offline se sterg
+    const token = user?.token;
+    disablePush(token).catch(() => undefined);
+    clearOffline();
     setUser(null);
     localStorage.removeItem('auth_user');
-  }, []);
+  }, [user]);
 
   const updateUser = useCallback((changes: Partial<AuthUser>) => {
     setUser((prev) => {

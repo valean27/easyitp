@@ -106,6 +106,10 @@ function Privacy() {
           <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește;</li>
           <li>emiterea facturilor în contul de facturare al stației (Oblio) și, de acolo, în e-Factura (ANAF), dacă stația le folosește;</li>
           <li>plata abonamentului cu cardul (NETOPIA Payments) și factura abonamentului (Oblio, e-Factura);</li>
+          <li>
+            notificările push pe telefonul sau calculatorul stației și al inspectorilor, dacă le pornesc: trec criptate prin serviciul de
+            notificări al browserului (Google, Apple, Mozilla sau Microsoft), care nu le poate citi;
+          </li>
           <li>nota și recenziile stației de pe Google (Google Places), doar date publice ale stației, fără date despre clienți.</li>
         </ul>
         <p>
@@ -141,7 +145,8 @@ function Privacy() {
       <Section title="Cookie-uri">
         <p>
           Nu folosim cookie-uri de reclamă sau de analiză. Browserul păstrează local doar ce e necesar pentru funcționare: sesiunea de
-          autentificare și tema aleasă (luminoasă sau întunecată).
+          autentificare, tema aleasă (luminoasă sau întunecată) și, pentru conturile stațiilor și ale inspectorilor, programările zilei
+          curente, ca aplicația să le arate și fără internet; acestea se șterg la ieșirea din cont.
         </p>
       </Section>
     </>

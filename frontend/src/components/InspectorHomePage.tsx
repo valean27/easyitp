@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Phone, Globe, CheckCircle2, UserX, RotateCcw, Loader2, AlertTriangle, ClipboardCheck, XCircle, CalendarDays } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Phone, Globe, CheckCircle2, UserX, RotateCcw, Loader2, AlertTriangle, ClipboardCheck, XCircle, CalendarDays, WifiOff } from 'lucide-react';
 import InspectorItpModal from './InspectorItpModal';
+import AppDeviceSettings from './AppDeviceSettings';
+import { useAuth } from '../context/auth';
+import { isNetworkError, loadToday, saveToday, savedTime } from '../utils/offline';
 import type { Appointment, AppointmentStatus, InspectorMe, InspectorPortalDay } from '../types';
 import { getInspectorDay, getInspectorMe, setMyAppointmentStatus } from '../api/inspectorPortalApi';
 import { useTheme } from '../context/theme';
@@ -38,18 +41,41 @@ export default function InspectorHomePage() {
   const [busy, setBusy] = useState<number | null>(null);
   const [itpFor, setItpFor] = useState<Appointment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const account = useAuth().user?.email ?? null;
+  const [offlineAt, setOfflineAt] = useState<string | null>(null);
 
   useEffect(() => {
     getInspectorMe()
-      .then(setMe)
-      .catch((err) => setError(apiMessage(err, 'Datele nu au putut fi încărcate.')));
-  }, []);
+      .then((m) => {
+        setMe(m);
+        if (account) saveToday('inspector-me', account, todayIso(), m);
+      })
+      .catch((err) => {
+        const saved = account && isNetworkError(err) ? loadToday<InspectorMe>('inspector-me', account, todayIso()) : null;
+        if (saved) setMe(saved.data);
+        else setError(apiMessage(err, 'Datele nu au putut fi încărcate.'));
+      });
+  }, [account]);
 
+  // Ziua de azi se pastreaza si pe dispozitiv: fara internet se vede ultima copie (doar citire)
   const load = useCallback(() => {
     getInspectorDay(date)
-      .then(setDay)
-      .catch((err) => setError(apiMessage(err, 'Programările nu au putut fi încărcate.')));
-  }, [date]);
+      .then((d) => {
+        setDay(d);
+        setOfflineAt(null);
+        if (account && date === todayIso()) saveToday('inspector-day', account, date, d);
+      })
+      .catch((err) => {
+        const saved =
+          account && date === todayIso() && isNetworkError(err) ? loadToday<InspectorPortalDay>('inspector-day', account, date) : null;
+        if (saved) {
+          setDay(saved.data);
+          setOfflineAt(saved.savedAt);
+        } else {
+          setError(apiMessage(err, 'Programările nu au putut fi încărcate.'));
+        }
+      });
+  }, [date, account]);
 
   useEffect(() => {
     load();
@@ -95,6 +121,11 @@ export default function InspectorHomePage() {
         {error && (
           <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-2">
             <AlertTriangle size={15} className="shrink-0" /> {error}
+          </div>
+        )}
+        {offlineAt && (
+          <div className="flex items-center gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+            <WifiOff size={15} className="shrink-0" /> Fără internet: programările de azi salvate la {savedTime(offlineAt)}.
           </div>
         )}
 
@@ -283,6 +314,15 @@ export default function InspectorHomePage() {
             </section>
           </>
         )}
+
+        <details className="rounded-xl border border-slate-200 bg-white">
+          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-700">
+            Aplicația pe telefon și notificări
+          </summary>
+          <div className="border-t border-slate-100 px-4 py-4">
+            <AppDeviceSettings who="inspector" />
+          </div>
+        </details>
       </main>
 
       {itpFor && (
