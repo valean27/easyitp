@@ -36,6 +36,7 @@ public class BillingService {
     private final PaymentRepository paymentRepository;
     private final NetopiaClient netopia;
     private final OblioClient oblio;
+    private final PlatformInvoiceService platformInvoices;
 
     @Value("${app.url:https://easyitp.vercel.app}")
     private String appUrl;
@@ -214,8 +215,13 @@ public class BillingService {
         return until;
     }
 
-    // Factura abonamentului din contul Oblio al platformei; o eroare nu anuleaza plata (se emite manual)
+    // Factura abonamentului: prin FGO daca adminul l-a setat, altfel din contul Oblio al platformei (variabile de mediu);
+    // o eroare nu anuleaza plata (se reemite din admin)
     private void issueInvoice(AppUser u, Payment p) {
+        if (platformInvoices.active()) {
+            platformInvoices.issue(u, p);
+            return;
+        }
         if (blank(oblioEmail) || blank(oblioSecret) || blank(oblioCif) || blank(oblioSeries)) return;
         try {
             Map<String, Object> client = new LinkedHashMap<>();

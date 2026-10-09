@@ -50,6 +50,7 @@ public class AdminController {
     private final org.example.easyitp.repository.InvoiceRepository invoiceRepository;
     private final org.example.easyitp.repository.PaymentRepository paymentRepository;
     private final BillingService billingService;
+    private final org.example.easyitp.service.PlatformInvoiceService platformInvoiceService;
     private final org.example.easyitp.repository.AuthTokenRepository authTokenRepository;
     private final org.example.easyitp.service.AccountDeletionService accountDeletionService;
 
@@ -160,6 +161,38 @@ public class AdminController {
     public ResponseEntity<Void> setPlan(@PathVariable Long id, @RequestBody PlanRequest body) {
         billingService.grant(findManager(id), BillingService.parsePlan(body.plan()), body.until());
         return ResponseEntity.noContent().build();
+    }
+
+    // Facturarea abonamentelor prin FGO (setarile platformei; cheia nu se intoarce niciodata)
+    @GetMapping("/platform-invoicing")
+    public org.example.easyitp.service.PlatformInvoiceService.SettingsDTO platformInvoicing() {
+        return platformInvoiceService.settings();
+    }
+
+    @PutMapping("/platform-invoicing")
+    public org.example.easyitp.service.PlatformInvoiceService.SettingsDTO savePlatformInvoicing(
+            @RequestBody org.example.easyitp.service.PlatformInvoiceService.SettingsRequest request) {
+        return platformInvoiceService.save(request);
+    }
+
+    @DeleteMapping("/platform-invoicing/key")
+    public org.example.easyitp.service.PlatformInvoiceService.SettingsDTO removePlatformInvoicingKey() {
+        return platformInvoiceService.removeKey();
+    }
+
+    @PostMapping("/platform-invoicing/test")
+    public Map<String, String> testPlatformInvoicing() {
+        return Map.of("message", platformInvoiceService.test());
+    }
+
+    // Emite (sau reemite dupa o eroare) factura unei plati
+    @PostMapping("/payments/{orderId}/invoice")
+    public Map<String, Object> issueInvoice(@PathVariable String orderId) {
+        var p = platformInvoiceService.issueFromAdmin(orderId);
+        Map<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("payment", BillingService.dto(p));
+        m.put("invoiceError", p.getInvoiceError());
+        return m;
     }
 
     // Platile tuturor statiilor (abonamentele platformei)

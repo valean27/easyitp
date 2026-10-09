@@ -11,7 +11,7 @@ const LINKS = [
   { href: '/statii', label: 'Stații ITP' },
 ];
 
-const UPDATED = '8 octombrie 2026';
+const UPDATED = '9 octombrie 2026';
 
 function Section({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
   return (
@@ -105,7 +105,7 @@ function Privacy() {
           <li>trimiterea SMS-urilor, pe canalul ales de stație (telefonul stației prin SMS Gateway for Android, sau SMSLink);</li>
           <li>mesajele WhatsApp către managerul stației (CallMeBot), dacă stația le folosește;</li>
           <li>emiterea facturilor în contul de facturare al stației (Oblio) și, de acolo, în e-Factura (ANAF), dacă stația le folosește;</li>
-          <li>plata abonamentului cu cardul (NETOPIA Payments) și factura abonamentului (Oblio, e-Factura);</li>
+          <li>plata abonamentului cu cardul (NETOPIA Payments) și factura abonamentului (FGO, e-Factura);</li>
           <li>
             notificările push pe telefonul sau calculatorul stației și al inspectorilor, dacă le pornesc: trec criptate prin serviciul de
             notificări al browserului (Google, Apple, Mozilla sau Microsoft), care nu le poate citi;

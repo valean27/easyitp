@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen, HardHat } from 'lucide-react';
+import { Car, LayoutDashboard, Users, LogOut, CalendarDays, UserCog, BellRing, BarChart3, Loader2, Truck, Contact, Inbox, BookOpen, HardHat, Receipt } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAuth } from '../context/auth';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -49,6 +49,7 @@ const INSPECTOR_NAV: NavItem[] = [
 const ADMIN_NAV: NavItem[] = [
   { to: '/users', label: 'Manageri', short: 'Manageri', icon: Users },
   { to: '/leads', label: 'Cereri demo', short: 'Cereri', icon: Inbox },
+  { to: '/plati', label: 'Plăți și facturi', short: 'Plăți', icon: Receipt },
   { to: '/reports', label: 'Rapoarte', short: 'Rapoarte', icon: BarChart3 },
   { to: '/account', label: 'Contul meu', short: 'Cont', icon: UserCog },
 ];

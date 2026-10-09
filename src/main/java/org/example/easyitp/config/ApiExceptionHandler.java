@@ -37,6 +37,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
+    @ExceptionHandler(org.example.easyitp.service.DeliveryException.class)
+    public ResponseEntity<Map<String, String>> handleDelivery(org.example.easyitp.service.DeliveryException e) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of("message", e.getMessage() == null ? "Serviciul extern nu a răspuns" : e.getMessage()));
+    }
+
     @ExceptionHandler(DateTimeParseException.class)
     public ResponseEntity<Map<String, String>> handleDate(DateTimeParseException e) {
         return badRequest("Data are un format invalid");

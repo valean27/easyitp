@@ -22,6 +22,7 @@ const PublicBookingPage = lazy(() => import('./components/PublicBookingPage'));
 const StopPage = lazy(() => import('./components/StopPage'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const LeadsPage = lazy(() => import('./components/LeadsPage'));
+const AdminPaymentsPage = lazy(() => import('./components/AdminPaymentsPage'));
 const StationsPage = lazy(() => import('./components/StationsPage'));
 const LegalPage = lazy(() => import('./components/LegalPage'));
 const ManageAppointmentPage = lazy(() => import('./components/ManageAppointmentPage'));
@@ -220,6 +221,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="ADMIN">
                   <LeadsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="plati"
+              element={
+                <ProtectedRoute requiredRole="ADMIN">
+                  <AdminPaymentsPage />
                 </ProtectedRoute>
               }
             />
